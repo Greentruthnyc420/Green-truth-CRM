@@ -469,7 +469,7 @@ export async function getMyDispensaries(userId) {
 }
 
 // Cloud Function Trigger (Currently Disabled)
-export async function sendOfficialEmail(_params) {
+export async function sendOfficialEmail() {
     // Feature paused. See CREDENTIALS_BACKUP.env for implementation details.
     console.warn("Email feature is currently paused.");
     return Promise.resolve(false);
@@ -481,7 +481,7 @@ export async function logActivity(type, leadId, userId, details = {}) {
             type, // 'CALL', 'TEXT', 'EMAIL'
             leadId,
             userId,
-            details,
+            ...details,
             timestamp: new Date().toISOString()
         });
         return true;
@@ -705,3 +705,30 @@ export async function addActivationRequest(requestData) {
         throw e;
     }
 }
+
+/**
+ * DANGER: Wipes all data from sales, leads, shifts, and activations collections.
+ * Only use for factory reset before launch.
+ */
+export async function wipeAllData() {
+    const collectionsToWipe = ['sales', 'leads', 'shifts', 'activations', 'activity_logs'];
+
+    for (const collectionName of collectionsToWipe) {
+        try {
+            const querySnapshot = await getDocs(collection(db, collectionName));
+            const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(doc(db, collectionName, docSnap.id)));
+            await Promise.all(deletePromises);
+            console.log(`Wiped ${querySnapshot.size} documents from ${collectionName}`);
+        } catch (e) {
+            console.error(`Failed to wipe ${collectionName}:`, e);
+        }
+    }
+
+    // Also clear mock DB
+    MOCK_DB.shifts = [];
+    MOCK_DB.leads = [];
+    MOCK_DB.sales = [];
+
+    return true;
+}
+

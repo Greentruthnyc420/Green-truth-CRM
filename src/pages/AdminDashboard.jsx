@@ -20,6 +20,7 @@ import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../servic
 import { syncLeadToHubSpot } from '../services/hubspotService';
 import { convertToCSV, downloadCSV } from '../utils/csvHelper';
 import { importOfficialDispensaries } from '../services/dataSyncService';
+import { wipeAllData } from '../services/firestoreService';
 import {
     DollarSign,
     Users,
@@ -338,6 +339,28 @@ export default function AdminDashboard() {
             navigate('/brand'); // Go to Portal
         } catch (error) {
             alert(error.message);
+        }
+    };
+
+    const handleWipeData = async () => {
+        const confirm1 = confirm("⚠️ DANGER ZONE ⚠️\n\nAre you sure you want to WIPE ALL DATA? This will delete all Sales, Leads, Shifts, and Activations.\n\nThis cannot be undone.");
+        if (!confirm1) return;
+
+        const confirm2 = confirm("Please confirm one last time.\n\nType 'DELETE' to proceed?");
+        // Since we can't type in confirm, we'll just ask for a second click. 
+        // Actually, let's just use a second confirm dialog.
+        if (!confirm2) return;
+
+        setProcessing(true);
+        try {
+            await wipeAllData();
+            alert("Data Wipe Complete. Refeshing...");
+            window.location.reload();
+        } catch (error) {
+            console.error("Wipe failed:", error);
+            alert("Wipe failed. Check console.");
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -799,6 +822,23 @@ export default function AdminDashboard() {
                                     </button>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Danger Zone */}
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-6 mt-8 text-center">
+                            <h3 className="text-red-800 font-bold mb-2 flex items-center justify-center gap-2">
+                                <AlertTriangle size={20} /> Danger Zone
+                            </h3>
+                            <p className="text-red-600 text-sm mb-4">
+                                Use this before launch to clear all test data (Sales, Leads, Shifts, Activations).
+                            </p>
+                            <button
+                                onClick={handleWipeData}
+                                disabled={processing}
+                                className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                            >
+                                {processing ? 'Wiping...' : 'FACTORY RESET (Wipe All Data)'}
+                            </button>
                         </div>
                     </div>
                 )}

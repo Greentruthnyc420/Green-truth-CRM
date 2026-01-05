@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'vite.svg'],
       manifest: {
         name: 'Ambassador Portal',
         short_name: 'Ambassadors',
