@@ -174,6 +174,23 @@ export function BrandAuthProvider({ children }) {
         return ghostUser;
     }
 
+    // Password reset functionality
+    async function resetPassword(email) {
+        setLoading(true);
+        try {
+            // In production, this would call Firebase auth.sendPasswordResetEmail(email)
+            console.log(`Password reset email requested for: ${email}`);
+
+            // Mock delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return { success: true, message: 'Password reset link sent to your email.' };
+        } catch (error) {
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    }
+
     function logoutBrand() {
         setBrandUser(null);
     }
@@ -187,6 +204,7 @@ export function BrandAuthProvider({ children }) {
         loginWithGoogle,
         devBrandLogin,
         impersonateBrand,
+        resetPassword,
         logoutBrand
     };
 

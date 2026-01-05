@@ -11,8 +11,10 @@ import {
     getUserProfile,
     updateSaleStatus,
     markRepAsPaid,
-    seedBrands
+    seedBrands,
+    getActivations
 } from '../services/firestoreService';
+import NewActivationModal from '../components/NewActivationModal';
 // eslint-disable-next-line no-unused-vars
 import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../services/compensationService';
 import { syncLeadToHubSpot } from '../services/hubspotService';
@@ -36,11 +38,14 @@ import {
     HandCoins,
     Trophy,
     Crown,
-
-    Store, // New Icon
-    Shield, // New Icon
-    CircleDollarSign, // New Icon
-    Banknote          // New Icon
+    Store,
+    Shield,
+    CircleDollarSign,
+    Banknote,
+    Plus,
+    MapPin,
+    Tag,
+    Clock
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'; // Animation Lib
@@ -64,6 +69,8 @@ export default function AdminDashboard() {
     const [usersMap, setUsersMap] = useState({}); // userId -> name map
     const [selectedShiftIds, setSelectedShiftIds] = useState([]);
     const [userBonusMap, setUserBonusMap] = useState({}); // New State for Bonus Map
+    const [activations, setActivations] = useState([]);
+    const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
 
     // Financial Metrics State
     const [financials, setFinancials] = useState({
@@ -94,10 +101,11 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [allShifts, allSales, allLeads] = await Promise.all([
+                const [allShifts, allSales, allLeads, allActivations] = await Promise.all([
                     getAllShifts(),
                     getSales(),
-                    getLeads()
+                    getLeads(),
+                    getActivations()
                 ]);
 
                 // Seed Brands (Quick Setup)
@@ -112,6 +120,9 @@ export default function AdminDashboard() {
 
                 // Leads
                 setLeads(allLeads);
+
+                // Activations
+                setActivations(allActivations);
 
                 // --- Calculate Store Counts for Bonuses ---
                 const userStoreSets = {};
@@ -515,6 +526,12 @@ export default function AdminDashboard() {
                     icon={<FileText size={18} />}
                     label="Lead Export"
                 />
+                <TabButton
+                    active={activeTab === 'scheduling'}
+                    onClick={() => setActiveTab('scheduling')}
+                    icon={<Calendar size={18} />}
+                    label="Scheduling"
+                />
             </div>
 
             {/* Content Area */}
@@ -786,7 +803,95 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
+                {/* Scheduling Tab */}
+                {activeTab === 'scheduling' && (
+                    <div className="p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800">Activation Schedule</h1>
+                                <p className="text-sm text-slate-500">Scheduled events and rep assignments</p>
+                            </div>
+                            <button
+                                onClick={() => setIsActivationModalOpen(true)}
+                                className="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-lg shadow-slate-200"
+                            >
+                                <Plus size={18} />
+                                Schedule Activation
+                            </button>
+                        </div>
+
+                        {activations.length === 0 ? (
+                            <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
+                                <h3 className="text-lg font-bold text-slate-800">No scheduled activations</h3>
+                                <p className="text-slate-500 mb-6">Start by scheduling an invitation for a rep.</p>
+                                <button
+                                    onClick={() => setIsActivationModalOpen(true)}
+                                    className="px-6 py-2 bg-brand-600 text-white rounded-lg font-bold hover:bg-brand-700 transition-colors"
+                                >
+                                    Schedule First Event
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {activations.map(act => (
+                                    <div key={act.id} className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                                                <Store size={20} />
+                                            </div>
+                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${act.status === 'scheduled' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                }`}>
+                                                {act.status}
+                                            </span>
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">{act.storeName}</h3>
+                                        <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                                            <MapPin size={14} />
+                                            <span className="truncate">{act.address}</span>
+                                        </div>
+
+                                        <div className="space-y-3 pt-3 border-t border-slate-50">
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-500 flex items-center gap-2"><Tag size={14} /> Brand</span>
+                                                <span className="font-bold text-slate-800">{act.brandName}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-500 flex items-center gap-2"><Users size={14} /> Assigned Rep</span>
+                                                <span className="font-bold text-brand-700">{act.repName}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-500 flex items-center gap-2"><Clock size={14} /> Time</span>
+                                                <span className="font-medium text-slate-700">
+                                                    {new Date(act.startISO).toLocaleDateString()} @ {new Date(act.startISO).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {act.googleEventId && (
+                                            <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                                                <Calendar size={12} />
+                                                ID: {act.googleEventId}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </div>
+
+            <NewActivationModal
+                isOpen={isActivationModalOpen}
+                onClose={() => setIsActivationModalOpen(false)}
+                onSave={() => {
+                    // Simple refresh - ideally re-fetch only activations
+                    window.location.reload();
+                }}
+                leads={leads}
+            />
         </div>
     );
 }

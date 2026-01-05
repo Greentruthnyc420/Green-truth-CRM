@@ -82,6 +82,16 @@ export default function History() {
                                             ${shift.tollAmount} Tolls
                                         </span>
                                     )}
+                                    {shift.tollReceiptImageUrl && (
+                                        <a href={shift.tollReceiptImageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-xs">
+                                            View Receipt
+                                        </a>
+                                    )}
+                                    {shift.odometerImageUrl && (
+                                        <a href={shift.odometerImageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-xs">
+                                            View Odometer
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         </div>

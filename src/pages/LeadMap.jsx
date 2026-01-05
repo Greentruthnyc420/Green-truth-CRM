@@ -9,35 +9,20 @@ export default function LeadMap() {
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        async function loadLeads() {
-            setLoading(true);
-            try {
-                // Fetch dispensaries (which aggregates leads + sales + shifts)
-                const data = await getMyDispensaries(currentUser?.uid || 'test-user-123');
-                setLeads(data);
-            } catch (error) {
-                console.error("Failed to load map data", error);
-            } finally {
-                setLoading(false);
-            }
+    async function loadLeads() {
+        setLoading(true);
+        try {
+            // Fetch dispensaries (which aggregates leads + sales + shifts)
+            const data = await getMyDispensaries(currentUser?.uid || 'test-user-123');
+            setLeads(data);
+        } catch (error) {
+            console.error("Failed to load map data", error);
+        } finally {
+            setLoading(false);
         }
-        loadLeads();
-    }, [currentUser]);
+    }
 
     useEffect(() => {
-        async function loadLeads() {
-            setLoading(true);
-            try {
-                // Fetch dispensaries (which aggregates leads + sales + shifts)
-                const data = await getMyDispensaries(currentUser?.uid || 'test-user-123');
-                setLeads(data);
-            } catch (error) {
-                console.error("Failed to load map data", error);
-            } finally {
-                setLoading(false);
-            }
-        }
         loadLeads();
     }, [currentUser]);
 
@@ -71,10 +56,9 @@ export default function LeadMap() {
                 ) : (
                     <CRMMap
                         leads={leads}
-                        viewMode="admin" // For Sales App, we treat Reps similar to Admins but filtered. 
-                        // Note: If you want Brand Portal view, that would happen in BrandDashboard, not here.
-                        // Here we are in the Sales App, so "admin" mode is appropriate (shows all statuses)
+                        viewMode="admin" // Reps see all states for their assigned/expired leads
                         currentBrandId={null}
+                        onRefresh={loadLeads}
                     />
                 )}
             </div>

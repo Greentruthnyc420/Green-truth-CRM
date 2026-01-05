@@ -14,6 +14,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "canvas-confetti": "^1.9.4",
+    "date-fns": "^4.1.0",
     "firebase": "^12.7.0",
     "framer-motion": "^12.23.26",
     "jspdf": "^3.0.4",
@@ -21,6 +22,7 @@
     "lucide-react": "^0.562.0",
     "nodemailer": "^7.0.12",
     "react": "^19.2.0",
+    "react-big-calendar": "^1.19.4",
     "react-dom": "^19.2.0",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.11.0",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.57.0",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",

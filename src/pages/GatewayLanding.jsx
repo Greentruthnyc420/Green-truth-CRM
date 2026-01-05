@@ -3,22 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, Package, Shield, Sparkles } from 'lucide-react';
 
-// Import partner logos
+// Import main logo
 import logoMain from '../assets/images/logo-main.png';
+// Import partner logos
 import partner1 from '../assets/images/partner-1.png';
 import partner2 from '../assets/images/partner-2.png';
 import partner3 from '../assets/images/partner-3.jpg';
 import partner4 from '../assets/images/partner-4.png';
 import partner5 from '../assets/images/partner-5.png';
 import partner6 from '../assets/images/partner-6.png';
+import partner7 from '../assets/images/partner-7.png';
+import waferz from '../assets/images/waferz.png';
+import smoothieBar from '../assets/images/smoothie-bar.png';
+import flxExtracts from '../assets/images/flx-extracts.png';
 
 const partnerLogos = [
     { src: partner1, name: 'Wanders New York' },
     { src: partner5, name: 'Honey King' },
     { src: partner2, name: 'Space Poppers' },
+    { src: partner4, name: 'Budcracker Blvd' }, // Primary
     { src: partner3, name: 'Canna Dots' },
-    { src: partner6, name: 'Royal Lion' },
-    { src: partner4, name: 'Budcracker BLVD' },
+    { src: waferz, name: 'Waferz' },
+    { src: partner6, name: 'Honey King Lion' },
+    { src: smoothieBar, name: 'Smoothie Bar' },
+    { src: flxExtracts, name: 'FLX Extracts' },
+    { src: partner7, name: 'Budcracker NYC' },  // Secondary
 ];
 
 // SVG Component for a simplified Cannabis Leaf
@@ -250,11 +259,11 @@ export default function GatewayLanding() {
                         <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#050505] to-transparent z-10"></div>
                         <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#050505] to-transparent z-10"></div>
 
-                        <div className="flex animate-scroll-infinite">
+                        <div className="flex animate-scroll-infinite gap-20">
                             {[...partnerLogos, ...partnerLogos, ...partnerLogos].map((partner, index) => (
                                 <motion.div
                                     key={`${partner.name}-${index}`}
-                                    className="flex-shrink-0 mx-10 transition-all duration-500 cursor-pointer"
+                                    className="flex-shrink-0 transition-all duration-500 cursor-pointer"
                                     whileHover={{ scale: 1.1 }}
                                 >
                                     <img
@@ -273,10 +282,12 @@ export default function GatewayLanding() {
             <style jsx>{`
                 @keyframes scroll-infinite {
                     0% { transform: translateX(0); }
-                    100% { transform: translateX(-33.333%); }
+                    100% { transform: translateX(calc(-33.333% - (20px * (2/3)))); }
                 }
                 .animate-scroll-infinite {
-                    animation: scroll-infinite 40s linear infinite;
+                    animation: scroll-infinite 15s linear infinite;
+                    display: flex;
+                    width: max-content;
                 }
                 .animate-scroll-infinite:hover {
                     animation-play-state: paused;

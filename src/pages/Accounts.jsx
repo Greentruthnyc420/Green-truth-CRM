@@ -4,6 +4,7 @@ import { getAllAccounts, deleteLead, updateLead } from '../services/firestoreSer
 import { Search, Loader, Building2, User, CheckCircle, Pencil, Trash2, X, Save, AlertTriangle } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
+import DispensaryDetailsModal from '../components/DispensaryDetailsModal';
 
 const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
 
@@ -14,10 +15,13 @@ export default function Accounts() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all');
 
-    // Drawer State
+    // Drawer State (For Editing)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [selectedAccount, setSelectedAccount] = useState(null);
+    const [selectedAccount, setSelectedAccount] = useState(null); // Used for editing
     const [saving, setSaving] = useState(false);
+
+    // Details Modal State
+    const [viewAccount, setViewAccount] = useState(null); // Used for viewing details
 
     // Delete Modal State
     const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: '' });
@@ -35,9 +39,18 @@ export default function Accounts() {
         load();
     }, [currentUser, isAdmin]);
 
+    const handleRowClick = (acc) => {
+        // Open details modal
+        setViewAccount(acc);
+    };
+
     const handleEditClick = (acc) => {
+        // From table action or details modal
         setSelectedAccount({ ...acc });
         setIsDrawerOpen(true);
+        // If coming from details view, we can keep it open or close it. 
+        // Standard UX: Close details, open edit.
+        setViewAccount(null);
     };
 
     const handleSave = async (e) => {
@@ -55,7 +68,8 @@ export default function Accounts() {
         }
     };
 
-    const handleDeleteClick = (acc) => {
+    const handleDeleteClick = (acc, e) => {
+        e.stopPropagation(); // Prevent opening details
         setDeleteModal({ open: true, id: acc.id, name: acc.dispensaryName });
     };
 
@@ -147,11 +161,12 @@ export default function Accounts() {
                                     {filteredAccounts.map((acc, i) => (
                                         <motion.tr
                                             key={acc.id || i}
-                                            className="hover:bg-slate-50 transition-colors group relative"
+                                            className="hover:bg-slate-50 transition-colors group relative cursor-pointer"
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             exit={{ height: 0, opacity: 0, transition: { duration: 0.2 } }}
                                             layout
+                                            onClick={() => handleRowClick(acc)}
                                         >
                                             <td className="px-6 py-4 font-bold text-slate-800">
                                                 {acc.dispensaryName}
@@ -175,12 +190,12 @@ export default function Accounts() {
                                                 {getDaysSince(acc.createdAt || acc.meetingDate)}d
                                             </td>
                                             {isAdmin && (
-                                                <td className="px-6 py-4 text-right">
+                                                <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                         <motion.button
                                                             whileHover={{ scale: 1.1 }}
                                                             whileTap={{ scale: 0.95 }}
-                                                            onClick={() => handleEditClick(acc)}
+                                                            onClick={(e) => { e.stopPropagation(); handleEditClick(acc); }}
                                                             className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-brand-600 hover:border-brand-200 shadow-sm"
                                                             title="Edit Account"
                                                         >
@@ -189,7 +204,7 @@ export default function Accounts() {
                                                         <motion.button
                                                             whileHover={{ scale: 1.1 }}
                                                             whileTap={{ scale: 0.95 }}
-                                                            onClick={() => handleDeleteClick(acc)}
+                                                            onClick={(e) => handleDeleteClick(acc, e)}
                                                             className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-red-600 hover:border-red-200 shadow-sm"
                                                             title="Delete Account"
                                                         >
@@ -206,6 +221,15 @@ export default function Accounts() {
                     </div>
                 </div>
             )}
+
+            {/* DETAILS MODAL */}
+            <DispensaryDetailsModal
+                isOpen={!!viewAccount}
+                onClose={() => setViewAccount(null)}
+                dispensary={viewAccount}
+                isAdmin={isAdmin}
+                onEdit={handleEditClick}
+            />
 
             {/* EDIT DRAWER */}
             <AnimatePresence>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import {
     FileText, ArrowUpRight, AlertTriangle,
-    CreditCard, Download, ExternalLink
+    CreditCard, Download, ExternalLink, Clock
 } from 'lucide-react';
 
 // Mock invoice data for MONEY GOING OUT (To GreenTruth)
@@ -58,6 +58,34 @@ export default function BrandInvoicesGreenTruth() {
                     <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
                         <p className="text-xs text-slate-600 font-medium uppercase tracking-wider">Total Paid</p>
                         <p className="text-xl font-bold text-slate-700">$3,000</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Payment Schedule Info Banner */}
+            <div className="bg-slate-900 rounded-xl p-4 text-white shadow-lg overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Clock size={80} />
+                </div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center border border-red-500/30">
+                            <Clock className="text-red-400" size={20} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400">Quarterly Commission</p>
+                            <p className="text-sm font-medium">Due within 14 days of quarter end</p>
+                        </div>
+                    </div>
+                    <div className="h-8 w-px bg-slate-700 hidden md:block"></div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                            <Clock className="text-blue-400" size={20} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Biweekly Fees</p>
+                            <p className="text-sm font-medium">Activations & Service fees due Mondays</p>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -10,6 +10,15 @@ import {
     where
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { serverTimestamp, updateDoc } from "firebase/firestore";
+
+// Status Constants
+export const LEAD_STATUS = {
+    PROSPECT: 'prospect',
+    SAMPLES_REQUESTED: 'samples_requested',
+    SAMPLES_DELIVERED: 'samples_delivered',
+    ACTIVE: 'active'
+};
 
 /*
   Database Schema Design:
@@ -86,6 +95,17 @@ export async function getUserProfile(userId) {
     }
 }
 
+export async function getAllUsers() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.warn("Firestore failed to get all users", e);
+        return [];
+    }
+}
+
+
 // Shifts Collection
 export async function addShift(shiftData) {
     if (isMock(shiftData.userId)) {
@@ -148,8 +168,19 @@ export async function addLead(leadData) {
     }
 
     try {
-        // Check if we can reach DB
-        const data = { ...leadData, syncedToHubspot: leadData.syncedToHubspot || false };
+        // Determine initial status
+        let initialStatus = leadData.leadStatus || LEAD_STATUS.PROSPECT;
+        if (!leadData.leadStatus && leadData.samplesRequested && leadData.samplesRequested.length > 0) {
+            initialStatus = LEAD_STATUS.SAMPLES_REQUESTED;
+        }
+
+        const data = {
+            ...leadData,
+            leadStatus: initialStatus,
+            syncedToHubspot: leadData.syncedToHubspot || false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
         const docRef = await addDoc(collection(db, "leads"), data);
         return docRef.id;
     } catch (e) {
@@ -182,6 +213,17 @@ export async function updateLead(leadId, updates) {
         console.error("Failed to update lead", e);
         return false;
     }
+}
+
+/**
+ * Transitions lead to 'samples_delivered' state.
+ */
+export async function deliverSamples(leadId) {
+    return updateLead(leadId, {
+        leadStatus: LEAD_STATUS.SAMPLES_DELIVERED,
+        samplesDeliveredAt: new Date().toISOString(),
+        updatedAt: serverTimestamp()
+    });
 }
 // Deletion
 export async function deleteLead(leadId) {
@@ -292,6 +334,35 @@ export async function addSale(saleData) {
 
     try {
         const docRef = await addDoc(collection(db, "sales"), saleData);
+
+        // Automatic Transition: Lead -> Active (Sold)
+        // Find if a lead exists for this dispensary and user, and update it
+        try {
+            const allLeads = await getLeads();
+            const normalizedName = saleData.dispensaryName.toLowerCase().trim();
+            const leadMatch = allLeads.find(l =>
+                (l.dispensaryName || '').toLowerCase().trim() === normalizedName &&
+                l.userId === saleData.userId
+            );
+
+            if (leadMatch) {
+                // Merge new active brands with existing ones
+                const currentActiveBrands = leadMatch.activeBrands || [];
+                const newActiveBrands = saleData.activeBrands || [];
+                const mergedActiveBrands = Array.from(new Set([...currentActiveBrands, ...newActiveBrands]));
+
+                await updateLead(leadMatch.id, {
+                    status: 'Sold',
+                    leadStatus: LEAD_STATUS.ACTIVE,
+                    activeBrands: mergedActiveBrands,
+                    lastSaleDate: new Date().toISOString(),
+                    updatedAt: serverTimestamp()
+                });
+            }
+        } catch (updateErr) {
+            console.warn("Failed to auto-update lead status after sale", updateErr);
+        }
+
         return docRef.id;
     } catch (e) {
         console.warn("Firestore failed. Mocking success.");
@@ -382,6 +453,7 @@ export async function getMyDispensaries(userId) {
                     phone: lead.phone,
                     contactPerson: lead.contactPerson,
                     interests: lead.samplesRequested || [],
+                    leadStatus: lead.leadStatus || (lead.status === 'Sold' ? 'active' : 'prospect'),
                     id: lead.id, // Critical for updates
                     location: lead.location // GPS Coords
                 });
@@ -389,7 +461,11 @@ export async function getMyDispensaries(userId) {
         }
     });
 
-    return Array.from(dispensaryMap.values());
+    // Post-merge fix: If it has a lastPurchase, it's definitely active
+    return Array.from(dispensaryMap.values()).map(disp => ({
+        ...disp,
+        leadStatus: disp.lastPurchase ? 'active' : (disp.leadStatus || 'prospect')
+    }));
 }
 
 // Cloud Function Trigger (Currently Disabled)
@@ -493,7 +569,8 @@ export async function seedBrands() {
     const brandsToSeed = [
         { name: "Smoothie Bar", status: "Active" },
         { name: "Wanderers", status: "Active" },
-        { name: "Waferz", status: "Active" }
+        { name: "Waferz", status: "Active" },
+        { name: "FLX Extracts", status: "Active" }
     ];
 
     try {
@@ -571,10 +648,60 @@ export async function updateBrandMenuUrl(brandId, menuUrl) {
 
 export async function getAllBrandProfiles() {
     try {
-        const querySnapshot = await getDocs(collection(db, "brand_profiles"));
+        const querySnapshot = await getDocs(collection(db, "brands"));
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e) {
         console.warn("Failed to fetch brand profiles", e);
         return [];
+    }
+}
+// Activations (Scheduling)
+export async function addActivation(activationData) {
+    try {
+        const docRef = await addDoc(collection(db, "activations"), {
+            ...activationData,
+            createdAt: new Date().toISOString(),
+            status: activationData.status || 'scheduled'
+        });
+        return docRef.id;
+    } catch (e) {
+        console.error("Error adding activation:", e);
+        throw e;
+    }
+}
+
+export async function getActivations() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "activations"));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error("Error fetching activations:", e);
+        return [];
+    }
+}
+
+export async function updateActivation(activationId, updates) {
+    try {
+        const docRef = doc(db, "activations", activationId);
+        await setDoc(docRef, updates, { merge: true });
+        return true;
+    } catch (e) {
+        console.error("Error updating activation:", e);
+        return false;
+    }
+}
+
+// Activation Requests (from Brands)
+export async function addActivationRequest(requestData) {
+    try {
+        const docRef = await addDoc(collection(db, "activation_requests"), {
+            ...requestData,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        });
+        return docRef.id;
+    } catch (e) {
+        console.error("Error adding activation request:", e);
+        throw e;
     }
 }

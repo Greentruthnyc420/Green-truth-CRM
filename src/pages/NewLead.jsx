@@ -140,10 +140,13 @@ export default function NewLead() {
                 // Add explicit Rep Name for Leaderboard/Smart Checks
                 repAssigned: currentUser?.displayName || currentUser?.email || 'Unknown Rep',
                 createdAt: new Date().toISOString(),
-                status: 'New' // Explicitly set status
+                status: 'New', // Legacy status
+                leadStatus: (formData.samplesRequested && formData.samplesRequested.length > 0)
+                    ? 'samples_requested'
+                    : 'prospect'
             });
             alert('Lead added successfully! 45-Day Exclusivity Started.');
-            navigate('/');
+            navigate('/app');
         } catch (error) {
             console.error('Error adding lead:', error);
             alert('Failed to add lead');

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
     Package, ShoppingCart, DollarSign,
     TrendingUp, AlertCircle, CheckCircle, Clock,
-    ArrowUpRight, ArrowDownRight, BarChart3, PieChart
+    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { getSales as getAllSales, getAllShifts } from '../../services/firestoreService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
+import RequestActivationModal from '../../components/RequestActivationModal';
 
 // Mock data for dashboard - will be replaced with Firestore queries
 const getMockAnalytics = (brandId) => ({
@@ -52,6 +53,8 @@ const getMockAnalytics = (brandId) => ({
     ]
 });
 
+import { PRODUCT_CATALOG } from '../../data/productCatalog';
+
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
     const [financials, setFinancials] = useState({
@@ -62,125 +65,19 @@ export default function BrandDashboard() {
         pendingOrders: 0
     });
     const [loading, setLoading] = useState(true);
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+
+    const brandData = PRODUCT_CATALOG.find(b => b.id === brandUser?.brandId);
 
     useEffect(() => {
         async function fetchData() {
             if (!brandUser?.brandId) return;
 
+            setLoading(true);
             try {
-                // Fetch all raw data (in a real app, we'd query with filters, but for now we filter client-side)
-                // We need Sales for the 5% Commission
-                // We need Shifts for the Activation Costs
-                const [allSales, allShifts] = await Promise.all([
-                    getAllSales(), // Need to export this or use getSales
-                    getAllShifts()
-                ]);
-
-                // 1. Calculate Revenue & 5% Commission
-                let totalRevenue = 0;
-                let pendingCount = 0;
-                let pendingRevenue = 0; // New: Track value of pending orders
-                let totalOrders = 0;
-                const productSalesMap = {}; // New: Track product quantities
-
-                allSales.forEach(sale => {
-                    // Check items for this brand
-                    const brandItems = sale.items?.filter(item => item.brandId === brandUser.brandId) || [];
-
-                    if (brandItems.length > 0) {
-                        const saleRevenue = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                        totalRevenue += saleRevenue;
-                        totalOrders++;
-
-                        if (sale.status === 'pending') {
-                            pendingCount++;
-                            pendingRevenue += saleRevenue;
-                        }
-
-                        // Track product sales
-                        brandItems.forEach(item => {
-                            productSalesMap[item.name] = (productSalesMap[item.name] || 0) + item.quantity;
-                        });
-                    }
-                });
-
-                // Calculate Top Selling Product
-                let topProduct = 'N/A';
-                let maxSold = 0;
-                Object.entries(productSalesMap).forEach(([name, qty]) => {
-                    if (qty > maxSold) {
-                        maxSold = qty;
-                        topProduct = name;
-                    }
-                });
-
-                // Calculate AOV
-                const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-                const commissionOwed = totalRevenue * 0.05;
-
-                // Pricing Sheet Configuration
-                const PRICING_TIERS = {
-                    'NYC': { 2: 120, 3: 160, 4: 200, 5: 240 },
-                    'LI': { 2: 140, 3: 180, 4: 220, 5: 260 },
-                    'UPSTATE': { 2: 160, 3: 200, 4: 240, 5: 280 }
-                };
-
-                const calculateAgencyShiftCost = (shift) => {
-                    const duration = Math.max(2, Math.round(parseFloat(shift.hoursWorked) || 0)); // Minimum 2 hours
-                    const regionRaw = (shift.region || 'NYC').toUpperCase();
-
-                    // Normalize region
-                    let region = 'NYC';
-                    if (regionRaw.includes('LI') || regionRaw.includes('DOWNSTATE') || regionRaw.includes('WESTCHESTER')) region = 'LI';
-                    if (regionRaw.includes('UPSTATE')) region = 'UPSTATE';
-
-                    const tiers = PRICING_TIERS[region] || PRICING_TIERS['NYC'];
-
-                    // Base Fee Calculation
-                    let baseFee = 0;
-                    if (duration <= 2) baseFee = tiers[2];
-                    else if (duration <= 3) baseFee = tiers[3];
-                    else if (duration <= 4) baseFee = tiers[4];
-                    else if (duration <= 5) baseFee = tiers[5];
-                    else {
-                        // Extrapolate for > 5 hours (assume $40/hr pattern from sheet)
-                        const extraHours = duration - 5;
-                        baseFee = tiers[5] + (extraHours * 40);
-                    }
-
-                    // Agency Mileage Rate: $0.70/mile
-                    const mileageCost = (parseFloat(shift.milesTraveled) || 0) * 0.70;
-
-                    // Tolls (At Cost)
-                    const tollsCost = parseFloat(shift.tollAmount) || 0;
-
-                    return baseFee + mileageCost + tollsCost;
-                };
-
-                // 2. Calculate Activation Costs with Agency Pricing
-                let totalActivationCost = 0;
-
-                allShifts.forEach(shift => {
-                    if (shift.brand === brandUser.brandName || (shift.brand && shift.brand.includes(brandUser.brandName))) {
-                        // User asked for what they are charged (Agency Rates)
-                        // Show pending liability
-                        if (shift.status !== 'paid') {
-                            totalActivationCost += calculateAgencyShiftCost(shift);
-                        }
-                    }
-                });
-
-                setFinancials({
-                    revenue: totalRevenue,
-                    commissionOwed: commissionOwed,
-                    activationCosts: totalActivationCost,
-                    orderCount: totalOrders,
-                    pendingOrders: pendingCount,
-                    topProduct: topProduct, // New
-                    aov: aov, // New
-                    outstandingInvoices: pendingRevenue // New
-                });
-
+                const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
+                const metrics = await calculateBrandMetrics(brandUser.brandId, brandUser.brandName);
+                setFinancials(metrics);
             } catch (error) {
                 console.error("Failed to load brand dashboard data", error);
             } finally {
@@ -204,12 +101,26 @@ export default function BrandDashboard() {
     return (
         <div className="space-y-6">
             {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Welcome back, {brandUser?.brandName}!</h1>
-                    <p className="text-slate-500">Overview of your performance and pending actions.</p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-4">
+                    {brandData?.logo && (
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 p-1 flex items-center justify-center">
+                            <img src={brandData.logo} alt={brandData.name} className="max-w-full max-h-full object-contain" />
+                        </div>
+                    )}
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800">Welcome back, {brandUser?.brandName}!</h1>
+                        <p className="text-slate-500 text-sm">Overview of your performance and pending actions.</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsRequestModalOpen(true)}
+                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
+                    >
+                        <Sparkles size={18} className="text-emerald-600" />
+                        Request Activation
+                    </button>
                     <Link to="/brand/orders" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2">
                         <ShoppingCart size={18} />
                         View Orders
@@ -303,29 +214,51 @@ export default function BrandDashboard() {
                         <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                             <PieChart size={24} className="text-red-600" />
                         </div>
-                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-100">
-                            5% Commission
-                        </span>
+                        <div className="text-right">
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-100 block mb-1">
+                                5% Commission
+                            </span>
+                            <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">Paid Quarterly</span>
+                        </div>
                     </div>
                     <p className="text-2xl font-bold text-slate-800 relative z-10">{formatCurrency(financials.commissionOwed)}</p>
-                    <p className="text-sm text-slate-500 relative z-10">Owed to GreenTruth</p>
+                    <div className="flex items-center gap-1 mt-1">
+                        <p className="text-sm text-slate-500 relative z-10">Owed to GreenTruth</p>
+                        <div className="group/tip relative">
+                            <Clock size={12} className="text-slate-400" />
+                            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-50">
+                                Paid within 2 weeks after each quarter ends.
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Activation Costs (Bi-Weekly Pay) */}
                 <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-all">
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <DollarSign size={64} className="text-blue-600" />
+                        <img src="/logos/logo-main.png" alt="GreenTruth" className="w-16 h-16 object-contain grayscale opacity-20" />
                     </div>
                     <div className="flex items-center justify-between mb-4 relative z-10">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <DollarSign size={24} className="text-blue-600" />
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center p-2">
+                            <img src="/logos/logo-main.png" alt="GreenTruth" className="w-full h-full object-contain" />
                         </div>
-                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
-                            Outstanding
-                        </span>
+                        <div className="text-right">
+                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100 block mb-1">
+                                Outstanding
+                            </span>
+                            <span className="text-[10px] text-blue-500 font-bold uppercase tracking-tight">Paid Biweekly</span>
+                        </div>
                     </div>
                     <p className="text-2xl font-bold text-slate-800 relative z-10">{formatCurrency(financials.activationCosts)}</p>
-                    <p className="text-sm text-slate-500 relative z-10">Activation Costs (Labor + Exp)</p>
+                    <div className="flex items-center gap-1 mt-1">
+                        <p className="text-sm text-slate-500 relative z-10">Activation Costs & Fees</p>
+                        <div className="group/tip relative">
+                            <Clock size={12} className="text-slate-400" />
+                            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-50">
+                                Due every other Monday.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -353,6 +286,13 @@ export default function BrandDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Modals */}
+            <RequestActivationModal
+                isOpen={isRequestModalOpen}
+                onClose={() => setIsRequestModalOpen(false)}
+                brandUser={brandUser}
+            />
         </div>
     );
 }

@@ -16,6 +16,8 @@ import CommissionPayouts from './pages/CommissionPayouts';
 import WagesPayouts from './pages/WagesPayouts';
 import ActiveAccounts from './pages/ActiveAccounts';
 import LeadMap from './pages/LeadMap';
+import Schedule from './pages/Schedule';
+import BrandOversight from './pages/BrandOversight';
 import PrivateRoute from './components/PrivateRoute';
 import GatewayLanding from './pages/GatewayLanding';
 
@@ -27,6 +29,7 @@ import BrandOrders from './pages/brand/BrandOrders';
 import BrandInvoicesDispensary from './pages/brand/BrandInvoicesDispensary';
 import BrandInvoicesGreenTruth from './pages/brand/BrandInvoicesGreenTruth';
 import BrandMenuEditor from './pages/brand/BrandMenuEditor';
+import BrandSchedule from './pages/brand/BrandSchedule';
 import BrandMap from './pages/brand/BrandMap';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
@@ -42,6 +45,7 @@ function App() {
       <Route element={<PrivateRoute />}>
         <Route path="/app" element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="schedule" element={<Schedule />} />
           <Route path="map" element={<LeadMap />} />
           <Route path="my-dispensaries" element={<MyDispensaries />} />
           <Route path="history" element={<History />} />
@@ -55,6 +59,7 @@ function App() {
           <Route path="accounts/active" element={<ActiveAccounts />} />
           <Route path="accounts" element={<Accounts />} />
           <Route path="admin" element={<AdminDashboard />} />
+          <Route path="brand-oversight" element={<BrandOversight />} />
           {/* Fallback route */}
           <Route path="*" element={<Dashboard />} />
         </Route>
@@ -69,6 +74,7 @@ function App() {
           <Route path="orders" element={<BrandOrders />} />
           <Route path="invoices/dispensary" element={<BrandInvoicesDispensary />} />
           <Route path="invoices/greentruth" element={<BrandInvoicesGreenTruth />} />
+          <Route path="schedule" element={<BrandSchedule />} />
           <Route path="menu" element={<BrandMenuEditor />} />
           <Route path="map" element={<BrandMap />} />
         </Route>

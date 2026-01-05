@@ -16,10 +16,14 @@ export default function LogSale() {
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [availableStores, setAvailableStores] = useState({ active: [], myLeads: [], openLeads: [] });
-    const [basicInfo, setBasicInfo] = useState({ dispensaryName: '', date: new Date().toISOString().split('T')[0] });
+    const [basicInfo, setBasicInfo] = useState({ dispensaryName: '', date: new Date().toISOString().split('T')[0], paymentTerms: 'COD' });
     const [selectedBrandIds, setSelectedBrandIds] = useState([]);
     const [brandProductsMap, setBrandProductsMap] = useState({}); // Map<brandId, Product[]>
     const [cart, setCart] = useState({});
+    const [pricingModes, setPricingModes] = useState({}); // Map<productId, 'unit' | 'case'>
+
+    // Helper to get mode
+    const getMode = (productId) => pricingModes[productId] || 'unit';
 
     // Voice Integration Logic - REMOVED
 
@@ -174,6 +178,7 @@ export default function LogSale() {
             await addSale({
                 dispensaryName: basicInfo.dispensaryName,
                 date: new Date(basicInfo.date),
+                paymentTerms: basicInfo.paymentTerms,
                 amount: totalAmount,
                 items: flatItems,
                 commissionEarned: commission,
@@ -279,6 +284,21 @@ export default function LogSale() {
                         </div>
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Payment Terms</label>
+                        <div className="relative">
+                            <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <select
+                                required
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all bg-white appearance-none"
+                                value={basicInfo.paymentTerms}
+                                onChange={(e) => setBasicInfo({ ...basicInfo, paymentTerms: e.target.value })}
+                            >
+                                <option value="COD">COD (Cash on Delivery)</option>
+                                <option value="Net 30">Net 30</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Date of Sale</label>
                         <div className="relative">
                             <Calendar size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -342,6 +362,16 @@ export default function LogSale() {
             // Use dynamic products
             const productsList = brandProductsMap[brandId] || [];
 
+            // Group Products
+            const groupedProducts = productsList.reduce((acc, product) => {
+                const category = product.category || 'Uncategorized';
+                if (!acc[category]) acc[category] = [];
+                acc[category].push(product);
+                return acc;
+            }, {});
+
+            const categoryOrder = ['Flower', 'Pre-Roll', 'Vape', 'Concentrate', 'Edible', 'Uncategorized'];
+
             return (
                 <div className="space-y-6 animate-fadeIn">
                     <h2 className="text-xl font-bold text-slate-800">{brand.name} Menu</h2>
@@ -351,40 +381,122 @@ export default function LogSale() {
                                 No products available for this brand.
                             </div>
                         ) : (
-                            productsList.map(product => {
-                                const qty = brandCart[product.id] || 0;
+                            categoryOrder.map(category => {
+                                const categoryProducts = groupedProducts[category];
+                                if (!categoryProducts || categoryProducts.length === 0) return null;
+
                                 return (
-                                    <div key={product.id} className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-slate-800">{product.name}</h3>
-                                            <p className="text-sm text-slate-500">{product.description}</p>
-                                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                                                <span className="bg-slate-100 px-2 py-1 rounded-full">Cost: ${product.price.toFixed(2)}</span>
-                                                <span>Case Size: {product.caseSize}</span>
-                                            </div>
+                                    <div key={category} className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-2 pt-4">
+                                            <h3 className="text-lg font-bold text-slate-700">{category}</h3>
+                                            <div className="h-px bg-slate-200 flex-1"></div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => updateCart(brand.id, product.id, qty - 1)}
-                                                className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 active:scale-95 transition-transform"
-                                                disabled={qty <= 0}
-                                            >
-                                                -
-                                            </button>
-                                            <input
-                                                type="number"
-                                                className="w-16 h-12 flex items-center justify-center text-center font-bold outline-none border-b-2 border-slate-200 focus:border-brand-500 bg-transparent"
-                                                value={qty}
-                                                onChange={(e) => updateCart(brand.id, product.id, parseInt(e.target.value) || 0)}
-                                                min="0"
-                                            />
-                                            <button
-                                                onClick={() => updateCart(brand.id, product.id, qty + 1)}
-                                                className="w-12 h-12 rounded-full bg-brand-100 hover:bg-brand-200 flex items-center justify-center text-brand-600 active:scale-95 transition-transform"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
+
+                                        {categoryProducts.map(product => {
+                                            const qty = brandCart[product.id] || 0;
+                                            const mode = getMode(product.id);
+                                            const caseSize = product.caseSize || 1;
+                                            const casePrice = product.price * caseSize;
+
+                                            // Display logic
+                                            const displayQty = mode === 'case' ? (qty / caseSize) : qty;
+                                            // Determine increment step
+                                            const stepSize = mode === 'case' ? caseSize : 1;
+
+                                            return (
+                                                <div key={product.id} className={`product-card bg-white border p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 ${!product.inStock ? 'opacity-70 border-slate-100 bg-slate-50' : 'border-slate-100'}`}>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-start justify-between">
+                                                            <h3 className="font-bold text-slate-800">
+                                                                {product.name}
+                                                                {!product.inStock && (
+                                                                    <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600 border border-red-200 uppercase tracking-wider">
+                                                                        Sold Out
+                                                                    </span>
+                                                                )}
+                                                            </h3>
+                                                        </div>
+
+                                                        <div className="flex flex-wrap gap-2 my-1.5">
+                                                            {product.thc && (
+                                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-wider">
+                                                                    {product.thc} THC
+                                                                </span>
+                                                            )}
+                                                            {product.strainType && (
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${product.strainType === 'Indica' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                                                    product.strainType === 'Sativa' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                                                        'bg-blue-50 text-blue-700 border-blue-100'
+                                                                    }`}>
+                                                                    {product.strainType}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm text-slate-500">{product.description}</p>
+                                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-500">
+                                                            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                                                                <span className="font-semibold text-slate-700">Unit:</span> ${product.price.toFixed(2)}
+                                                            </div>
+                                                            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                                                                <span className="font-semibold text-slate-700">Case:</span> ${casePrice.toFixed(2)} ({caseSize}u)
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        {/* Toggle */}
+                                                        <div className="flex bg-slate-100 p-0.5 rounded-lg">
+                                                            <button
+                                                                onClick={() => setPricingModes(prev => ({ ...prev, [product.id]: 'unit' }))}
+                                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${mode === 'unit' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                            >
+                                                                Unit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setPricingModes(prev => ({ ...prev, [product.id]: 'case' }))}
+                                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${mode === 'case' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                            >
+                                                                Case
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                onClick={() => updateCart(brand.id, product.id, qty - stepSize)}
+                                                                className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                disabled={qty <= 0}
+                                                            >
+                                                                -
+                                                            </button>
+                                                            <div className="w-20 text-center">
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full text-center font-bold outline-none border-b-2 border-slate-200 focus:border-brand-500 bg-transparent"
+                                                                    value={displayQty}
+                                                                    onChange={(e) => {
+                                                                        const val = parseFloat(e.target.value) || 0;
+                                                                        const newQty = mode === 'case' ? val * caseSize : val;
+                                                                        updateCart(brand.id, product.id, newQty);
+                                                                    }}
+                                                                    min="0"
+                                                                    disabled={!product.inStock}
+                                                                />
+                                                                <div className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">
+                                                                    {mode === 'case' ? 'Cases' : 'Units'}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => updateCart(brand.id, product.id, qty + stepSize)}
+                                                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform ${!product.inStock ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand-100 hover:bg-brand-200 text-brand-600 active:scale-95'}`}
+                                                                disabled={!product.inStock}
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 );
                             })
@@ -396,6 +508,9 @@ export default function LogSale() {
                         <span className="text-2xl font-bold text-brand-700">
                             ${productsList.reduce((sum, p) => sum + (p.price * (brandCart[p.id] || 0)), 0).toFixed(2)}
                         </span>
+                        <div className="text-xs text-brand-600/70 mt-1">
+                            (Comm. Estimate: ${(productsList.reduce((sum, p) => sum + (p.price * (brandCart[p.id] || 0)), 0) * 0.02).toFixed(2)})
+                        </div>
                     </div>
                 </div>
             );
@@ -427,6 +542,10 @@ export default function LogSale() {
                             <span className="font-bold text-slate-800">{basicInfo.dispensaryName}</span>
                         </div>
                         <div className="flex justify-between">
+                            <span className="text-slate-500">Payment Terms:</span>
+                            <span className="font-bold text-slate-800">{basicInfo.paymentTerms || 'COD'}</span>
+                        </div>
+                        <div className="flex justify-between">
                             <span className="text-slate-500">Date:</span>
                             <span className="font-bold text-slate-800">{basicInfo.date}</span>
                         </div>
@@ -437,17 +556,28 @@ export default function LogSale() {
                         {flatCart.length === 0 ? (
                             <div className="text-slate-400 text-center py-4 bg-white border border-dashed rounded-xl">No items selected</div>
                         ) : (
-                            flatCart.map((item, i) => (
-                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                                    <div>
-                                        <p className="font-bold text-slate-800">{item.name}</p>
-                                        <p className="text-xs text-slate-500">{item.brandName} • {item.qty} x ${item.price}</p>
+                            flatCart.map((item, i) => {
+                                const caseSize = item.caseSize || 1;
+                                const cases = Math.floor(item.qty / caseSize);
+                                const remainder = item.qty % caseSize;
+                                let qtyString = `${item.qty} Units`;
+                                if (cases > 0) {
+                                    qtyString += ` (${cases} Case${cases > 1 ? 's' : ''}${remainder > 0 ? ` + ${remainder} Units` : ''})`;
+                                }
+
+                                return (
+                                    <div key={i} className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0">
+                                        <div>
+                                            <p className="font-bold text-slate-800">{item.name}</p>
+                                            <p className="text-xs text-slate-500">{item.brandName}</p>
+                                            <p className="text-xs text-brand-600 mt-0.5">{qtyString} @ ${item.price.toFixed(2)}/unit</p>
+                                        </div>
+                                        <div className="font-bold text-slate-800">
+                                            ${(item.qty * item.price).toFixed(2)}
+                                        </div>
                                     </div>
-                                    <div className="font-bold text-slate-800">
-                                        ${(item.qty * item.price).toFixed(2)}
-                                    </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
 

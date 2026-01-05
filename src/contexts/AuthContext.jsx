@@ -5,7 +5,8 @@ import {
     signInWithPopup,
     signOut,
     onAuthStateChanged,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    GoogleAuthProvider
 } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { logSecurityEvent } from "../services/firestoreService";
@@ -53,9 +54,21 @@ export function AuthProvider({ children }) {
 
     async function loginWithGoogle() {
         try {
+            googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
             const result = await signInWithPopup(auth, googleProvider);
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const token = credential.accessToken;
             const user = result.user;
             await validateDomain(user.email, 'GOOGLE_LOGIN_ATTEMPT');
+
+            // Store token in session storage for persistence across reloads
+            if (token) {
+                sessionStorage.setItem('googleAccessToken', token);
+            }
+
+            user.accessToken = token;
+            setCurrentUser(user);
+
             return result;
         } catch (error) {
             // Checks failed, ensure signed out
@@ -67,6 +80,7 @@ export function AuthProvider({ children }) {
     }
 
     function logout() {
+        sessionStorage.removeItem('googleAccessToken');
         return signOut(auth);
     }
 
@@ -99,6 +113,12 @@ export function AuthProvider({ children }) {
         try {
             const unsubscribe = onAuthStateChanged(auth, (user) => {
                 if (mounted) {
+                    if (user) {
+                        const token = sessionStorage.getItem('googleAccessToken');
+                        if (token) {
+                            user.accessToken = token;
+                        }
+                    }
                     setCurrentUser(user);
                     setLoading(false);
                     clearTimeout(timeout);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar } from 'lucide-react';
 
 export default function BrandLayout() {
     const { brandUser, logoutBrand } = useBrandAuth();
@@ -18,52 +18,84 @@ export default function BrandLayout() {
         ? brandUser.brandName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
         : 'BR';
 
-    // Map Brand IDs to Logo Files (Files moved to public/logos/)
-    const LOGO_MAP = {
-        'wanders': '/logos/partner-1.png',
-        'honey-king': '/logos/partner-2.png',
-        'waferz': '/logos/partner-3.jpg',
-        'canna-dots': '/logos/partner-4.png',
-        'space-poppers': '/logos/partner-5.png',
-        'smoothie-bar': '/logos/partner-6.png',
-        // Fallbacks or others
-        'pines': null,
-        'bud-cracker': null
+    // Unified Brand Logo Mapping
+    // Format: { brandId: { top: 'Path to large sidebar logo', icon: 'Path to small icon logo' } }
+    const BRAND_ASSETS = {
+        'wanders': {
+            top: '/logos/partner-1.png',
+            icon: '/logos/partner-1.png'
+        },
+        'space-poppers': {
+            top: '/logos/space-poppers.png',
+            icon: '/logos/space-poppers.png'
+        },
+        'canna-dots': {
+            top: '/logos/partner-3.jpg',
+            icon: '/logos/partner-3.jpg'
+        },
+        'bud-cracker': {
+            top: '/logos/partner-4.png',
+            icon: '/logos/bud-cracker-secondary.png'
+        },
+        'honey-king': {
+            top: '/logos/partner-5.png', // Text Logo
+            icon: '/logos/partner-6.png'  // Lion Logo
+        },
+        'waferz': {
+            top: '/logos/waferz.png',
+            icon: '/logos/waferz.png'
+        },
+        'smoothie-bar': {
+            top: '/logos/smoothie-bar.png',
+            icon: '/logos/smoothie-bar.png'
+        },
+        'flx-extracts': {
+            top: '/logos/flx-extracts.png',
+            icon: '/logos/flx-extracts.png'
+        },
+        'pines': {
+            top: '/logos/flx-extracts.png', // Temporary fallback
+            icon: '/logos/flx-extracts.png'
+        }
     };
 
-    const brandLogo = brandUser?.brandId ? LOGO_MAP[brandUser.brandId] : null;
+    const currentBrandId = brandUser?.brandId;
+    const assets = currentBrandId ? BRAND_ASSETS[currentBrandId] : null;
+
+    // Top Sidebar Logo (Large logo on dark background)
+    const topSidebarLogo = assets?.top || null;
+
+    // Brand Logo for Icons (Context, Footer, Header)
+    const brandLogo = assets?.icon || null;
 
     return (
         <div className="min-h-screen bg-slate-50 flex">
             {/* Sidebar */}
             <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 overflow-y-auto border-r border-slate-800">
-                {/* System Logo Area - Uniform with Sales Portal */}
-                <div className="h-64 flex items-center justify-center bg-black overflow-hidden relative border-b border-slate-800 shrink-0">
-                    <div className="absolute inset-0 flex items-center justify-center p-4 bg-slate-950">
+                {/* Brand Logo Area - Personalized */}
+                <div className="h-48 flex items-center justify-center bg-slate-950 overflow-hidden relative border-b border-slate-800 shrink-0 p-8">
+                    {topSidebarLogo ? (
                         <img
-                            src="/logos/logo-main.png"
-                            alt="The Green Truth"
+                            src={topSidebarLogo}
+                            alt={brandUser?.brandName}
                             className="w-full h-full object-contain"
                         />
-                    </div>
+                    ) : (
+                        <div className="w-24 h-24 rounded-2xl bg-emerald-600 flex items-center justify-center text-4xl font-bold text-white shadow-xl">
+                            {initials}
+                        </div>
+                    )}
                 </div>
 
-                {/* Brand Context Header - Compact & Emerald */}
-                <div className="p-4 bg-gradient-to-br from-emerald-600 to-emerald-700 border-b border-emerald-800 shrink-0">
-                    <div className="flex flex-row items-center gap-4">
-                        {/* Brand Logo or Initials */}
-                        {brandLogo ? (
-                            <div className="w-12 h-12 shrink-0 rounded-xl bg-white p-1 flex items-center justify-center shadow-md">
-                                <img src={brandLogo} alt={brandUser?.brandName} className="w-full h-full object-contain rounded-lg" />
-                            </div>
-                        ) : (
-                            <div className="w-12 h-12 shrink-0 rounded-xl bg-white/20 flex items-center justify-center text-xl font-bold text-white shadow-inner border border-white/10">
-                                {initials}
-                            </div>
-                        )}
-                        <div className="flex-1 overflow-hidden">
-                            <h2 className="font-bold text-white text-base truncate" title={brandUser?.brandName}>{brandUser?.brandName || 'Brand Portal'}</h2>
-                            <p className="text-emerald-200 text-xs truncate">Partner Dashboard</p>
+                {/* Brand Context Header - Enhanced Legibility (Logo Removed per User Request) */}
+                <div className="p-6 bg-gradient-to-br from-emerald-600 to-emerald-700 border-b border-emerald-800 shrink-0">
+                    <div className="flex flex-col gap-1">
+                        <h2 className="font-black text-white text-xl leading-tight" title={brandUser?.brandName}>
+                            {brandUser?.brandName || 'Brand Portal'}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                            <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-[0.1em]">Partner Dashboard</p>
                         </div>
                     </div>
                 </div>
@@ -71,6 +103,7 @@ export default function BrandLayout() {
                 {/* Navigation */}
                 <nav className="flex-1 p-3 space-y-1">
                     <NavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
+                    <NavItem to="/brand/schedule" icon={<Calendar size={20} />} label="Schedule" />
                     <NavItem to="/brand/map" icon={<Navigation size={20} />} label="Store Map" />
                     <NavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />
                     <NavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={20} />} label="Dispensary Inv." />

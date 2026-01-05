@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
@@ -8,9 +8,9 @@ const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gm
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { logout } = useAuth();
     const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
-    const initials = currentUser?.displayName
+    const initials = isAdmin ? 'O' : (currentUser?.displayName
         ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-        : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U');
+        : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U'));
 
     const handleLogout = async () => {
         try {
@@ -46,6 +46,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                     <NavItem to="/app/map" icon={<Navigation size={20} className="text-brand-400" />} label="Territory Map" isCollapsed={isCollapsed} />
                 </div>
                 <NavItem to="/app/history" icon={<History size={20} />} label="History" isCollapsed={isCollapsed} />
+                <NavItem to="/app/schedule" icon={<Calendar size={20} />} label="Schedule" isCollapsed={isCollapsed} />
 
                 <div className={`pt-4 pb-1 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider transition-opacity duration-300 ${isCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'}`}>
                     Actions
@@ -72,6 +73,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                         </div>
 
                         <NavItem to="/app/admin" icon={<ShieldCheck size={20} />} label="Admin Console" isCollapsed={isCollapsed} />
+                        <NavItem to="/app/brand-oversight" icon={<Building2 size={20} />} label="Brand Oversight" isCollapsed={isCollapsed} />
                     </>
                 )}
             </nav>
@@ -83,7 +85,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                     </div>
                     {!isCollapsed && (
                         <div className="text-sm overflow-hidden whitespace-nowrap">
-                            <p className="font-medium text-white">{currentUser?.displayName || (isAdmin ? 'Omar' : 'Sales Representative')}</p>
+                            <p className="font-medium text-white">{isAdmin ? 'Omar' : (currentUser?.displayName || 'Sales Representative')}</p>
                             <p className="text-slate-400 text-xs truncate">{currentUser?.email || 'Ambassador'}</p>
                         </div>
                     )}
@@ -159,10 +161,12 @@ export default function Layout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
     const { currentUser } = useAuth();
 
+    const isAdmin = currentUser && ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'].includes(currentUser.email?.toLowerCase());
+
     // Calculate initials for mobile header too
-    const initials = currentUser?.displayName
+    const initials = isAdmin ? 'O' : (currentUser?.displayName
         ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-        : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U');
+        : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U'));
 
 
     return (

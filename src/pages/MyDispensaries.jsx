@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getMyDispensaries, logActivity, addSale, updateLead } from '../services/firestoreService';
+import { getMyDispensaries, logActivity, addSale, updateLead, deliverSamples } from '../services/firestoreService';
 import { calculateRepCommission } from '../services/compensationService';
 import { generateEmailDraft } from '../services/aiService';
-import { Store, Calendar, DollarSign, ArrowLeft, Mail, X, Loader, Phone, MessageCircle, ExternalLink } from 'lucide-react';
+import { initGmailAuth, requestGmailAccess, sendEmail as gmailSendEmail, hasGmailAccess } from '../services/gmailService';
+import { Store, Calendar, DollarSign, ArrowLeft, Mail, X, Loader, Phone, MessageCircle, ExternalLink, Send, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function MyDispensaries() {
@@ -33,7 +34,10 @@ export default function MyDispensaries() {
         subject: '',
         body: '',
         isLoadingAI: false,
-        isSending: false
+        isSending: false,
+        gmailConnected: false,
+        sendSuccess: false,
+        sendError: ''
     });
 
     const [markSoldModal, setMarkSoldModal] = useState({
@@ -133,6 +137,28 @@ export default function MyDispensaries() {
         }
     };
 
+    const handleDeliverSamples = async (disp) => {
+        if (!disp.id) {
+            alert("No lead record found for this dispensary.");
+            return;
+        }
+
+        try {
+            await deliverSamples(disp.id);
+            // Log Activity
+            logActivity('SAMPLES_DELIVERED', disp.name, currentUser?.uid, {});
+
+            // Refresh Data
+            const data = await getMyDispensaries(currentUser?.uid);
+            setDispensaries(data);
+
+            alert("Samples marked as delivered!");
+        } catch (e) {
+            console.error("Failed to update samples delivery", e);
+            alert("Failed to update status.");
+        }
+    };
+
     const handleOpenEmail = async (disp) => {
         // Log Activity: EMAIL_OPEN
         logActivity('EMAIL_OPEN', disp.name, currentUser?.uid, {});
@@ -148,10 +174,56 @@ export default function MyDispensaries() {
             lead: disp,
             isLoadingAI: false,
             subject: draft.subject,
-            body: draft.body
+            body: draft.body,
+            gmailConnected: hasGmailAccess()
         }));
     };
 
+    const handleSendViaGmail = async () => {
+        const { lead, subject, body } = emailModal;
+
+        setEmailModal(prev => ({ ...prev, isSending: true, sendError: '' }));
+
+        try {
+            // Request Gmail access if not already connected
+            if (!hasGmailAccess()) {
+                await requestGmailAccess();
+                setEmailModal(prev => ({ ...prev, gmailConnected: true }));
+            }
+
+            // Send email via Gmail API
+            await gmailSendEmail({
+                to: lead.email,
+                subject: subject,
+                body: body,
+                cc: currentUser?.email || '',
+                bcc: 'omar@thegreentruthnyc.com'
+            });
+
+            // Log activity
+            logActivity('EMAIL_SENT', lead.name, currentUser?.uid, { to: lead.email, subject });
+
+            // Show success
+            setEmailModal(prev => ({ ...prev, isSending: false, sendSuccess: true }));
+
+            // Close modal after delay
+            setTimeout(() => {
+                setEmailModal({
+                    isOpen: false, lead: null, subject: '', body: '',
+                    isLoadingAI: false, isSending: false, gmailConnected: false,
+                    sendSuccess: false, sendError: ''
+                });
+            }, 2000);
+
+        } catch (error) {
+            console.error('Gmail send error:', error);
+            setEmailModal(prev => ({
+                ...prev,
+                isSending: false,
+                sendError: error.message || 'Failed to send email'
+            }));
+        }
+    };
 
 
     return (
@@ -189,9 +261,26 @@ export default function MyDispensaries() {
                                         {disp.contactPerson && <p className="text-xs text-slate-400">Contact: {disp.contactPerson}</p>}
                                     </div>
                                 </div>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${disp.lastActivation ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>
-                                    {disp.lastActivation ? 'Active' : 'Inactive'}
-                                </span>
+                                <div className="flex flex-col items-end gap-1">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${disp.leadStatus === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                            disp.leadStatus === 'samples_delivered' ? 'bg-amber-100 text-amber-700' :
+                                                disp.leadStatus === 'samples_requested' ? 'bg-red-100 text-red-700' :
+                                                    'bg-slate-100 text-slate-500'
+                                        }`}>
+                                        {disp.leadStatus === 'active' ? 'Active' :
+                                            disp.leadStatus === 'samples_delivered' ? 'Samples Delivered' :
+                                                disp.leadStatus === 'samples_requested' ? 'Samples Requested' :
+                                                    'Prospect'}
+                                    </span>
+                                    {disp.leadStatus === 'samples_requested' && (
+                                        <button
+                                            onClick={() => handleDeliverSamples(disp)}
+                                            className="text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-tighter"
+                                        >
+                                            Mark Delivered →
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="space-y-3 pt-4 border-t border-slate-50">
@@ -435,7 +524,7 @@ export default function MyDispensaries() {
 
                                         // Close modal after action
                                         setTimeout(() => {
-                                            setEmailModal({ isOpen: false, lead: null, subject: '', body: '', isLoadingAI: false, isSending: false });
+                                            setEmailModal({ isOpen: false, lead: null, subject: '', body: '', isLoadingAI: false, isSending: false, gmailConnected: false, sendSuccess: false, sendError: '' });
                                         }, 1000);
                                     }}
                                     className="px-4 py-2 border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 flex items-center gap-2"
@@ -444,6 +533,39 @@ export default function MyDispensaries() {
                                     Open in Gmail
                                 </button>
 
+                                {/* Send via Gmail API Button */}
+                                <button
+                                    onClick={handleSendViaGmail}
+                                    disabled={emailModal.isSending || emailModal.sendSuccess}
+                                    className={`px-4 py-2 font-bold rounded-lg flex items-center gap-2 transition-all ${emailModal.sendSuccess
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-200'
+                                        } ${emailModal.isSending ? 'opacity-75 cursor-wait' : ''}`}
+                                >
+                                    {emailModal.sendSuccess ? (
+                                        <>
+                                            <CheckCircle size={18} />
+                                            Sent!
+                                        </>
+                                    ) : emailModal.isSending ? (
+                                        <>
+                                            <Loader size={18} className="animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send size={18} />
+                                            Send via Gmail
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Error Message */}
+                                {emailModal.sendError && (
+                                    <div className="w-full mt-2 p-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg text-center">
+                                        {emailModal.sendError}
+                                    </div>
+                                )}
 
                             </div>
                         )}

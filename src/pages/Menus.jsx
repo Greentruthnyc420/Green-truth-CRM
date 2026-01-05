@@ -1,14 +1,14 @@
 import React from 'react';
-import { FileText, Download, Eye, Mail, X } from 'lucide-react';
+import { FileText, Download, Eye, Mail, X, File, Image as ImageIcon } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAllBrandProfiles } from '../services/firestoreService';
+import { BRAND_LICENSES } from '../contexts/BrandAuthContext';
 
 export default function Menus() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
-    const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
     const [viewingImage, setViewingImage] = React.useState(null);
     const [menus, setMenus] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -26,50 +26,92 @@ export default function Menus() {
             setLoading(true);
             const profiles = await getAllBrandProfiles();
 
-            // Map profiles to menu structure
-            const dynamicMenus = profiles.map(brand => ({
-                title: `${brand.brandName || brand.id} Menu`,
-                src: brand.menuUrl || null,
-                brandName: brand.brandName || brand.id,
-                autoLink: true // Enable actions for all dynamic brands
-            }));
+            // Map profiles to menu structure, filtering by official licenses
+            const officialBrandIds = Object.values(BRAND_LICENSES).map(b => b.brandId);
 
-            // Optional: You can keep some static hardcoded ones if needed, or replace entirely.
-            // For this request, we replace the hardcoded list but maybe keep "Honey King" as a legacy static example if desired.
-            // The user request was "upload their menu...update the menu resource".
-            // Let's MERGE or REPLACE? The prompt says "update the menu resource".
-            // I'll assume we want to show ALL available brand menus. 
-            // If I replace entirely, the static "Honey King" demo might vanish unless it's in DB.
-            // Safe bet: Append dynamic to static, or just use dynamic if we assume brands are seeded.
-            // Current "seedBrands" creates brands in `brands` collection. 
-            // `getAllBrandProfiles` fetches from `brand_profiles`.
-            // We need to ensure consistency.
-
-            // Let's stick to purely dynamic for "Active Brands".
-            // If the user wants the old hardcoded ones, they should be migrated.
-            // For now, I'll merge them so we don't lose the demo look, but prioritize dynamic.
+            const dynamicMenus = profiles
+                .filter(brand => officialBrandIds.includes(brand.id) || officialBrandIds.includes(brand.brandId))
+                .map(brand => ({
+                    title: `${brand.brandName || brand.id} Menu`,
+                    src: brand.menuUrl || null,
+                    brandName: brand.brandName || brand.id,
+                    autoLink: true
+                }))
+                .filter(m => m.src); // Only show dynamic menus if they actually have a file
 
             const staticMenus = [
-                { title: 'Honey King Pricing', src: '/menus/Honey_King_Menu.png' },
+                { title: 'Honey King Pricing', src: '/menus/Honey_King_Menu.jpg', autoLink: true, brandName: 'Honey King' },
                 { title: 'Wanders New York Menu', src: '/menus/wanderers.jpg', autoLink: true, brandName: 'Wanderers' },
-                { title: 'Bud Cracker Boulevard', src: null },
-                { title: 'Canna Dots Price List', src: '/menus/Canna_Dots_Menu.png' },
-                { title: 'Space Poppers Menu', src: '/menus/Space_Poppers_Menu.png' },
-                { title: 'Smoothie Bar', src: '/menus/smoothie-bar.jpg', autoLink: true, brandName: 'Smoothie Bar' },
-                { title: 'Waferz NY', src: '/menus/waferz.jpg', autoLink: true, brandName: 'Waferz' },
-                { title: 'Pines', src: null }
+                { title: 'Canna Dots Price List', src: '/menus/Canna_Dots_Menu.png', autoLink: true, brandName: 'Canna Dots' },
+                { title: 'Space Poppers Menu', src: '/menus/space-poppers-2025.jpg', autoLink: true, brandName: 'Space Poppers' },
+                { title: 'Smoothie Bar Pricing', src: '/menus/smoothie-bar-sheet.jpg', autoLink: true, brandName: 'Smoothie Bar' },
+                { title: 'Waferz NY', src: '/menus/waferz-2025.jpg', autoLink: true, brandName: 'Waferz' },
+                { title: 'Pines', src: '/menus/pines_december_menu.jpg', autoLink: true, brandName: 'Pines' }
             ];
 
-            // Merge dynamic menus with static ones, avoiding duplicates
-            setMenus([...dynamicMenus, ...staticMenus]);
+            const merged = [...dynamicMenus];
 
+            // Add static menus if not already present (by brandName or title match)
+            staticMenus.forEach(s => {
+                const alreadyExists = merged.find(d =>
+                    d.brandName?.toLowerCase() === s.brandName?.toLowerCase() ||
+                    d.title === s.title
+                );
+                if (!alreadyExists) {
+                    merged.push(s);
+                }
+            });
+
+            setMenus(merged);
             setLoading(false);
         }
         fetchMenus();
     }, []);
 
+    const getFileType = (url) => {
+        if (!url) return 'unknown';
+        const cleanUrl = url.split('?')[0].toLowerCase();
+        if (cleanUrl.endsWith('.pdf')) return 'pdf';
+        if (cleanUrl.match(/\.(jpeg|jpg|png|webp)$/)) return 'image';
+        return 'file';
+    };
+
+    const handleDownloadOriginal = async (menu) => {
+        if (!menu.src) return;
+
+        try {
+            const response = await fetch(menu.src);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+
+            // Guess extension
+            let ext = 'file';
+            const fileType = getFileType(menu.src);
+            if (fileType === 'pdf') ext = 'pdf';
+            else if (fileType === 'image') ext = 'jpg'; // simplified
+
+            a.download = `${menu.brandName || 'Menu'}_Original.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Download failed", error);
+            // Fallback to direct link
+            window.open(menu.src, '_blank');
+        }
+    };
+
     const handleDownloadPDF = async (menu) => {
         if (!menu.src) return;
+
+        // If it's already a PDF, just download it directly
+        if (getFileType(menu.src) === 'pdf') {
+            handleDownloadOriginal(menu);
+            return;
+        }
 
         try {
             const pdf = new jsPDF();
@@ -91,11 +133,11 @@ export default function Menus() {
                 const imgHeight = (img.height * imgWidth) / img.width;
 
                 pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-                pdf.save(`${menu.brandName || 'Menu'}_Menu.pdf`);
+                pdf.save(`${menu.brandName || 'Menu'}_Converted.pdf`);
             };
         } catch (error) {
             console.error("PDF Generation Error", error);
-            alert("Failed to generate PDF. Please try checking the network connection.");
+            alert("Failed to generate PDF. You can try downloading the original file instead.");
         }
     };
 
@@ -105,11 +147,7 @@ export default function Menus() {
 
         // Use a safer trigger method
         const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        const link = document.createElement('a');
-        link.href = mailtoLink;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        window.location.href = mailtoLink;
     };
 
     return (
@@ -120,78 +158,117 @@ export default function Menus() {
             </div>
 
             <div className="space-y-8 pb-12">
-                {menus.map((menu) => (
-                    <div key={menu.title} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden group hover:shadow-md transition-all">
-                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h2 className="font-semibold text-slate-700 flex items-center gap-2">
-                                <FileText size={18} className="text-brand-600" />
-                                {menu.title}
-                            </h2>
+                {menus.map((menu) => {
+                    const fileType = getFileType(menu.src);
+                    const isPDF = fileType === 'pdf';
 
-                            {/* Standard Download (Existing Logic) */}
-                            {menu.src && !menu.autoLink && (
-                                <a
-                                    href={menu.src}
-                                    download
-                                    className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm"
-                                >
-                                    <Download size={16} />
-                                    Download
-                                </a>
-                            )}
-                            {/* Pending Badge */}
-                            {!menu.src && (
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2 py-1 bg-slate-100 rounded-md">
-                                    Pending
-                                </span>
-                            )}
-                        </div>
+                    return (
+                        <div key={menu.title} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden group hover:shadow-md transition-all">
+                            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+                                    <FileText size={18} className="text-brand-600" />
+                                    {menu.title}
+                                </h2>
 
-                        <div className="p-0 bg-slate-50/30">
-                            {menu.src ? (
-                                <div className="relative">
-                                    {/* Image Preview */}
-                                    <img
-                                        src={menu.src}
-                                        alt={menu.title}
-                                        className="w-full h-auto max-h-[500px] object-cover object-top opacity-95 group-hover:opacity-100 transition-opacity"
-                                    />
+                                {/* Standard Download (Existing Logic) */}
+                                {menu.src && !menu.autoLink && (
+                                    <button
+                                        onClick={() => handleDownloadOriginal(menu)}
+                                        className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                                    >
+                                        <Download size={16} />
+                                        Download
+                                    </button>
+                                )}
+                                {/* Pending Badge */}
+                                {!menu.src && (
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2 py-1 bg-slate-100 rounded-md">
+                                        Pending
+                                    </span>
+                                )}
+                            </div>
 
-                                    {/* Action Overlay for Supported Brands */}
-                                    {menu.autoLink && (
-                                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-3 backdrop-blur-[2px]">
-                                            <button
-                                                onClick={() => setViewingImage(menu.src)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-white/90 hover:bg-white text-slate-800 rounded-lg text-sm font-bold shadow-lg transition-all hover:scale-105"
-                                            >
-                                                <Eye size={16} /> View
-                                            </button>
-                                            <button
-                                                onClick={() => handleDownloadPDF(menu)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-bold shadow-lg transition-all hover:scale-105"
-                                            >
-                                                <Download size={16} /> PDF
-                                            </button>
-                                            <button
-                                                onClick={() => handleEmail(menu)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow-lg transition-all hover:scale-105"
-                                            >
-                                                <Mail size={16} /> Email
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="w-full h-48 flex flex-col items-center justify-center border-t border-dashed border-slate-200 text-slate-400 gap-2">
-                                    <div className="p-4 bg-slate-50 rounded-full">
-                                        <FileText size={24} className="opacity-40" />
+                            <div className="p-0 bg-slate-50/30">
+                                {menu.src ? (
+                                    <div className="relative">
+                                        {/* Preview Area */}
+                                        {isPDF ? (
+                                            <div className="w-full h-64 flex flex-col items-center justify-center bg-slate-100 text-slate-500 gap-3">
+                                                <FileText size={48} className="text-slate-400" />
+                                                <span className="font-medium">PDF Document Preview Not Available</span>
+                                                <a
+                                                    href={menu.src}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-sm text-brand-600 hover:underline"
+                                                >
+                                                    Open in New Tab
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <img
+                                                src={menu.src}
+                                                alt={menu.title}
+                                                className="w-full h-auto max-h-[500px] object-cover object-top opacity-95 group-hover:opacity-100 transition-opacity"
+                                            />
+                                        )}
+
+                                        {/* Action Overlay */}
+                                        {menu.autoLink && (
+                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex flex-wrap justify-center gap-3 backdrop-blur-[2px]">
+                                                {!isPDF && (
+                                                    <button
+                                                        onClick={() => setViewingImage(menu.src)}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-white/90 hover:bg-white text-slate-800 rounded-lg text-sm font-bold shadow-lg transition-all hover:scale-105"
+                                                    >
+                                                        <Eye size={16} /> View
+                                                    </button>
+                                                )}
+
+                                                {/* Generic Download Button with Dropdown logic simplified to two buttons for clarity */}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleDownloadOriginal(menu)}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-bold shadow-lg transition-all hover:scale-105"
+                                                        title="Download original file"
+                                                    >
+                                                        <Download size={16} />
+                                                        {isPDF ? 'Download PDF' : 'Download Original'}
+                                                    </button>
+
+                                                    {/* Only show Convert to PDF if it's an image */}
+                                                    {!isPDF && (
+                                                        <button
+                                                            onClick={() => handleDownloadPDF(menu)}
+                                                            className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                                                            title="Convert Image to PDF"
+                                                        >
+                                                            <FileText size={14} /> As PDF
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => handleEmail(menu)}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow-lg transition-all hover:scale-105"
+                                                >
+                                                    <Mail size={16} /> Email
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                    <span className="text-sm font-medium">Menu Coming Soon</span>
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="w-full h-48 flex flex-col items-center justify-center border-t border-dashed border-slate-200 text-slate-400 gap-2">
+                                        <div className="p-4 bg-slate-50 rounded-full">
+                                            <FileText size={24} className="opacity-40" />
+                                        </div>
+                                        <span className="text-sm font-medium">Menu Coming Soon</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Lightbox Modal */}
