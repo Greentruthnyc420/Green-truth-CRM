@@ -13,10 +13,12 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
         setLoading(true);
 
         try {
@@ -42,6 +44,7 @@ export default function Login() {
 
     const handleGoogleLogin = async () => {
         setError('');
+        setSuccess('');
         setLoading(true);
         try {
             await loginWithGoogle();
@@ -64,11 +67,11 @@ export default function Login() {
             return;
         }
         setError('');
+        setSuccess('');
         setLoading(true);
         try {
-            await resetPassword(email);
-            setError("Check your email for password reset instructions.");
-            // Ideally use a success state, but error field works for feedback here
+            const result = await resetPassword(email);
+            setSuccess(result.message);
         } catch (err) {
             console.error(err);
             setError("Failed to reset password. " + err.message);
@@ -112,6 +115,12 @@ export default function Login() {
                                     Read Setup Guide
                                 </p>
                             )}
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="mb-6 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 text-center">
+                            {success}
                         </div>
                     )}
 

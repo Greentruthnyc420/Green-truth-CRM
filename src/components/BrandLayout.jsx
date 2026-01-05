@@ -12,6 +12,11 @@ export default function BrandLayout() {
         navigate('/brand/login');
     };
 
+    const handleExitGhostMode = () => {
+        logoutBrand();
+        navigate('/app/admin');
+    };
+
     const isGhost = brandUser?.isImpersonating;
 
     const initials = brandUser?.brandName
@@ -148,7 +153,7 @@ export default function BrandLayout() {
                             <span>👻</span>
                             <span>Ghost Mode Active: Viewing as Admin</span>
                         </div>
-                        <button onClick={handleLogout} className="text-xs underline hover:text-amber-900">
+                        <button onClick={handleExitGhostMode} className="text-xs underline hover:text-amber-900">
                             Exit
                         </button>
                     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useBrandAuth, BRAND_LICENSES } from '../contexts/BrandAuthContext';
 // Imports
 import {
@@ -20,7 +20,6 @@ import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../servic
 import { syncLeadToHubSpot } from '../services/hubspotService';
 import { convertToCSV, downloadCSV } from '../utils/csvHelper';
 import { importOfficialDispensaries } from '../services/dataSyncService';
-import { wipeAllData } from '../services/firestoreService';
 import {
     DollarSign,
     Users,
@@ -51,17 +50,19 @@ import {
 // eslint-disable-next-line no-unused-vars
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'; // Animation Lib
 
-const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
+
 const HOURLY_RATE = 20;
 
 export default function AdminDashboard() {
     const { currentUser } = useAuth();
-    const { impersonateBrand } = useBrandAuth(); // New Hook Usage
+    const { impersonateBrand, logoutBrand, brandUser } = useBrandAuth(); // New Hook Usage
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('payroll');
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [syncing, setSyncing] = useState(false);
+
+
 
     // Data States
     const [shifts, setShifts] = useState([]);
@@ -339,28 +340,6 @@ export default function AdminDashboard() {
             navigate('/brand'); // Go to Portal
         } catch (error) {
             alert(error.message);
-        }
-    };
-
-    const handleWipeData = async () => {
-        const confirm1 = confirm("⚠️ DANGER ZONE ⚠️\n\nAre you sure you want to WIPE ALL DATA? This will delete all Sales, Leads, Shifts, and Activations.\n\nThis cannot be undone.");
-        if (!confirm1) return;
-
-        const confirm2 = confirm("Please confirm one last time.\n\nType 'DELETE' to proceed?");
-        // Since we can't type in confirm, we'll just ask for a second click. 
-        // Actually, let's just use a second confirm dialog.
-        if (!confirm2) return;
-
-        setProcessing(true);
-        try {
-            await wipeAllData();
-            alert("Data Wipe Complete. Refeshing...");
-            window.location.reload();
-        } catch (error) {
-            console.error("Wipe failed:", error);
-            alert("Wipe failed. Check console.");
-        } finally {
-            setProcessing(false);
         }
     };
 
@@ -822,23 +801,6 @@ export default function AdminDashboard() {
                                     </button>
                                 </div>
                             ))}
-                        </div>
-
-                        {/* Danger Zone */}
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-6 mt-8 text-center">
-                            <h3 className="text-red-800 font-bold mb-2 flex items-center justify-center gap-2">
-                                <AlertTriangle size={20} /> Danger Zone
-                            </h3>
-                            <p className="text-red-600 text-sm mb-4">
-                                Use this before launch to clear all test data (Sales, Leads, Shifts, Activations).
-                            </p>
-                            <button
-                                onClick={handleWipeData}
-                                disabled={processing}
-                                className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
-                            >
-                                {processing ? 'Wiping...' : 'FACTORY RESET (Wipe All Data)'}
-                            </button>
                         </div>
                     </div>
                 )}

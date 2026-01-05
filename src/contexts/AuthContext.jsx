@@ -11,6 +11,8 @@ import {
 import { auth, googleProvider } from "../firebase";
 import { logSecurityEvent } from "../services/firestoreService";
 
+export const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
+
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -84,8 +86,17 @@ export function AuthProvider({ children }) {
         return signOut(auth);
     }
 
-    function resetPassword(email) {
-        return sendPasswordResetEmail(auth, email);
+    async function resetPassword(email) {
+        try {
+            await sendPasswordResetEmail(auth, email);
+            return { success: true, message: 'Password reset link sent to your email.' };
+        } catch (error) {
+            console.error("Password reset error:", error);
+            let msg = error.message;
+            if (msg.includes("user-not-found")) msg = "No user found with this email.";
+            if (msg.includes("invalid-email")) msg = "Please enter a valid email address.";
+            throw new Error(msg);
+        }
     }
 
     // Dev Helper

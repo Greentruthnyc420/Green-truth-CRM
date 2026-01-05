@@ -39,22 +39,32 @@ const Schedule = () => {
 
             // Transform for Calendar
             const calendarEvents = filteredActivations.map(a => {
-                // Construct Date objects. Support both 'date + startTime' str and ISO strings if mixed.
-                // activationData in addActivation uses: date (YYYY-MM-DD), startTime (HH:MM), endTime (HH:MM).
-                const start = new Date(`${a.date}T${a.startTime}:00`);
-                const end = new Date(`${a.date}T${a.endTime}:00`);
+                try {
+                    // Construct Date objects. Support both 'date + startTime' str and ISO strings if mixed.
+                    // activationData in addActivation uses: date (YYYY-MM-DD), startTime (HH:MM), endTime (HH:MM).
+                    const start = new Date(`${a.date}T${a.startTime}:00`);
+                    const end = new Date(`${a.date}T${a.endTime}:00`);
 
-                return {
-                    id: a.id,
-                    title: `${a.brandName} @ ${a.storeName}`,
-                    start,
-                    end,
-                    resource: {
-                        ...a,
-                        status: a.status // 'scheduled', 'completed', etc.
+                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                        console.warn(`Invalid date/time for activation ${a.id}:`, a.date, a.startTime);
+                        return null;
                     }
-                };
-            });
+
+                    return {
+                        id: a.id,
+                        title: `${a.brandName} @ ${a.storeName}`,
+                        start,
+                        end,
+                        resource: {
+                            ...a,
+                            status: a.status // 'scheduled', 'completed', etc.
+                        }
+                    };
+                } catch (e) {
+                    console.error("Error parsing activation date:", e);
+                    return null;
+                }
+            }).filter(Boolean);
 
             setEvents(calendarEvents);
 

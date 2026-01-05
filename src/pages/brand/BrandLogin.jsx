@@ -145,7 +145,7 @@ export default function BrandLogin() {
                                             type="text"
                                             required
                                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-amber-500 outline-none transition-all uppercase"
-                                            placeholder="e.g., WANDERS-LICENSE-001"
+                                            placeholder="e.g., OCM-AUCP-2024-000123"
                                             value={licenseNumber}
                                             onChange={(e) => setLicenseNumber(e.target.value)}
                                         />

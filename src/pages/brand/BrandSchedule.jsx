@@ -15,7 +15,10 @@ const BrandSchedule = () => {
     }, [brandUser]);
 
     const loadData = async () => {
-        if (!brandUser?.brandId) return;
+        if (!brandUser?.brandId) {
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -26,20 +29,30 @@ const BrandSchedule = () => {
 
             // Transform for Calendar
             const calendarEvents = brandActivations.map(a => {
-                const start = new Date(`${a.date}T${a.startTime}:00`);
-                const end = new Date(`${a.date}T${a.endTime}:00`);
+                try {
+                    const start = new Date(`${a.date}T${a.startTime}:00`);
+                    const end = new Date(`${a.date}T${a.endTime}:00`);
 
-                return {
-                    id: a.id,
-                    title: `@ ${a.storeName}`,
-                    start,
-                    end,
-                    resource: {
-                        ...a,
-                        status: a.status
+                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                        console.warn(`Invalid date/time for activation ${a.id}:`, a.date, a.startTime);
+                        return null;
                     }
-                };
-            });
+
+                    return {
+                        id: a.id,
+                        title: `@ ${a.storeName}`,
+                        start,
+                        end,
+                        resource: {
+                            ...a,
+                            status: a.status
+                        }
+                    };
+                } catch (e) {
+                    console.error("Error parsing activation date:", e);
+                    return null;
+                }
+            }).filter(Boolean);
 
             setEvents(calendarEvents);
 

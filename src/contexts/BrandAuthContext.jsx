@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState } from "react";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../firebase";
 import { useAuth } from "./AuthContext";
 
 // Placeholder licenses for all 8 brands
 export const BRAND_LICENSES = {
-    'WANDERS-LICENSE-001': { brandId: 'wanders', brandName: 'Wanders New York' },
-    'HONEYKING-LICENSE-001': { brandId: 'honey-king', brandName: 'Honey King' },
-    'BUDCRACKER-LICENSE-001': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
-    'CANNADOTS-LICENSE-001': { brandId: 'canna-dots', brandName: 'Canna Dots' },
-    'SPACEPOPPERS-LICENSE-001': { brandId: 'space-poppers', brandName: 'Space Poppers' },
-    'SMOOTHIEBAR-LICENSE-001': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
-    'WAFERZ-LICENSE-001': { brandId: 'waferz', brandName: 'Waferz NY' },
-    'PINES-LICENSE-001': { brandId: 'pines', brandName: 'Pines' },
+    'OCM-AUCP-2024-000101': { brandId: 'wanders', brandName: 'Wanders New York' },
+    'OCM-AUCP-2024-000102': { brandId: 'honey-king', brandName: 'Honey King' },
+    'OCM-AUCP-2024-000103': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
+    'OCM-AUCP-2024-000104': { brandId: 'canna-dots', brandName: 'Canna Dots' },
+    'OCM-AUCP-2024-000105': { brandId: 'space-poppers', brandName: 'Space Poppers' },
+    'OCM-AUCP-2024-000106': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
+    'OCM-AUCP-2024-000107': { brandId: 'waferz', brandName: 'Waferz NY' },
+    'OCM-AUCP-2024-000108': { brandId: 'pines', brandName: 'Pines' },
 };
 
 const BrandAuthContext = createContext();
@@ -121,7 +123,7 @@ export function BrandAuthProvider({ children }) {
             } else {
                 // Mock logic: If no license, default to Wanders for demo, 
                 // OR ideally we would look up the user by email in Firestore
-                brandInfo = BRAND_LICENSES['WANDERS-LICENSE-001'];
+                brandInfo = BRAND_LICENSES['OCM-AUCP-2024-000101'];
             }
 
             const mockGoogleUser = {
@@ -174,18 +176,17 @@ export function BrandAuthProvider({ children }) {
         return ghostUser;
     }
 
-    // Password reset functionality
+    // Real Password reset functionality
     async function resetPassword(email) {
         setLoading(true);
         try {
-            // In production, this would call Firebase auth.sendPasswordResetEmail(email)
-            console.log(`Password reset email requested for: ${email}`);
-
-            // Mock delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await sendPasswordResetEmail(auth, email);
             return { success: true, message: 'Password reset link sent to your email.' };
         } catch (error) {
-            throw error;
+            console.error("Password reset error:", error);
+            let msg = error.message;
+            if (msg.includes("user-not-found")) msg = "No user found with this email.";
+            throw new Error(msg);
         } finally {
             setLoading(false);
         }
