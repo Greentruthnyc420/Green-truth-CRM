@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Store, Calendar, CheckCircle, Plus, Trash2, Package, ArrowRight, ArrowLeft, ChevronRight } from 'lucide-react';
+import { DollarSign, Store, Calendar, CheckCircle, Plus, Trash2, Package, ArrowRight, ArrowLeft, ChevronRight, Camera, Sparkles, Loader, X } from 'lucide-react';
 import { addSale, getAvailableLeads, getMyDispensaries, getBrandProducts } from '../services/firestoreService';
+import { extractLicenseNumber } from '../services/geminiService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
@@ -26,8 +27,32 @@ export default function LogSale() {
     const [cart, setCart] = useState({});
     const [pricingModes, setPricingModes] = useState({}); // Map<productId, 'unit' | 'case'>
 
+    // License Scan State
+    const [analyzingLicense, setAnalyzingLicense] = useState(false);
+    const [licensePreview, setLicensePreview] = useState(null);
+
     // Helper to get mode
     const getMode = (productId) => pricingModes[productId] || 'unit';
+
+    const handleLicenseImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setLicensePreview(URL.createObjectURL(file));
+            setAnalyzingLicense(true);
+            try {
+                const extracted = await extractLicenseNumber(file);
+                if (extracted) {
+                    setBasicInfo(prev => ({ ...prev, licenseNumber: extracted }));
+                    showNotification("License successfully scanned!", 'success');
+                }
+            } catch (err) {
+                console.warn("Auto-extraction failed", err);
+                showNotification("Auto-scan failed. Please type manually.", 'warning');
+            } finally {
+                setAnalyzingLicense(false);
+            }
+        }
+    };
 
     // Voice Integration Logic - REMOVED
 
@@ -366,11 +391,51 @@ export default function LogSale() {
                                 type="text"
                                 required
                                 placeholder="OCM-..."
-                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all"
+                                className={`w-full pl-12 pr-12 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all ${analyzingLicense ? 'bg-slate-50' : ''}`}
                                 value={basicInfo.licenseNumber || ''}
                                 onChange={(e) => setBasicInfo({ ...basicInfo, licenseNumber: e.target.value })}
                             />
+                            {analyzingLicense ? (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                    <Loader className="animate-spin text-brand-500" size={18} />
+                                </div>
+                            ) : (
+                                <label className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-brand-600 cursor-pointer transition-colors">
+                                    <Camera size={20} />
+                                    <input
+                                        type="file"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        accept="image/*"
+                                        capture="environment"
+                                        onChange={handleLicenseImageChange}
+                                        onClick={(e) => (e.target.value = null)}
+                                    />
+                                </label>
+                            )}
                         </div>
+                        {licensePreview && !analyzingLicense && (
+                            <div className="relative mt-2 rounded-lg overflow-hidden border border-slate-200 group">
+                                <img src={licensePreview} alt="License Preview" className="w-full h-24 object-cover opacity-60" />
+                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        type="button"
+                                        onClick={() => setLicensePreview(null)}
+                                        className="bg-white/90 p-1 rounded-full text-red-600 shadow-sm"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-bold text-white bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
+                                    <Sparkles size={10} /> SCANNED
+                                </div>
+                            </div>
+                        )}
+                        {analyzingLicense && (
+                            <div className="mt-2 p-2 bg-brand-50 border border-brand-100 rounded-lg flex items-center gap-2 animate-pulse">
+                                <Sparkles size={14} className="text-brand-600" />
+                                <span className="text-xs font-medium text-brand-700 font-mono">Gemini AI analyzing license details...</span>
+                            </div>
+                        )}
                         <p className="text-xs text-slate-400 mt-1 ml-1">Required for accurate payout tracking.</p>
                     </div>
                 </div>

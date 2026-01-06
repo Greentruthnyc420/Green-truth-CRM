@@ -30,10 +30,17 @@ const BRAND_LOGOS = {
 };
 
 export default function BrandLogin() {
-    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin } = useBrandAuth();
+    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin, brandUser } = useBrandAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || '/brand';
+
+    // Redirect if already logged in
+    React.useEffect(() => {
+        if (brandUser) {
+            navigate(from, { replace: true });
+        }
+    }, [brandUser, navigate, from]);
 
     const [step, setStep] = useState('selection'); // 'selection' | 'auth'
     const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'reset'
@@ -103,10 +110,11 @@ export default function BrandLogin() {
         '8': 'pines', // "FLX"
     };
 
-    const handleDevLogin = async () => {
+    const handleDevLogin = async (brandIdOverride = null) => {
         setLoading(true);
         try {
-            await devBrandLogin(selectedBrand.brandId);
+            const bId = brandIdOverride || selectedBrand?.brandId || 'wanders';
+            await devBrandLogin(bId);
             navigate(from, { replace: true });
         } catch (err) {
             setError(err.message || 'Dev Login failed.');
@@ -214,6 +222,17 @@ export default function BrandLogin() {
                             ))}
                         </div>
 
+                        {(import.meta.env.DEV || window.location.hostname === 'localhost') && (
+                            <div className="mt-8 pt-8 border-t border-slate-800/50 flex justify-center">
+                                <button
+                                    onClick={() => handleDevLogin()}
+                                    className="px-6 py-2 bg-slate-900/50 border border-amber-500/20 rounded-full text-amber-500 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/10 transition-all flex items-center gap-2"
+                                >
+                                    <Shield size={14} /> Master Developer Bypass
+                                </button>
+                            </div>
+                        )}
+
                         <div className="mt-12 text-center">
                             <NavLink to="/" className="text-slate-500 hover:text-white transition-colors inline-flex items-center gap-2">
                                 <ArrowLeft size={16} /> Back to Gateway
@@ -285,13 +304,15 @@ export default function BrandLogin() {
                                     Unlock Portal
                                 </button>
 
-                                <button
-                                    type="button"
-                                    onClick={handleDevLogin}
-                                    className="w-full text-zinc-600 text-xs hover:text-zinc-400 transition-colors pt-2"
-                                >
-                                    (Dev Only) Bypass Gate
-                                </button>
+                                {(import.meta.env.DEV || window.location.hostname === 'localhost') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDevLogin(selectedBrand.brandId)}
+                                        className="w-full mt-4 bg-transparent border border-zinc-700 text-zinc-500 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Shield size={12} /> Local Dev Bypass
+                                    </button>
+                                )}
                             </form>
                         </div>
                     </motion.div>
@@ -442,14 +463,7 @@ export default function BrandLogin() {
                                 </button>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={handleDevLogin}
-                                disabled={loading}
-                                className="w-full bg-transparent border border-amber-900/30 text-amber-700 py-3 rounded-xl font-bold hover:bg-amber-50 transition-all flex items-center justify-center gap-2 mb-4 text-xs uppercase tracking-wider"
-                            >
-                                <Lock size={14} /> Developer Access (Bypass)
-                            </button>
+                            {/* Developer Access Removed for Production */}
 
                             <div className="text-center">
                                 <button

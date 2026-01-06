@@ -4,8 +4,15 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import { Shield, Loader, ArrowRight, Lock, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 export default function AdminLogin() {
-    const { login, loginWithGoogle, devLogin } = useAuth();
+    const { login, loginWithGoogle, devLogin, currentUser, logout } = useAuth();
     const navigate = useNavigate();
+
+    // Redirect logic with explicit Admin check to prevent loops
+    React.useEffect(() => {
+        if (currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
+            navigate('/admin', { replace: true });
+        }
+    }, [currentUser, navigate]);
 
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -25,7 +32,7 @@ export default function AdminLogin() {
             }
 
             await login(email, password);
-            navigate('/admin');
+            navigate('/admin', { replace: true });
         } catch (err) {
             console.error(err);
             setError(err.message || "Failed to log in.");
@@ -42,10 +49,12 @@ export default function AdminLogin() {
             const userEmail = result.user.email.toLowerCase();
 
             if (!ADMIN_EMAILS.includes(userEmail)) {
+                // If not admin, logout immediately to prevent getting stuck
+                await logout();
                 throw new Error("Access Denied: You do not have admin privileges.");
             }
 
-            navigate('/admin');
+            navigate('/admin', { replace: true });
         } catch (err) {
             setError(err.message || "Failed to log in with Google.");
         } finally {
@@ -53,18 +62,7 @@ export default function AdminLogin() {
         }
     };
 
-    const handleDevLogin = async () => {
-        setLoading(true);
-        try {
-            // Using a known admin email from ADMIN_EMAILS
-            await devLogin('omar@thegreentruthnyc.com');
-            navigate('/admin');
-        } catch (err) {
-            setError('Dev Login failed');
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 selection:bg-indigo-500/30">
@@ -93,6 +91,20 @@ export default function AdminLogin() {
 
                 {/* Form */}
                 <div className="p-8">
+                    {/* Access Denied Warning for non-admin logged in users */}
+                    {currentUser && !ADMIN_EMAILS.includes(currentUser.email?.toLowerCase()) && (
+                        <div className="mb-6 p-4 bg-amber-500/10 text-amber-400 text-sm rounded-xl border border-amber-500/20 text-left">
+                            <p className="font-bold mb-2">Logged in as {currentUser.email}</p>
+                            <p className="mb-3 opacity-90">You do not have permission to access the admin portal.</p>
+                            <button
+                                onClick={logout}
+                                className="text-xs bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition-colors font-medium text-amber-300"
+                            >
+                                Logout & Try Different Account
+                            </button>
+                        </div>
+                    )}
+
                     {error && (
                         <div className="mb-6 p-4 bg-red-500/10 text-red-400 text-sm rounded-xl border border-red-500/20 flex gap-3 text-left">
                             <Shield size={18} className="flex-shrink-0 mt-0.5" />
@@ -175,14 +187,6 @@ export default function AdminLogin() {
                         Sign in with Google
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={handleDevLogin}
-                        disabled={loading}
-                        className="w-full bg-slate-700/50 border border-indigo-500/30 text-indigo-300 py-3 rounded-xl font-bold hover:bg-slate-700 transition-all flex items-center justify-center gap-2 mt-4 text-xs uppercase tracking-wider"
-                    >
-                        <Lock size={14} /> Developer Bypass (Admin)
-                    </button>
 
                     <div className="mt-8 text-center text-xs text-slate-500">
                         Authorized Personnel Only

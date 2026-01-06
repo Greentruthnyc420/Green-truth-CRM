@@ -4,8 +4,15 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
-    const { login, signup, loginWithGoogle, devLogin, resetPassword } = useAuth();
+    const { login, signup, loginWithGoogle, devLogin, resetPassword, currentUser } = useAuth();
     const navigate = useNavigate();
+
+    // Redirect if already logged in - Fixes "Back to Dashboard" issue
+    React.useEffect(() => {
+        if (currentUser) {
+            navigate('/app', { replace: true });
+        }
+    }, [currentUser, navigate]);
 
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -27,7 +34,7 @@ export default function Login() {
             } else {
                 await login(email, password);
             }
-            navigate('/app');
+            navigate('/app', { replace: true });
         } catch (err) {
             console.error(err);
             let msg = err.message || "Unknown error";
@@ -48,7 +55,7 @@ export default function Login() {
         setLoading(true);
         try {
             await loginWithGoogle();
-            navigate('/app');
+            navigate('/app', { replace: true });
         } catch (err) {
             console.error(err);
             let msg = err.message || "Unknown error";

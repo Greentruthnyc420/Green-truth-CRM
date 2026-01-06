@@ -18,7 +18,7 @@ import {
 } from '../services/firestoreService';
 import NewActivationModal from '../components/NewActivationModal';
 // eslint-disable-next-line no-unused-vars
-import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../services/compensationService';
+import { calculateTotalLifetimeBonuses, calculateReimbursement, calculateShiftClientRevenue } from '../services/compensationService';
 import { syncLeadToHubSpot } from '../services/hubspotService';
 import { convertToCSV, downloadCSV } from '../utils/csvHelper';
 import { importOfficialDispensaries } from '../services/dataSyncService';

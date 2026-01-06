@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase";
-import { useAuth } from "./AuthContext";
+import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 
 // Placeholder licenses for all 8 brands
 export const BRAND_LICENSES = {
@@ -149,8 +149,7 @@ export function BrandAuthProvider({ children }) {
     // Admin Backdoor: Impersonate a brand
     function impersonateBrand(brandId) {
         // Verify Admin via AuthContext
-        const adminEmail = 'omar@thegreentruthnyc.com';
-        const isAuthorized = currentUser?.email === adminEmail || currentUser?.email === 'admin-user-id-123'; // dev mock
+        const isAuthorized = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
 
         if (!isAuthorized) {
             console.error("Unauthorized attempt to impersonate brand.");

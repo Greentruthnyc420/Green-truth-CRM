@@ -13,9 +13,7 @@ import { logSecurityEvent } from "../services/firestoreService";
 
 export const ADMIN_EMAILS = [
     'omar@thegreentruthnyc.com',
-    'amber@thegreentruthnyc.com',
-    'realtest@test.com',
-    'omar@gmail.com'
+    'amber@thegreentruthnyc.com'
 ];
 
 const AuthContext = createContext();
@@ -31,6 +29,9 @@ export function AuthProvider({ children }) {
 
     // Domain Validation Helper
     const validateDomain = async (email, action) => {
+        // Bypass for known Admins
+        if (ADMIN_EMAILS.includes(email.toLowerCase())) return true;
+
         const allowedDomains = ['@thegreentruthnyc.com'];
         const isOrgEmail = allowedDomains.some(d => email.endsWith(d));
 
@@ -103,7 +104,7 @@ export function AuthProvider({ children }) {
 
     // Dev Helper
     function devLogin(email) {
-        const isAdmin = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com', 'amber@thegreentruthnyc.com'].includes(email);
+        const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
         const mockUser = {
             uid: isAdmin ? 'admin-user-id-123' : 'dev-test-user',
             email: email,

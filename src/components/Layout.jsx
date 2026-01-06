@@ -71,7 +71,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                         </div>
 
                         <NavItem to="/admin" icon={<ShieldCheck size={20} className="text-indigo-400" />} label="New Admin Portal" isCollapsed={isCollapsed} />
-                        <NavItem to="/app/admin" icon={<ShieldCheck size={20} />} label="Legacy Console" isCollapsed={isCollapsed} />
+                        <NavItem to="/app/admin" icon={<ShieldCheck size={20} />} label="Legacy Council" isCollapsed={isCollapsed} />
                         <NavItem to="/app/brand-oversight" icon={<Building2 size={20} />} label="Brand Oversight" isCollapsed={isCollapsed} />
                     </>
                 )}

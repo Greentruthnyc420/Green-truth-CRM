@@ -8,6 +8,7 @@ import NewLead from './pages/NewLead';
 import LogSale from './pages/LogSale';
 import MyDispensaries from './pages/MyDispensaries';
 import AdminDashboard from './pages/AdminDashboard';
+import BrandOversight from './pages/BrandOversight';
 import Login from './pages/Login';
 import Menus from './pages/Menus';
 import Accounts from './pages/Accounts';
@@ -17,7 +18,7 @@ import WagesPayouts from './pages/WagesPayouts';
 import ActiveAccounts from './pages/ActiveAccounts';
 import LeadMap from './pages/LeadMap';
 import Schedule from './pages/Schedule';
-import BrandOversight from './pages/BrandOversight';
+// BrandOversight removed
 import PrivateRoute from './components/PrivateRoute';
 import GatewayLanding from './pages/GatewayLanding';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -59,8 +60,7 @@ function App() {
 
         <Route element={<AdminPrivateRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
-            {/* We will create Dashboard next, temporary placeholder */}
-            <Route index element={<div className="p-10">New Admin Dashboard Construction Site...</div>} />
+            <Route index element={<NewAdminDashboard />} />
           </Route>
         </Route>
 
@@ -83,6 +83,7 @@ function App() {
             <Route path="payouts/wages" element={<WagesPayouts />} />
             <Route path="accounts/active" element={<ActiveAccounts />} />
             <Route path="accounts" element={<Accounts />} />
+            {/* Legacy Admin Routes Restored */}
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="brand-oversight" element={<BrandOversight />} />
             {/* Fallback route */}

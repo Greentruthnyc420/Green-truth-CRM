@@ -298,10 +298,17 @@ export default function BrandNewLead() {
                                 </div>
                             )}
                         </div>
-                        <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors text-slate-500 text-sm mt-2">
+                        <label className="relative flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors text-slate-500 text-sm mt-2">
                             <Camera size={16} />
                             <span>{licenseImage ? 'Change Photo' : 'Upload License Photo'}</span>
-                            <input type="file" className="hidden" accept="image/*" onChange={handleLicenseImageChange} />
+                            <input
+                                type="file"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handleLicenseImageChange}
+                                onClick={(e) => (e.target.value = null)}
+                            />
                         </label>
                     </div>
                 </div>

@@ -21,8 +21,8 @@ export default function AdminPrivateRoute() {
     }
 
     if (!isAdmin) {
-        // Redirect non-admins to the home page or gateway
-        return <Navigate to="/" />;
+        // Redirect non-admins to the login page so they see the "Access Denied" state
+        return <Navigate to="/admin/login" />;
     }
 
     return <Outlet />;

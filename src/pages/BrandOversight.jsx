@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { BRAND_LICENSES } from '../contexts/BrandAuthContext';
 import { calculateBrandMetrics } from '../services/brandMetricsService';
 import {
@@ -7,8 +7,6 @@ import {
     Package, AlertCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import AdminOrders from '../components/admin/AdminOrders';
-
-const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
 
 export default function BrandOversight() {
     const { currentUser } = useAuth();
