@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
     Package, ShoppingCart, DollarSign,
     TrendingUp, AlertCircle, CheckCircle, Clock,
-    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles
+    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -64,6 +64,7 @@ export default function BrandDashboard() {
         orderCount: 0,
         pendingOrders: 0
     });
+    const [brandLeads, setBrandLeads] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
@@ -76,8 +77,15 @@ export default function BrandDashboard() {
             setLoading(true);
             try {
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
-                const metrics = await calculateBrandMetrics(brandUser.brandId, brandUser.brandName);
+                const { getBrandLeads } = await import('../../services/firestoreService');
+
+                const [metrics, leads] = await Promise.all([
+                    calculateBrandMetrics(brandUser.brandId, brandUser.brandName),
+                    getBrandLeads(brandUser.brandId)
+                ]);
+
                 setFinancials(metrics);
+                setBrandLeads(leads);
             } catch (error) {
                 console.error("Failed to load brand dashboard data", error);
             } finally {
@@ -100,31 +108,29 @@ export default function BrandDashboard() {
 
     return (
         <div className="space-y-6">
-            {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-4">
-                    {brandData?.logo && (
-                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 p-1 flex items-center justify-center">
-                            <img src={brandData.logo} alt={brandData.name} className="max-w-full max-h-full object-contain" />
-                        </div>
-                    )}
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">Welcome back, {brandUser?.brandName}!</h1>
-                        <p className="text-slate-500 text-sm">Overview of your performance and pending actions.</p>
-                    </div>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 leading-tight">
+                        {brandUser?.brandName} <span className="text-emerald-500">Portal</span>
+                    </h1>
+                    <p className="text-slate-500 mt-1 font-medium italic">Welcome back! Here's your brand performance at a glance.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="/brand/new-lead"
+                        className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <UserPlus size={18} className="text-emerald-500" />
+                        <span>Create Lead</span>
+                    </Link>
                     <button
                         onClick={() => setIsRequestModalOpen(true)}
-                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
                     >
-                        <Sparkles size={18} className="text-emerald-600" />
-                        Request Activation
+                        <Sparkles size={18} />
+                        <span>Request Activation</span>
                     </button>
-                    <Link to="/brand/orders" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2">
-                        <ShoppingCart size={18} />
-                        View Orders
-                    </Link>
                 </div>
             </div>
 
@@ -263,27 +269,142 @@ export default function BrandDashboard() {
             </div>
 
             {/* Charts Section - Placeholder until historical data aggregation is ready */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 opacity-50 pointer-events-none filter grayscale">
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex items-center justify-center h-64">
-                    <p>Sales Trend Chart (Coming Soon)</p>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Sales Trend */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="text-slate-800 font-bold mb-4 flex items-center gap-2">
+                        <TrendingUp size={18} className="text-emerald-500" />
+                        Sales Trend
+                    </h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={financials.salesHistory}>
+                                <defs>
+                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="month"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    tickFormatter={(value) => `$${value / 1000}k`}
+                                />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="revenue"
+                                    stroke="#10b981"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorRevenue)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex items-center justify-center h-64">
-                    <p>Product Mix Chart (Coming Soon)</p>
+
+                {/* Product Mix */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="text-slate-800 font-bold mb-4 flex items-center gap-2">
+                        <PieChart size={18} className="text-indigo-500" />
+                        Product Mix
+                    </h3>
+                    <div className="h-64 flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPC>
+                                <Pie
+                                    data={financials.productMix}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {financials.productMix?.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                />
+                                <Legend
+                                    verticalAlign="middle"
+                                    layout="vertical"
+                                    align="right"
+                                    iconType="circle"
+                                />
+                            </RechartsPC>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
 
-            {/* Recent Orders Table is preserved below */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-800">Recent Activity</h3>
-                    <Link to="/brand/orders" className="text-sm text-amber-600 hover:text-orange-600 font-medium">
-                        View all orders →
+            {/* Lead Pipeline Summary */}
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <UserPlus size={18} className="text-orange-500" />
+                        Lead Pipeline
+                    </h3>
+                    <Link to="/brand/new-lead" className="text-sm text-emerald-600 hover:text-emerald-700 font-bold">
+                        + Add New Lead
                     </Link>
                 </div>
-                <div className="divide-y divide-slate-50">
-                    <div className="p-4 text-center text-slate-500 text-sm">
-                        No recent activity to display.
+                <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+                    <div className="p-4 text-center">
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Prospects</p>
+                        <p className="text-xl font-black text-slate-700">{brandLeads.filter(l => l.leadStatus === 'prospect').length}</p>
                     </div>
+                    <div className="p-4 text-center">
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Requested</p>
+                        <p className="text-xl font-black text-amber-600">{brandLeads.filter(l => l.leadStatus === 'samples_requested').length}</p>
+                    </div>
+                    <div className="p-4 text-center">
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Received</p>
+                        <p className="text-xl font-black text-blue-600">{brandLeads.filter(l => l.leadStatus === 'samples_delivered').length}</p>
+                    </div>
+                    <div className="p-4 text-center">
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Active</p>
+                        <p className="text-xl font-black text-emerald-600">{brandLeads.filter(l => l.leadStatus === 'active').length}</p>
+                    </div>
+                </div>
+                <div className="divide-y divide-slate-50 max-h-60 overflow-y-auto">
+                    {brandLeads.length > 0 ? (
+                        brandLeads.slice(0, 5).map((lead, i) => (
+                            <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <div>
+                                    <p className="font-bold text-slate-800 text-sm">{lead.dispensaryName}</p>
+                                    <p className="text-slate-400 text-xs">{lead.contacts?.[0]?.name || 'No Contact'} • {new Date(lead.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${lead.leadStatus === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                    lead.leadStatus === 'samples_delivered' ? 'bg-blue-100 text-blue-700' :
+                                        lead.leadStatus === 'samples_requested' ? 'bg-amber-100 text-amber-700' :
+                                            'bg-slate-100 text-slate-500'
+                                    }`}>
+                                    {lead.leadStatus?.replace('_', ' ') || 'New'}
+                                </span>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="p-8 text-center text-slate-400 text-sm italic">
+                            No leads in your pipeline yet. Click "Add New Lead" to get started.
+                        </div>
+                    )}
                 </div>
             </div>
 

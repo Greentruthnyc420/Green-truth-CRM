@@ -1,35 +1,57 @@
 import React, { useState } from 'react';
-import { Store, User, FileText, Calendar, DollarSign, Camera, X } from 'lucide-react';
+import { Store, User, FileText, Calendar, DollarSign, Camera, X, Plus, Sparkles, Loader } from 'lucide-react';
 import { addLead, checkDuplicateLead } from '../services/firestoreService';
 import { uploadTollReceipt } from '../services/storageService'; // Reusing existing upload logic
 import { geocodeAddress } from '../utils/geocoding';
+import { extractLicenseNumber } from '../services/geminiService'; // New Service
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../contexts/NotificationContext';
+import { awardLeadPoints } from '../services/pointsService';
 
 
 export default function NewLead() {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
 
     const [loading, setLoading] = useState(false);
 
     // License Image State
     const [licenseImage, setLicenseImage] = useState(null);
     const [licensePreview, setLicensePreview] = useState(null);
+    const [analyzingLicense, setAnalyzingLicense] = useState(false);
 
     const [formData, setFormData] = useState({
         dispensaryName: '',
         contactPerson: '',
         licenseNumber: '',
         meetingDate: '',
-        samplesRequested: []
+        samplesRequested: [],
+        contacts: [
+            { name: '', role: 'Manager', email: '', phone: '' }
+        ]
     });
 
-    const handleLicenseImageChange = (e) => {
+    const handleLicenseImageChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
             setLicenseImage(file);
             setLicensePreview(URL.createObjectURL(file));
+
+            // Auto-Extract License Number
+            setAnalyzingLicense(true);
+            try {
+                const extracted = await extractLicenseNumber(file);
+                if (extracted) {
+                    setFormData(prev => ({ ...prev, licenseNumber: extracted }));
+                }
+            } catch (err) {
+                console.warn("Auto-extraction failed", err);
+                // Fail silently, user can still type
+            } finally {
+                setAnalyzingLicense(false);
+            }
         }
     };
 
@@ -54,17 +76,39 @@ export default function NewLead() {
         });
     };
 
+    // Contact Helpers
+    const updateContact = (index, field, value) => {
+        const newContacts = [...formData.contacts];
+        newContacts[index] = { ...newContacts[index], [field]: value };
+
+        // Sync primary contact for backward compatibility
+        const updates = { contacts: newContacts };
+        if (index === 0) {
+            if (field === 'name') updates.contactPerson = value;
+            // Add other syncs if they exist in root form
+        }
+        setFormData({ ...formData, ...updates });
+    };
+
+    const addContact = () => {
+        setFormData({
+            ...formData,
+            contacts: [...formData.contacts, { name: '', role: 'Manager', email: '', phone: '' }]
+        });
+    };
+
+    const removeContact = (index) => {
+        if (formData.contacts.length === 1) return; // Prevent deleting last contact
+        const newContacts = formData.contacts.filter((_, i) => i !== index);
+        setFormData({ ...formData, contacts: newContacts });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // mandatory OCM License check
-        const hasLicenseText = formData.licenseNumber && formData.licenseNumber.trim().length > 0;
-        const hasLicenseImage = !!licenseImage;
-
-        if (!hasLicenseText && !hasLicenseImage) {
-            alert("Mandatory: Please provide an OCM License Number OR upload a photo of the license.");
-            return;
-        }
+        // OCM License is now optional for Leads (will be enforced at Sale)
+        // const hasLicenseText = formData.licenseNumber && formData.licenseNumber.trim().length > 0;
+        // const hasLicenseImage = !!licenseImage;
 
         setLoading(true);
         try {
@@ -132,7 +176,7 @@ export default function NewLead() {
                 licenseImageUrl = await uploadTollReceipt(licenseImage, currentUser?.uid || 'anonymous');
             }
 
-            await addLead({
+            const leadRef = await addLead({
                 ...formData,
                 location: locationData, // Saved to DB
                 licenseImageUrl,
@@ -145,11 +189,19 @@ export default function NewLead() {
                     ? 'samples_requested'
                     : 'prospect'
             });
-            alert('Lead added successfully! 45-Day Exclusivity Started.');
+
+            // Award 1.000 Point
+            try {
+                await awardLeadPoints(currentUser?.uid || 'test-user-123', leadRef.id || 'unknown');
+            } catch (pErr) {
+                console.warn("Points awarding failed, but lead was saved.", pErr);
+            }
+
+            showNotification('Lead added successfully! 45-Day Exclusivity Started.', 'success');
             navigate('/app');
         } catch (error) {
             console.error('Error adding lead:', error);
-            alert('Failed to add lead');
+            showNotification('Failed to add lead: ' + (error.message || 'Unknown error'), 'error');
         } finally {
             setLoading(false);
         }
@@ -198,57 +250,90 @@ export default function NewLead() {
                     </div>
 
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Point of Contact</label>
-                        <div className="relative">
-                            <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                required
-                                placeholder="Name"
-                                className="w-full pl-10 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
-                                value={formData.contactPerson}
-                                onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                            <select
-                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border bg-white"
-                                value={formData.contactRole || 'Manager'}
-                                onChange={(e) => setFormData({ ...formData, contactRole: e.target.value })}
+                    {/* Dynamic Contacts Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <label className="block text-sm font-medium text-slate-700">Points of Contact</label>
+                            <button
+                                type="button"
+                                onClick={addContact}
+                                className="text-sm text-brand-600 font-medium hover:text-brand-700 flex items-center gap-1"
                             >
-                                <option value="Owner">Owner</option>
-                                <option value="Floor Manager">Floor Manager</option>
-                                <option value="Buying Manager">Buying Manager</option>
-                                <option value="Budtender">Budtender</option>
-                                <option value="Other">Other</option>
-                            </select>
+                                <Plus size={16} /> Add Contact
+                            </button>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                            <input
-                                type="email"
-                                placeholder="Email"
-                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
-                                value={formData.email || ''}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-                    </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
-                        <input
-                            type="tel"
-                            placeholder="(555) 555-5555"
-                            className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
-                            value={formData.phone || ''}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        />
+                        {formData.contacts && formData.contacts.map((contact, index) => (
+                            <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-100 relative group">
+                                {formData.contacts.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => removeContact(index)}
+                                        className="absolute top-2 right-2 text-slate-400 hover:text-red-500"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                                <div className="space-y-3">
+                                    {/* Name */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Name</label>
+                                        <div className="relative">
+                                            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Name"
+                                                className="w-full pl-9 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-2 border text-sm"
+                                                value={contact.name}
+                                                onChange={(e) => updateContact(index, 'name', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Role */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Role</label>
+                                            <select
+                                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-2 border bg-white text-sm"
+                                                value={contact.role}
+                                                onChange={(e) => updateContact(index, 'role', e.target.value)}
+                                            >
+                                                <option value="Manager">Manager</option>
+                                                <option value="Owner">Owner</option>
+                                                <option value="Floor Manager">Floor Manager</option>
+                                                <option value="Buying Manager">Buying Manager</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        {/* Email */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
+                                            <input
+                                                type="email"
+                                                placeholder="Email"
+                                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-2 border text-sm"
+                                                value={contact.email}
+                                                onChange={(e) => updateContact(index, 'email', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Phone */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Phone</label>
+                                        <input
+                                            type="tel"
+                                            placeholder="(555) 555-5555"
+                                            className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-2 border text-sm"
+                                            value={contact.phone}
+                                            onChange={(e) => updateContact(index, 'phone', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     <div>
@@ -257,11 +342,17 @@ export default function NewLead() {
                             <FileText size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Or upload photo below"
-                                className="w-full pl-10 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
+                                placeholder="Optional until first sale"
+                                className={`w-full pl-10 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border ${analyzingLicense ? 'bg-slate-50' : ''}`}
                                 value={formData.licenseNumber}
                                 onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
                             />
+                            {analyzingLicense && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs text-indigo-600 font-medium animate-pulse">
+                                    <Sparkles size={14} />
+                                    <span>Gemini Analyzing...</span>
+                                </div>
+                            )}
                         </div>
 
                         {!licensePreview ? (

@@ -3,6 +3,9 @@ import { DollarSign, Store, Calendar, CheckCircle, Plus, Trash2, Package, ArrowR
 import { addSale, getAvailableLeads, getMyDispensaries, getBrandProducts } from '../services/firestoreService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
+import { awardOrderPoints } from '../services/pointsService';
+import confetti from 'canvas-confetti';
 
 import { PRODUCT_CATALOG } from '../data/productCatalog';
 
@@ -10,13 +13,14 @@ export default function LogSale() {
     const navigate = useNavigate();
     // location removed
     const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
 
 
     // State management
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [availableStores, setAvailableStores] = useState({ active: [], myLeads: [], openLeads: [] });
-    const [basicInfo, setBasicInfo] = useState({ dispensaryName: '', date: new Date().toISOString().split('T')[0], paymentTerms: 'COD' });
+    const [basicInfo, setBasicInfo] = useState({ dispensaryName: '', dispensaryId: '', licenseNumber: '', date: new Date().toISOString().split('T')[0], paymentTerms: 'COD' });
     const [selectedBrandIds, setSelectedBrandIds] = useState([]);
     const [brandProductsMap, setBrandProductsMap] = useState({}); // Map<brandId, Product[]>
     const [cart, setCart] = useState({});
@@ -118,12 +122,19 @@ export default function LogSale() {
     };
 
     const handleNext = () => {
-        if (step === 0 && !basicInfo.dispensaryName) {
-            alert("Please select a dispensary");
-            return;
+        if (step === 0) {
+            if (!basicInfo.dispensaryName) {
+                showNotification("Please select a dispensary", 'warning');
+                return;
+            }
+            // Enforce OCM License for Sales
+            if (!basicInfo.licenseNumber || basicInfo.licenseNumber.trim().length === 0) {
+                showNotification("OCM License Number is required to log a sale.", 'warning');
+                return;
+            }
         }
         if (step === 1 && selectedBrandIds.length === 0) {
-            alert("Please select at least one brand");
+            showNotification("Please select at least one brand", 'warning');
             return;
         }
         setStep(prev => prev + 1);
@@ -177,6 +188,7 @@ export default function LogSale() {
 
             await addSale({
                 dispensaryName: basicInfo.dispensaryName,
+                licenseNumber: basicInfo.licenseNumber, // Included in Sale Record and auto-updates Lead
                 date: new Date(basicInfo.date),
                 paymentTerms: basicInfo.paymentTerms,
                 amount: totalAmount,
@@ -190,11 +202,31 @@ export default function LogSale() {
                 }).filter(Boolean)
             });
 
-            alert(`Sale logged! Commission: $${commission.toFixed(2)}`);
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            try {
+                // Award High-Precision Points
+                if (basicInfo.dispensaryId) {
+                    await awardOrderPoints(
+                        currentUser?.uid || 'test-user-123',
+                        basicInfo.dispensaryId,
+                        totalAmount,
+                        selectedBrandIds
+                    );
+                }
+            } catch (pErr) {
+                console.warn("Points awarding failed, but sale was logged.", pErr);
+            }
+
+            showNotification(`Sale logged! Commission: $${commission.toFixed(2)}`, 'success', 5000);
             navigate('/app');
         } catch (error) {
             console.error('Error logging sale:', error);
-            alert('Failed to log sale');
+            showNotification('Failed to log sale: ' + (error.message || 'Unknown error'), 'error', 10000);
         } finally {
             setLoading(false);
         }
@@ -219,7 +251,18 @@ export default function LogSale() {
                                     if (e.target.value === 'new_store_redirect') {
                                         navigate('/app/new-lead');
                                     } else {
-                                        setBasicInfo({ ...basicInfo, dispensaryName: e.target.value })
+                                        const name = e.target.value;
+                                        // Auto-find license
+                                        let foundLicense = '';
+                                        let foundId = '';
+                                        const allStores = [...availableStores.active, ...availableStores.myLeads, ...availableStores.openLeads];
+                                        const match = allStores.find(s => (s.dispensaryName === name || s.name === name));
+                                        if (match) {
+                                            if (match.licenseNumber) foundLicense = match.licenseNumber;
+                                            foundId = match.id;
+                                        }
+
+                                        setBasicInfo({ ...basicInfo, dispensaryName: name, dispensaryId: foundId, licenseNumber: foundLicense });
                                     }
                                 }}
                             >
@@ -310,6 +353,25 @@ export default function LogSale() {
                                 onChange={(e) => setBasicInfo({ ...basicInfo, date: e.target.value })}
                             />
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            OCM License Number <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            {/* Reusing CheckCircle as icon or maybe FileText? */}
+                            <CheckCircle size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="text"
+                                required
+                                placeholder="OCM-..."
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all"
+                                value={basicInfo.licenseNumber || ''}
+                                onChange={(e) => setBasicInfo({ ...basicInfo, licenseNumber: e.target.value })}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1 ml-1">Required for accurate payout tracking.</p>
                     </div>
                 </div>
             );

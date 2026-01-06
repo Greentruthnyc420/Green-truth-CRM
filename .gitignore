@@ -8,14 +8,21 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+
+# Build and Test
 dist
-dist-ssr
-*.local
+dev-dist
+.firebase
+playwright-report
+test-results
+
+# Environment
 .env
 .env.*
 !.env.example
+*.local
 
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea

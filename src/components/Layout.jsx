@@ -1,9 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-
-const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { logout } = useAuth();
@@ -72,7 +70,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                             Admin
                         </div>
 
-                        <NavItem to="/app/admin" icon={<ShieldCheck size={20} />} label="Admin Console" isCollapsed={isCollapsed} />
+                        <NavItem to="/admin" icon={<ShieldCheck size={20} className="text-indigo-400" />} label="New Admin Portal" isCollapsed={isCollapsed} />
+                        <NavItem to="/app/admin" icon={<ShieldCheck size={20} />} label="Legacy Console" isCollapsed={isCollapsed} />
                         <NavItem to="/app/brand-oversight" icon={<Building2 size={20} />} label="Brand Oversight" isCollapsed={isCollapsed} />
                     </>
                 )}
@@ -161,7 +160,7 @@ export default function Layout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
     const { currentUser } = useAuth();
 
-    const isAdmin = currentUser && ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'].includes(currentUser.email?.toLowerCase());
+    const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
 
     // Calculate initials for mobile header too
     const initials = isAdmin ? 'O' : (currentUser?.displayName
@@ -196,7 +195,6 @@ export default function Layout() {
 
             </main>
 
-            <BottomNav />
             <BottomNav />
         </div>
     );

@@ -68,7 +68,7 @@ export default function GatewayLanding() {
             description: 'Oversight & Analytics',
             icon: Shield,
             color: 'from-slate-600 to-slate-800',
-            path: '/login',
+            path: '/admin/login',
             glow: 'shadow-slate-500/50',
             isSecondary: true
         }

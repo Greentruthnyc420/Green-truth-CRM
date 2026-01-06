@@ -4,9 +4,11 @@ import { getSales, updateSaleStatus, updateSale } from '../../services/firestore
 import {
     Clock, CheckCircle, ArrowDownLeft, AlertCircle, ExternalLink, Loader
 } from 'lucide-react';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export default function BrandInvoicesDispensary() {
     const { brandUser } = useBrandAuth();
+    const { showNotification } = useNotification();
     const [invoices, setInvoices] = useState({ paid: [], unpaid: [] });
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
@@ -93,7 +95,7 @@ export default function BrandInvoicesDispensary() {
             });
         } catch (error) {
             console.error("Failed to update status", error);
-            alert("Failed to update invoice status.");
+            showNotification("Failed to update invoice status.", 'error');
         } finally {
             setProcessingId(null);
         }

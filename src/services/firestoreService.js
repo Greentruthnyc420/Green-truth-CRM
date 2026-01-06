@@ -204,6 +204,11 @@ export async function getLeads() {
     }
 }
 
+export async function getBrandLeads(brandId) {
+    const allLeads = await getLeads();
+    return allLeads.filter(l => l.ownerBrandId === brandId || (l.createdBy === 'brand' && l.ownerBrandId === brandId));
+}
+
 export async function updateLead(leadId, updates) {
     try {
         const docRef = doc(db, "leads", leadId);
@@ -351,13 +356,21 @@ export async function addSale(saleData) {
                 const newActiveBrands = saleData.activeBrands || [];
                 const mergedActiveBrands = Array.from(new Set([...currentActiveBrands, ...newActiveBrands]));
 
-                await updateLead(leadMatch.id, {
+                // Prepare updates
+                const updates = {
                     status: 'Sold',
                     leadStatus: LEAD_STATUS.ACTIVE,
                     activeBrands: mergedActiveBrands,
                     lastSaleDate: new Date().toISOString(),
                     updatedAt: serverTimestamp()
-                });
+                };
+
+                // If sale provided a license number and lead didn't have one, save it
+                if (saleData.licenseNumber && !leadMatch.licenseNumber) {
+                    updates.licenseNumber = saleData.licenseNumber;
+                }
+
+                await updateLead(leadMatch.id, updates);
             }
         } catch (updateErr) {
             console.warn("Failed to auto-update lead status after sale", updateErr);
@@ -440,6 +453,9 @@ export async function getMyDispensaries(userId) {
             if (lead.location) {
                 disp.location = lead.location;
             }
+            if (lead.licenseNumber) {
+                disp.licenseNumber = lead.licenseNumber;
+            }
         } else {
             // Optional: Add leads that haven't had activation/sales yet?
             // For "My Dispensaries", maybe strictly active?
@@ -455,7 +471,8 @@ export async function getMyDispensaries(userId) {
                     interests: lead.samplesRequested || [],
                     leadStatus: lead.leadStatus || (lead.status === 'Sold' ? 'active' : 'prospect'),
                     id: lead.id, // Critical for updates
-                    location: lead.location // GPS Coords
+                    location: lead.location, // GPS Coords
+                    licenseNumber: lead.licenseNumber // Propagate License for Sales Validation
                 });
             }
         }
@@ -568,9 +585,13 @@ export async function logSecurityEvent(details) {
 export async function seedBrands() {
     const brandsToSeed = [
         { name: "Smoothie Bar", status: "Active" },
-        { name: "Wanderers", status: "Active" },
-        { name: "Waferz", status: "Active" },
-        { name: "FLX Extracts", status: "Active" }
+        { name: "Wanders New York", status: "Active" },
+        { name: "Waferz NY", status: "Active" },
+        { name: "FLX Extracts", status: "Active" },
+        { name: "Honey King", status: "Active" },
+        { name: "Canna Dots", status: "Active" },
+        { name: "Space Poppers", status: "Active" },
+        { name: "Bud Cracker Boulevard", status: "Active" }
     ];
 
     try {
@@ -711,17 +732,41 @@ export async function addActivationRequest(requestData) {
  * Only use for factory reset before launch.
  */
 export async function wipeAllData() {
-    const collectionsToWipe = ['sales', 'leads', 'shifts', 'activations', 'activity_logs'];
+    const collectionsToWipe = [
+        'sales',
+        'leads',
+        'shifts',
+        'activations',
+        'activation_requests',
+        'activity_logs',
+        'security_logs',
+        'brand_products'
+    ];
 
+    // Clear ALL collection-based data
     for (const collectionName of collectionsToWipe) {
         try {
             const querySnapshot = await getDocs(collection(db, collectionName));
-            const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(doc(db, collectionName, docSnap.id)));
-            await Promise.all(deletePromises);
-            console.log(`Wiped ${querySnapshot.size} documents from ${collectionName}`);
+            if (querySnapshot.size > 0) {
+                const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(doc(db, collectionName, docSnap.id)));
+                await Promise.all(deletePromises);
+                console.log(`Wiped ${querySnapshot.size} documents from ${collectionName}`);
+            }
         } catch (e) {
             console.error(`Failed to wipe ${collectionName}:`, e);
         }
+    }
+
+    // Reset User Statistics (Zero out totalSales)
+    try {
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const userUpdatePromises = usersSnapshot.docs.map(docSnap =>
+            updateDoc(docSnap.ref, { totalSales: 0, updatedAt: serverTimestamp() })
+        );
+        await Promise.all(userUpdatePromises);
+        console.log(`Reset statistics for ${usersSnapshot.size} users.`);
+    } catch (e) {
+        console.error("Failed to reset user statistics:", e);
     }
 
     // Also clear mock DB
@@ -729,6 +774,23 @@ export async function wipeAllData() {
     MOCK_DB.leads = [];
     MOCK_DB.sales = [];
 
+    // Specific cleanup for "The Green Truth" test brand
+    try {
+        const brandsRef = collection(db, 'brands');
+        const q = query(brandsRef, where('name', '==', 'The Green Truth'));
+        const brandDocs = await getDocs(q);
+        for (const d of brandDocs.docs) {
+            await deleteDoc(doc(db, 'brands', d.id));
+        }
+    } catch (e) {
+        console.error("Failed to delete test brand:", e);
+    }
+
+    console.log("CRM Reset Complete: Blank Slate achieved.");
     return true;
 }
 
+// Expose for Console Execution
+if (typeof window !== 'undefined') {
+    window.wipeAllData = wipeAllData;
+}

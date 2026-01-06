@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus } from 'lucide-react';
 
 export default function BrandLayout() {
     const { brandUser, logoutBrand } = useBrandAuth();
@@ -108,6 +108,7 @@ export default function BrandLayout() {
                 {/* Navigation */}
                 <nav className="flex-1 p-3 space-y-1">
                     <NavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
+                    <NavItem to="/brand/new-lead" icon={<UserPlus size={20} />} label="New Lead" />
                     <NavItem to="/brand/schedule" icon={<Calendar size={20} />} label="Schedule" />
                     <NavItem to="/brand/map" icon={<Navigation size={20} />} label="Store Map" />
                     <NavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />

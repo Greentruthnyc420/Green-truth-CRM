@@ -11,7 +11,12 @@ import {
 import { auth, googleProvider } from "../firebase";
 import { logSecurityEvent } from "../services/firestoreService";
 
-export const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
+export const ADMIN_EMAILS = [
+    'omar@thegreentruthnyc.com',
+    'amber@thegreentruthnyc.com',
+    'realtest@test.com',
+    'omar@gmail.com'
+];
 
 const AuthContext = createContext();
 
@@ -27,19 +32,16 @@ export function AuthProvider({ children }) {
     // Domain Validation Helper
     const validateDomain = async (email, action) => {
         const allowedDomains = ['@thegreentruthnyc.com'];
-        const allowedEmails = ['rep@test.com', 'test-user-123', 'admin-user-id-123', 'dev-test-user']; // Dev Allowlist
+        const isOrgEmail = allowedDomains.some(d => email.endsWith(d));
 
-        const isValidComp = allowedDomains.some(d => email.endsWith(d));
-        const isAllowlisted = allowedEmails.includes(email);
-
-        if (!isValidComp && !isAllowlisted) {
+        if (!isOrgEmail) {
             await logSecurityEvent({
                 email,
                 action,
                 status: 'BLOCKED',
                 reason: 'Invalid Domain'
             });
-            throw new Error("Access Restricted: Only @thegreentruthnyc.com emails are allowed.");
+            throw new Error("Access Restricted: Only @thegreentruthnyc.com emails are allowed for Sales Ambassadors.");
         }
         return true;
     };
@@ -101,7 +103,7 @@ export function AuthProvider({ children }) {
 
     // Dev Helper
     function devLogin(email) {
-        const isAdmin = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'].includes(email);
+        const isAdmin = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com', 'amber@thegreentruthnyc.com'].includes(email);
         const mockUser = {
             uid: isAdmin ? 'admin-user-id-123' : 'dev-test-user',
             email: email,

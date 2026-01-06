@@ -8,9 +8,11 @@ import {
     DollarSign, Hash, AlertCircle, Check, Upload, Tag, ToggleLeft, ToggleRight, Sparkles, RefreshCw, Eye
 } from 'lucide-react';
 import { uploadBrandMenu } from '../../services/storageService';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export default function BrandMenuEditor() {
     const { brandUser } = useBrandAuth();
+    const { showNotification } = useNotification();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -36,7 +38,7 @@ export default function BrandMenuEditor() {
 
         // Size limit (e.g. 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert("File size must be less than 5MB");
+            showNotification("File size must be less than 5MB", 'warning');
             return;
         }
 
@@ -83,7 +85,7 @@ export default function BrandMenuEditor() {
                     }
                 } else {
                     if (scanMode === 'scan_only' || scanMode === 'both') {
-                        alert("AI couldn't extract products automatically. You can enter them manually.");
+                        showNotification("AI couldn't extract products automatically. You can enter them manually.", 'info');
                     }
                 }
             }
@@ -94,7 +96,7 @@ export default function BrandMenuEditor() {
             }
         } catch (error) {
             console.error("Upload/Scan failed", error);
-            alert("Failed to process menu. Please try again.");
+            showNotification("Failed to process menu. Please try again.", 'error');
         } finally {
             setUploading(false);
             setScanning(false);
@@ -279,7 +281,7 @@ export default function BrandMenuEditor() {
 
     const handleSaveNew = async () => {
         if (!newProduct.name || newProduct.price <= 0) {
-            alert('Please fill in all required fields');
+            showNotification('Please fill in all required fields', 'warning');
             return;
         }
         const updatedProducts = [...products, { ...newProduct, id: `${brandUser?.brandId}-${Date.now()}` }];
@@ -295,7 +297,7 @@ export default function BrandMenuEditor() {
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus(null), 2000);
         } else {
-            alert('Failed to save changes. Please try again.');
+            showNotification('Failed to save changes. Please try again.', 'error');
             setSaveStatus(null);
         }
     };

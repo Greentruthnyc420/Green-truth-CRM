@@ -14,13 +14,13 @@ test.describe('The Gauntlet', () => {
         await page.waitForURL('/app/new-lead');
 
         const timestamp = Date.now();
-        const leadName = `Gauntlet Disp ${timestamp} `;
+        const leadName = `Gauntlet Disp ${timestamp}`;
         // Dispensary Name is first input
         await page.locator('input[type="text"]').first().fill(leadName);
         await page.getByPlaceholder('123 Main St, New York, NY').fill('123 Test St');
         await page.getByPlaceholder('Name').fill('Test Manager');
         // License Number (Mandatory)
-        await page.getByPlaceholder('Or upload photo below').fill('GL-TEST-12345');
+        await page.getByPlaceholder('Optional until first sale').fill('GL-TEST-12345');
 
         // Meeting Date (Mandatory)
         const tomorrow = new Date();
@@ -47,25 +47,29 @@ test.describe('The Gauntlet', () => {
         // Select Lead
         // Wait for leads to load
         await expect(page.getByText('Who are you selling to?')).toBeVisible();
-        await expect(page.locator('select').first()).toBeVisible();
-        // Select the specific lead we just created
-        await page.locator('select').first().selectOption({ label: leadName });
+        const dispensarySelect = page.locator('select').first();
+        await expect(dispensarySelect).toBeVisible();
+
+        // Wait for the lead to appear in the select (retrying selectOption is better than checking option visibility)
+        await page.waitForFunction((name) => {
+            const select = document.querySelector('select');
+            return select && Array.from(select.options).some(o => o.value === name);
+        }, leadName, { timeout: 15000 });
+
+        await dispensarySelect.selectOption({ value: leadName });
 
         // Verify selection stuck
-        await expect(page.locator('select').first()).toHaveValue(leadName);
+        await expect(dispensarySelect).toHaveValue(leadName);
 
         await page.getByRole('button', { name: 'Next' }).click();
 
         // Select Brand (Step 1)
-        // Select Brand (Step 1)
         await expect(page.getByRole('heading', { level: 2, name: 'Select Brands' })).toBeVisible();
         // Click the first brand card (div with border-2)
-        // Assuming brand cards are clickable divs. Use text locator safest if brand names known or partial
         // Select 'Honey King' explicitly
         await page.getByText('Honey King').click();
 
         // Verify selection (CheckCircle icon appears)
-        // Assuming the checkmark is an SVG with specific class or we can check the card class
         await expect(page.locator('.border-brand-500')).toBeVisible();
 
         await page.getByRole('button', { name: 'Next' }).click();
@@ -80,18 +84,25 @@ test.describe('The Gauntlet', () => {
 
         for (let i = 0; i < count; i++) {
             const product = products.nth(i);
-            // Click + button
-            // Click + button (second button in the controls)
-            await product.locator('button').nth(1).click({ force: true });
-            // Verify count increased (optional, but good for "gauntlet")
-            // Assuming there's a counter badge or input we can check, or just trust the click for now to avoid specific selector brittleness
+            // Click + button (fourth button in the controls: Unit, Case, -, +)
+            await product.locator('button').nth(3).click({ force: true });
         }
 
         // Submit
-        await page.getByRole('button', { name: /Submit Log/i }).click({ force: true });
+        // First "Next" to get to Review
+        await page.getByRole('button', { name: 'Next' }).click();
 
-        // Confirm
-        await expect(page.locator('text=Sale Logged Successfully')).toBeVisible();
+        // Handle Second Alert (Sale Logged)
+        page.once('dialog', async dialog => {
+            console.log(`Sale Dialog: ${dialog.message()} `);
+            await dialog.accept();
+        });
+
+        // Final Confirm
+        await page.getByRole('button', { name: /Confirm Sale/i }).click();
+
+        // Wait for redirect to Dashboard
+        await page.waitForURL('/app');
     });
 
     test('Admin Flow: Verify Dashboard Access', async ({ page }) => {
@@ -110,7 +121,11 @@ test.describe('The Gauntlet', () => {
         await page.goto('/brand/login');
 
         // Use Dev Shortcut
-        await page.getByRole('button', { name: 'Wanders NY' }).click();
+        await page.getByRole('button', { name: 'Wanders New York' }).click();
+
+        // Handle Step 2: Gate (Bypass)
+        await page.getByRole('button', { name: /Bypass Gate/i }).click();
+
         await page.waitForURL('/brand');
 
         // Verify Welcome Message

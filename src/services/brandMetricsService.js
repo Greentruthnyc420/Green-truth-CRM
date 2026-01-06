@@ -40,68 +40,73 @@ export async function calculateBrandMetrics(brandId, brandName) {
             }
         });
 
-        // Calculate Top Selling Product
+        // Calculate Top Selling Product & Product Mix
         let topProduct = 'N/A';
         let maxSold = 0;
+        const productMixArray = [];
+
+        // Colors for Pie Chart
+        const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+
         Object.entries(productSalesMap).forEach(([name, qty]) => {
             if (qty > maxSold) {
                 maxSold = qty;
                 topProduct = name;
             }
+            productMixArray.push({ name, value: qty });
         });
 
-        // Calculate AOV
-        const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        // Sort and limit Product Mix
+        const productMix = productMixArray
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5) // Top 5
+            .map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] }));
+
+
+        // 4. Calculate Sales History (Monthly)
+        const salesHistoryMap = {};
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        allSales.forEach(sale => {
+            const saleDate = sale.date?.toDate ? sale.date.toDate() : new Date(sale.date);
+            const monthName = months[saleDate.getMonth()];
+
+            // Only count if it involves this brand
+            const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
+            if (brandItems.length > 0) {
+                const saleRevenue = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                salesHistoryMap[monthName] = (salesHistoryMap[monthName] || 0) + saleRevenue;
+            }
+        });
+
+        // Convert to array in chronological order (handling mostly current year for now or just rolling 12 months)
+        // For simplicity in this mock/early version, we just map recent months or all months found.
+        // Better: Pre-fill last 6 months to ensure chart continuity
+        const salesHistory = [];
+        const today = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const mName = months[d.getMonth()];
+            salesHistory.push({
+                month: mName,
+                revenue: salesHistoryMap[mName] || 0
+            });
+        }
+
+        // 2. Calculate Activation Costs (Filtered by Brand)
+        const { calculateAgencyShiftCost } = await import('../utils/pricing');
+
+        const brandShifts = allShifts.filter(s =>
+            s.brands?.includes(brandName) ||
+            s.brandId === brandId ||
+            (s.dispensaryName && allSales.some(sale => sale.dispensaryName === s.dispensaryName && sale.items?.some(i => i.brandId === brandId)))
+        );
+
+        const totalActivationCost = brandShifts.reduce((sum, shift) => sum + calculateAgencyShiftCost(shift), 0);
+
+        // 3. Final metrics
         const commissionOwed = totalRevenue * 0.05;
-
-        // Pricing Sheet Configuration
-        const PRICING_TIERS = {
-            'NYC': { 2: 120, 3: 160, 4: 200, 5: 240 },
-            'LI': { 2: 140, 3: 180, 4: 220, 5: 260 },
-            'UPSTATE': { 2: 160, 3: 200, 4: 240, 5: 280 }
-        };
-
-        const calculateAgencyShiftCost = (shift) => {
-            const duration = Math.max(2, Math.round(parseFloat(shift.hoursWorked) || 0));
-            const regionRaw = (shift.region || 'NYC').toUpperCase();
-
-            // Normalize region
-            let region = 'NYC';
-            if (regionRaw.includes('LI') || regionRaw.includes('DOWNSTATE') || regionRaw.includes('WESTCHESTER')) region = 'LI';
-            if (regionRaw.includes('UPSTATE')) region = 'UPSTATE';
-
-            const tiers = PRICING_TIERS[region] || PRICING_TIERS['NYC'];
-
-            // Base Fee Calculation
-            let baseFee = 0;
-            if (duration <= 2) baseFee = tiers[2];
-            else if (duration <= 3) baseFee = tiers[3];
-            else if (duration <= 4) baseFee = tiers[4];
-            else if (duration <= 5) baseFee = tiers[5];
-            else {
-                const extraHours = duration - 5;
-                baseFee = tiers[5] + (extraHours * 40);
-            }
-
-            // Agency Mileage Rate: $0.70/mile
-            const mileageCost = (parseFloat(shift.milesTraveled) || 0) * 0.70;
-
-            // Tolls (At Cost)
-            const tollsCost = parseFloat(shift.tollAmount) || 0;
-
-            return baseFee + mileageCost + tollsCost;
-        };
-
-        // 2. Calculate Activation Costs with Agency Pricing
-        let totalActivationCost = 0;
-
-        allShifts.forEach(shift => {
-            if (shift.brand === brandName || (shift.brand && shift.brand.includes(brandName))) {
-                if (shift.status !== 'paid') {
-                    totalActivationCost += calculateAgencyShiftCost(shift);
-                }
-            }
-        });
+        const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         return {
             revenue: totalRevenue,
@@ -111,7 +116,9 @@ export async function calculateBrandMetrics(brandId, brandName) {
             pendingOrders: pendingCount,
             topProduct: topProduct,
             aov: aov,
-            outstandingInvoices: pendingRevenue
+            outstandingInvoices: pendingRevenue,
+            salesHistory,
+            productMix
         };
 
     } catch (error) {

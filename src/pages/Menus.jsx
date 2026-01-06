@@ -5,10 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAllBrandProfiles } from '../services/firestoreService';
 import { BRAND_LICENSES } from '../contexts/BrandAuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 
 export default function Menus() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const { showNotification } = useNotification();
     const [viewingImage, setViewingImage] = React.useState(null);
     const [menus, setMenus] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -137,7 +139,7 @@ export default function Menus() {
             };
         } catch (error) {
             console.error("PDF Generation Error", error);
-            alert("Failed to generate PDF. You can try downloading the original file instead.");
+            showNotification("Failed to generate PDF. You can try downloading the original file instead.", 'error');
         }
     };
 

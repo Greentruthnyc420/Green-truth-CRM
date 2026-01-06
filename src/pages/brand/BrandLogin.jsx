@@ -1,38 +1,66 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
-import { useBrandAuth } from '../../contexts/BrandAuthContext';
-import { Mail, Lock, Key, Loader, ArrowRight, Eye, EyeOff, Package, AlertCircle, ArrowLeft, Shield } from 'lucide-react';
+import { useBrandAuth, BRAND_LICENSES } from '../../contexts/BrandAuthContext';
+import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+// BrandLoginGate removed
+
+// Import logos (matching Gateway imports)
+import partner1 from '../../assets/images/partner-1.png'; // Wanders
+import partner2 from '../../assets/images/partner-2.png'; // Space Poppers
+import partner3 from '../../assets/images/partner-3.jpg'; // Canna Dots
+import partner4 from '../../assets/images/partner-4.png'; // Budcracker
+import partner5 from '../../assets/images/partner-5.png'; // Honey King
+import partner6 from '../../assets/images/partner-6.png'; // Honey King Lion 
+import partner7 from '../../assets/images/partner-7.png'; // Budcracker NYC
+import waferz from '../../assets/images/waferz.png';
+import smoothieBar from '../../assets/images/smoothie-bar.png';
+import flxExtracts from '../../assets/images/flx-extracts.png';
+
+// Map brand IDs to logos
+const BRAND_LOGOS = {
+    'wanders': partner1,
+    'honey-king': partner5,
+    'bud-cracker': partner4,
+    'canna-dots': partner3,
+    'space-poppers': partner2,
+    'smoothie-bar': smoothieBar,
+    'waferz': waferz,
+    'pines': flxExtracts, // Updated to FLX as requested
+};
 
 export default function BrandLogin() {
-    const { loginBrand, signupBrand, devBrandLogin, validateLicense, loginWithGoogle, resetPassword } = useBrandAuth();
+    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin } = useBrandAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || '/brand';
 
-    const [step, setStep] = useState('license'); // 'license' | 'auth'
+    const [step, setStep] = useState('selection'); // 'selection' | 'auth'
     const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'reset'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
-    const [licenseNumber, setLicenseNumber] = useState('');
+    // Store the full license info object here
+    const [selectedBrand, setSelectedBrand] = useState(null);
+
+    // Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [brandInfo, setBrandInfo] = useState(null);
 
-    const handleLicenseSubmit = async (e) => {
-        e.preventDefault();
+    // Convert BRAND_LICENSES object to array for mapping
+    const brandList = Object.entries(BRAND_LICENSES).map(([license, info]) => ({
+        license,
+        ...info
+    }));
+
+    const handleBrandSelect = (brand) => {
+        setSelectedBrand(brand);
+        setAccessCode(''); // Reset code
+        setStep('gate'); // Move to Gate step
         setError('');
         setSuccessMessage('');
-
-        const result = validateLicense(licenseNumber);
-        if (result) {
-            setBrandInfo(result);
-            setStep('auth');
-        } else {
-            setError('Invalid license number. Please check with your account manager.');
-        }
     };
 
     const handleCredentialsSubmit = async (e) => {
@@ -40,6 +68,9 @@ export default function BrandLogin() {
         setError('');
         setSuccessMessage('');
         setLoading(true);
+
+        // Use the selected brand's license
+        const licenseNumber = selectedBrand.license;
 
         try {
             if (authMode === 'signup') {
@@ -60,11 +91,35 @@ export default function BrandLogin() {
         }
     };
 
+    // Brand Code Mapping (1-8)
+    const BRAND_CODE_MAP = {
+        '1': 'wanders',
+        '2': 'honey-king',
+        '3': 'bud-cracker',
+        '4': 'space-poppers',
+        '5': 'canna-dots', // "Canada's"
+        '6': 'smoothie-bar',
+        '7': 'waferz', // "Wafers"
+        '8': 'pines', // "FLX"
+    };
+
+    const handleDevLogin = async () => {
+        setLoading(true);
+        try {
+            await devBrandLogin(selectedBrand.brandId);
+            navigate(from, { replace: true });
+        } catch (err) {
+            setError(err.message || 'Dev Login failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleGoogleLogin = async () => {
         setError('');
         setLoading(true);
         try {
-            await loginWithGoogle(licenseNumber); // Pass license to link account
+            await loginWithGoogle(selectedBrand.license);
             navigate(from, { replace: true });
         } catch (err) {
             setError(err.message || 'Google Login failed.');
@@ -73,119 +128,239 @@ export default function BrandLogin() {
         }
     };
 
-    const handleDevLogin = (brandId) => {
-        devBrandLogin(brandId);
-        navigate('/brand', { replace: true });
+    // --- SECRET CODE GATE LOGIC ---
+    const [accessCode, setAccessCode] = useState('');
+    const [gateError, setGateError] = useState('');
+
+    const handleVerification = (e) => {
+        e.preventDefault();
+        const code = accessCode.trim();
+        const brandId = BRAND_CODE_MAP[code];
+
+        if (brandId) {
+            // Verify code matches selected brand
+            if (brandId === selectedBrand?.brandId) {
+                // Success! Unlock
+                setStep('auth'); // Move to Auth step (Step 3)
+
+                // Save to session as requested
+                try {
+                    sessionStorage.setItem('selectedBrand', JSON.stringify(selectedBrand));
+                } catch (err) { console.error(err); }
+            } else {
+                setGateError('Incorrect access code for this brand.');
+                setTimeout(() => setGateError(''), 2000);
+            }
+        } else {
+            setGateError('Invalid Access Code');
+            setTimeout(() => setGateError(''), 2000);
+        }
     };
 
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 selection:bg-amber-500/30 font-sans">
+            {/* Background Ambience */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-black z-0" />
+                <motion.div
+                    className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-amber-600/10 rounded-full blur-[120px]"
+                    animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }}
+                    transition={{ duration: 10, repeat: Infinity }}
+                />
+            </div>
 
-                {/* Header Section */}
-                <div className="bg-gradient-to-r from-amber-600 to-orange-600 p-10 text-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-black/10"></div>
-                    <NavLink to="/" className="absolute top-4 left-4 z-20 text-white/80 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium">
-                        <ArrowLeft size={16} />
-                        Back
-                    </NavLink>
-                    <div className="relative z-10">
-                        {/* Dynamic Brand Logo/Icon */}
-                        <div className="w-48 h-48 mx-auto flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
-                            {step === 'auth' && brandInfo ? (
-                                <div className="w-32 h-32 rounded-3xl bg-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm border border-white/30">
-                                    <span className="text-5xl font-bold text-white">
-                                        {brandInfo.brandName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
-                                    </span>
-                                </div>
-                            ) : (
-                                <div className="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center shadow-2xl backdrop-blur-sm">
-                                    <Package size={64} className="text-white/90" strokeWidth={1.5} />
-                                </div>
-                            )}
+            <div className={`relative z-10 w-full transition-all duration-500 ${step === 'selection' ? 'max-w-6xl' : 'max-w-md'}`}>
+
+                {/* --- SELECTION STEP --- */}
+                {step === 'selection' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="w-full"
+                    >
+                        <div className="text-center mb-12">
+                            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+                                Welcome, Partner
+                            </h1>
+                            <p className="text-xl text-slate-400">Select your brand to access your dashboard</p>
                         </div>
-                        <h2 className="text-3xl font-bold text-white mb-2 shadow-black/20 drop-shadow-md">
-                            Brand Portal
-                        </h2>
-                        <p className="text-white/90 text-base font-medium">
-                            Manage orders, invoices & menus
-                        </p>
-                    </div>
-                </div>
 
-                {/* Form Section */}
-                <div className="p-8">
-                    {error && (
-                        <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
-                            <AlertCircle size={18} />
-                            {error}
-                        </div>
-                    )}
-
-                    {successMessage && (
-                        <div className="mb-6 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 flex items-center gap-2">
-                            <AlertCircle size={18} className="rotate-180" />
-                            {successMessage}
-                        </div>
-                    )}
-
-                    {step === 'license' ? (
-                        <>
-                            <div className="mb-6 text-center">
-                                <h3 className="font-bold text-slate-800 mb-1">Enter Your License</h3>
-                                <p className="text-sm text-slate-500">Verify your brand license to continue</p>
-                            </div>
-
-                            <form onSubmit={handleLicenseSubmit} className="space-y-5">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">License Number</label>
-                                    <div className="relative">
-                                        <Key size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-amber-500 outline-none transition-all uppercase"
-                                            placeholder="e.g., OCM-AUCP-2024-000123"
-                                            value={licenseNumber}
-                                            onChange={(e) => setLicenseNumber(e.target.value)}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {brandList.map((brand, index) => (
+                                <motion.button
+                                    key={brand.brandId}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    onClick={() => handleBrandSelect(brand)}
+                                    className="group relative bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center gap-6 hover:bg-slate-800/80 hover:border-amber-500/50 transition-all duration-300 h-64 shadow-2xl hover:shadow-amber-900/20"
+                                >
+                                    <div className="h-32 w-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                        <img
+                                            src={BRAND_LOGOS[brand.brandId] || partner6}
+                                            alt={brand.brandName}
+                                            className="h-full w-full object-contain filter drop-shadow-lg"
                                         />
                                     </div>
+                                    <div className="text-center">
+                                        <h3 className="text-white font-bold text-lg group-hover:text-amber-400 transition-colors">{brand.brandName}</h3>
+                                        <div className="h-0.5 w-0 bg-amber-500 mx-auto mt-2 transition-all duration-300 group-hover:w-16"></div>
+                                    </div>
+
+                                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-amber-500/20 rounded-2xl transition-all duration-300 pointer-events-none"></div>
+                                </motion.button>
+                            ))}
+                        </div>
+
+                        <div className="mt-12 text-center">
+                            <NavLink to="/" className="text-slate-500 hover:text-white transition-colors inline-flex items-center gap-2">
+                                <ArrowLeft size={16} /> Back to Gateway
+                            </NavLink>
+                        </div>
+                    </motion.div>
+                )}
+
+
+
+                {/* --- GATE STEP (Verify Secret Code) --- */}
+                {step === 'gate' && selectedBrand && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="w-full max-w-sm mx-auto"
+                    >
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl text-center relative">
+                            {/* Back Button */}
+                            <button
+                                onClick={() => setStep('selection')}
+                                className="absolute top-4 left-4 text-zinc-500 hover:text-white transition-colors"
+                            >
+                                <ArrowLeft size={20} />
+                            </button>
+
+                            <div className="mb-6 flex justify-center">
+                                <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center p-3">
+                                    <img
+                                        src={BRAND_LOGOS[selectedBrand.brandId] || partner6}
+                                        alt={selectedBrand.brandName}
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
+                            </div>
+
+                            <h2 className="text-white text-xl font-bold mb-1">{selectedBrand.brandName}</h2>
+                            <p className="text-zinc-500 text-sm mb-6">Enter secure digit to proceed</p>
+
+                            <form onSubmit={handleVerification} className="space-y-4">
+                                <input
+                                    type="text"
+                                    maxLength={1}
+                                    value={accessCode}
+                                    onChange={(e) => {
+                                        setAccessCode(e.target.value);
+                                        setGateError('');
+                                    }}
+                                    className="w-full bg-black border border-zinc-700 rounded-xl py-4 text-center text-2xl tracking-widest text-white focus:border-white focus:ring-0 outline-none transition-colors"
+                                    placeholder="•"
+                                    autoFocus
+                                />
+
+                                {gateError && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-red-500 text-xs font-medium flex items-center justify-center gap-1"
+                                    >
+                                        <Shield size={12} /> {gateError}
+                                    </motion.div>
+                                )}
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-amber-500 text-white py-3.5 rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 flex items-center justify-center gap-2"
+                                    className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl hover:bg-amber-700 transition-colors shadow-lg shadow-amber-900/20"
                                 >
-                                    Verify License
-                                    <ArrowRight size={18} />
+                                    Unlock Portal
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDevLogin}
+                                    className="w-full text-zinc-600 text-xs hover:text-zinc-400 transition-colors pt-2"
+                                >
+                                    (Dev Only) Bypass Gate
                                 </button>
                             </form>
-                        </>
-                    ) : (
-                        <>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* --- AUTH STEP --- */}
+                {step === 'auth' && selectedBrand && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="bg-white w-full rounded-2xl shadow-2xl overflow-hidden relative"
+                    >
+                        {/* Header */}
+                        <div className="bg-slate-950 p-8 text-center relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+
+                            <button
+                                onClick={() => { setStep('selection'); setBrandInfo(null); setError(''); }}
+                                className="absolute top-4 left-4 text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-xs font-medium z-10"
+                            >
+                                <ArrowLeft size={14} /> All Brands
+                            </button>
+
+                            <div className="relative z-10 flex flex-col items-center">
+                                <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm border border-white/10 p-4">
+                                    <img
+                                        src={BRAND_LOGOS[selectedBrand.brandId] || partner6}
+                                        alt={selectedBrand.brandName}
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+                                <h2 className="text-2xl font-bold text-white mb-1">{selectedBrand.brandName}</h2>
+                                <p className="text-amber-500 text-xs font-medium tracking-widest uppercase">Portal Access</p>
+                            </div>
+                        </div>
+
+                        {/* Form Body */}
+                        <div className="p-8">
+                            {error && (
+                                <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
+                                    <Shield size={18} /> {error}
+                                </div>
+                            )}
+                            {successMessage && (
+                                <div className="mb-6 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 flex items-center gap-2">
+                                    <CheckCircle size={18} /> {successMessage}
+                                </div>
+                            )}
+
                             <div className="mb-6 text-center">
-                                <span className="inline-block px-3 py-1 bg-amber-100 text-orange-600 rounded-full text-xs font-bold mb-2 uppercase tracking-wide">
-                                    {brandInfo?.brandName}
-                                </span>
-                                <h3 className="font-bold text-slate-800 mb-1">
-                                    {authMode === 'reset' ? 'Reset Password' : (authMode === 'signup' ? 'Create Account' : 'Sign In')}
+                                <h3 className="font-bold text-slate-800 text-lg">
+                                    {authMode === 'reset' ? 'Recover Password' : (authMode === 'signup' ? 'Setup Account' : 'Sign In')}
                                 </h3>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-slate-500 text-sm">
                                     {authMode === 'reset'
-                                        ? 'Enter your email to receive a reset link'
-                                        : (authMode === 'signup' ? 'Set up your brand access credentials' : 'Welcome back! Login to your dashboard')}
+                                        ? 'Enter email to receive recovery instructions'
+                                        : 'Enter your credentials to continue'}
                                 </p>
                             </div>
 
-                            <form onSubmit={handleCredentialsSubmit} className="space-y-5">
+                            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address</label>
-                                    <div className="relative">
-                                        <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Email Address</label>
+                                    <div className="relative group">
+                                        <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
                                         <input
                                             type="email"
                                             required
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-amber-500 outline-none transition-all"
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
                                             placeholder="brand@example.com"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
@@ -194,38 +369,36 @@ export default function BrandLogin() {
                                 </div>
 
                                 {authMode !== 'reset' && (
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="flex justify-between items-center mb-1.5">
-                                                <label className="block text-sm font-medium text-slate-700">Password</label>
-                                                {authMode === 'login' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setAuthMode('reset')}
-                                                        className="text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors"
-                                                    >
-                                                        Forgot Password?
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="relative">
-                                                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                <input
-                                                    type={showPassword ? "text" : "password"}
-                                                    required
-                                                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-amber-500 outline-none transition-all"
-                                                    placeholder="••••••••"
-                                                    value={password}
-                                                    onChange={(e) => setPassword(e.target.value)}
-                                                />
+                                    <div>
+                                        <div className="flex justify-between items-center mb-1.5 ml-1">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase">Password</label>
+                                            {authMode === 'login' && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                                    onClick={() => setAuthMode('reset')}
+                                                    className="text-xs font-semibold text-amber-600 hover:text-amber-700 hover:underline"
                                                 >
-                                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    Forgot Password?
                                                 </button>
-                                            </div>
+                                            )}
+                                        </div>
+                                        <div className="relative group">
+                                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                required
+                                                className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                                                placeholder="••••••••"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -233,146 +406,66 @@ export default function BrandLogin() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                                    className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group mt-2"
                                 >
                                     {loading ? (
                                         <Loader size={20} className="animate-spin" />
                                     ) : (
                                         <>
-                                            {authMode === 'reset' ? 'Send Reset Link' : (authMode === 'signup' ? 'Create Account' : 'Sign In')}
+                                            {authMode === 'reset' ? 'Send Link' : (authMode === 'signup' ? 'Create Account' : 'Sign In')}
                                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                         </>
                                     )}
                                 </button>
-
-                                <div className="text-center pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => setAuthMode(authMode === 'signup' ? 'login' : 'signup')}
-                                        className="text-sm font-medium text-slate-600 hover:text-amber-600 transition-colors"
-                                    >
-                                        {authMode === 'reset'
-                                            ? "Wait, I remember it! Back to Login"
-                                            : (authMode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Log In")}
-                                    </button>
-                                </div>
-
-                                {authMode !== 'reset' && (
-                                    <div className="space-y-4 pt-2">
-                                        <div className="relative py-2">
-                                            <div className="absolute inset-0 flex items-center">
-                                                <div className="w-full border-t border-slate-200"></div>
-                                            </div>
-                                            <div className="relative flex justify-center text-xs">
-                                                <span className="px-3 bg-white text-slate-400 font-medium uppercase tracking-wider">Or secure access with</span>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={handleGoogleLogin}
-                                            disabled={loading}
-                                            className="w-full bg-white border-2 border-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center justify-center gap-3 group shadow-sm"
-                                        >
-                                            <div className="bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform flex items-center justify-center">
-                                                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                                                </svg>
-                                            </div>
-                                            <span>Continue with Google</span>
-                                        </button>
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={() => { setStep('license'); setBrandInfo(null); setEmail(''); setPassword(''); }}
-                                    className="w-full text-slate-500 text-sm hover:text-slate-700 transition-colors mt-2"
-                                >
-                                    ← Use a different license
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/login')}
-                                    className="w-full text-slate-500 text-sm hover:text-amber-600 transition-colors mt-4 flex items-center justify-center gap-2"
-                                >
-                                    <Shield size={16} />
-                                    Sign in as Admin
-                                </button>
                             </form>
-                        </>
-                    )}
 
-                    {/* Dev Login Shortcuts */}
-                    {import.meta.env.DEV && step === 'license' && (
-                        <div className="mt-8 pt-6 border-t border-slate-100">
-                            <p className="text-xs text-slate-400 text-center mb-3 uppercase tracking-wider font-medium">Dev Login Shortcuts</p>
-                            <div className="grid grid-cols-2 gap-2">
+                            {/* Divider */}
+                            <div className="relative my-6">
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span className="px-3 bg-white text-slate-400 font-medium">Or</span></div>
+                            </div>
+
+                            {authMode !== 'reset' && (
                                 <button
                                     type="button"
-                                    onClick={() => handleDevLogin('wanders')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
+                                    onClick={handleGoogleLogin}
+                                    disabled={loading}
+                                    className="w-full bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-3 shadow-sm hover:border-slate-300 mb-4"
                                 >
-                                    Wanders NY
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                                    </svg>
+                                    Google Sign In
                                 </button>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={handleDevLogin}
+                                disabled={loading}
+                                className="w-full bg-transparent border border-amber-900/30 text-amber-700 py-3 rounded-xl font-bold hover:bg-amber-50 transition-all flex items-center justify-center gap-2 mb-4 text-xs uppercase tracking-wider"
+                            >
+                                <Lock size={14} /> Developer Access (Bypass)
+                            </button>
+
+                            <div className="text-center">
                                 <button
                                     type="button"
-                                    onClick={() => handleDevLogin('honey-king')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
+                                    onClick={() => setAuthMode(authMode === 'signup' ? 'login' : 'signup')}
+                                    className="text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
                                 >
-                                    Honey King
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDevLogin('bud-cracker')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
-                                >
-                                    Bud Cracker
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDevLogin('canna-dots')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
-                                >
-                                    Canna Dots
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDevLogin('space-poppers')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
-                                >
-                                    Space Poppers
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDevLogin('smoothie-bar')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
-                                >
-                                    Smoothie Bar
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDevLogin('waferz')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
-                                >
-                                    Waferz NY
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDevLogin('pines')}
-                                    className="bg-slate-50 text-slate-600 border border-slate-200 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all"
-                                >
-                                    Pines
+                                    {authMode === 'reset'
+                                        ? "Back to Login"
+                                        : (authMode === 'login' ? "Accessing for the first time? Create Account" : "Already have an account? Log In")}
                                 </button>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </motion.div>
+                )}
             </div>
-        </div>
+        </div >
     );
 }

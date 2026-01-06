@@ -20,6 +20,19 @@ import Schedule from './pages/Schedule';
 import BrandOversight from './pages/BrandOversight';
 import PrivateRoute from './components/PrivateRoute';
 import GatewayLanding from './pages/GatewayLanding';
+import { NotificationProvider } from './contexts/NotificationContext';
+
+// Admin Portal Imports
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminPrivateRoute from './components/AdminPrivateRoute';
+// AdminLayout will be created in the next step, but need to import it potentially or create it now.
+// For now let's comment it out or create a placeholder since I can't import a non-existent file without breaking the build.
+// Actually, I will create AdminLayout in the next tool call. I'll use a temporary dummy for now to avoid breaking the build while I create the layout.
+// Wait, I should create AdminLayout first.
+// I'll proceed with adding imports assuming I will create AdminLayout immediately after or use a placeholder.
+// I'll use a placeholder import for now.
+import AdminLayout from './components/AdminLayout'; // New Layout
+import NewAdminDashboard from './pages/admin/Dashboard'; // New Dashboard
 
 // Brand Portal Imports
 import BrandLogin from './pages/brand/BrandLogin';
@@ -31,55 +44,69 @@ import BrandInvoicesGreenTruth from './pages/brand/BrandInvoicesGreenTruth';
 import BrandMenuEditor from './pages/brand/BrandMenuEditor';
 import BrandSchedule from './pages/brand/BrandSchedule';
 import BrandMap from './pages/brand/BrandMap';
+import BrandNewLead from './pages/brand/BrandNewLead';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
 function App() {
   return (
-    <Routes>
-      {/* Gateway Landing Page */}
-      <Route path="/" element={<GatewayLanding />} />
+    <NotificationProvider>
+      <Routes>
+        {/* Gateway Landing Page */}
+        <Route path="/" element={<GatewayLanding />} />
 
-      {/* Sales Ambassador Portal */}
-      <Route path="/login" element={<Login />} />
+        {/* Admin Portal (New) */}
+        <Route path="/admin/login" element={<AdminLogin />} />
 
-      <Route element={<PrivateRoute />}>
-        <Route path="/app" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="schedule" element={<Schedule />} />
-          <Route path="map" element={<LeadMap />} />
-          <Route path="my-dispensaries" element={<MyDispensaries />} />
-          <Route path="history" element={<History />} />
-          <Route path="log-shift" element={<LogShift />} />
-          <Route path="log-sale" element={<LogSale />} />
-          <Route path="new-lead" element={<NewLead />} />
-          <Route path="menus" element={<Menus />} />
-          <Route path="leaderboard" element={<Leaderboard />} />
-          <Route path="payouts/commissions" element={<CommissionPayouts />} />
-          <Route path="payouts/wages" element={<WagesPayouts />} />
-          <Route path="accounts/active" element={<ActiveAccounts />} />
-          <Route path="accounts" element={<Accounts />} />
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="brand-oversight" element={<BrandOversight />} />
-          {/* Fallback route */}
-          <Route path="*" element={<Dashboard />} />
+        <Route element={<AdminPrivateRoute />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            {/* We will create Dashboard next, temporary placeholder */}
+            <Route index element={<div className="p-10">New Admin Dashboard Construction Site...</div>} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* Brand Owner Portal */}
-      <Route path="/brand/login" element={<BrandLogin />} />
+        {/* Sales Ambassador Portal */}
+        <Route path="/login" element={<Login />} />
 
-      <Route element={<BrandPrivateRoute />}>
-        <Route path="/brand" element={<BrandLayout />}>
-          <Route index element={<BrandDashboard />} />
-          <Route path="orders" element={<BrandOrders />} />
-          <Route path="invoices/dispensary" element={<BrandInvoicesDispensary />} />
-          <Route path="invoices/greentruth" element={<BrandInvoicesGreenTruth />} />
-          <Route path="schedule" element={<BrandSchedule />} />
-          <Route path="menu" element={<BrandMenuEditor />} />
-          <Route path="map" element={<BrandMap />} />
+        <Route element={<PrivateRoute />}>
+          <Route path="/app" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="schedule" element={<Schedule />} />
+            <Route path="map" element={<LeadMap />} />
+            <Route path="my-dispensaries" element={<MyDispensaries />} />
+            <Route path="history" element={<History />} />
+            <Route path="log-shift" element={<LogShift />} />
+            <Route path="log-sale" element={<LogSale />} />
+            <Route path="new-lead" element={<NewLead />} />
+            <Route path="menus" element={<Menus />} />
+            <Route path="leaderboard" element={<Leaderboard />} />
+            <Route path="payouts/commissions" element={<CommissionPayouts />} />
+            <Route path="payouts/wages" element={<WagesPayouts />} />
+            <Route path="accounts/active" element={<ActiveAccounts />} />
+            <Route path="accounts" element={<Accounts />} />
+            <Route path="admin" element={<AdminDashboard />} />
+            <Route path="brand-oversight" element={<BrandOversight />} />
+            {/* Fallback route */}
+            <Route path="*" element={<Dashboard />} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+
+        {/* Brand Owner Portal */}
+        <Route path="/brand/login" element={<BrandLogin />} />
+
+        <Route element={<BrandPrivateRoute />}>
+          <Route path="/brand" element={<BrandLayout />}>
+            <Route index element={<BrandDashboard />} />
+            <Route path="orders" element={<BrandOrders />} />
+            <Route path="invoices/dispensary" element={<BrandInvoicesDispensary />} />
+            <Route path="invoices/greentruth" element={<BrandInvoicesGreenTruth />} />
+            <Route path="schedule" element={<BrandSchedule />} />
+            <Route path="menu" element={<BrandMenuEditor />} />
+            <Route path="map" element={<BrandMap />} />
+            <Route path="new-lead" element={<BrandNewLead />} />
+          </Route>
+        </Route>
+      </Routes>
+    </NotificationProvider>
   );
 }
 

@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyDispensaries, logActivity, addSale, updateLead, deliverSamples } from '../services/firestoreService';
 import { calculateRepCommission } from '../services/compensationService';
+import { awardOrderPoints } from '../services/pointsService';
 import { generateEmailDraft } from '../services/aiService';
 import { initGmailAuth, requestGmailAccess, sendEmail as gmailSendEmail, hasGmailAccess } from '../services/gmailService';
 import { Store, Calendar, DollarSign, ArrowLeft, Mail, X, Loader, Phone, MessageCircle, ExternalLink, Send, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useNotification } from '../contexts/NotificationContext';
+import confetti from 'canvas-confetti';
 
 export default function MyDispensaries() {
     const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
     const [dispensaries, setDispensaries] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -96,6 +100,20 @@ export default function MyDispensaries() {
                     soldDate: new Date().toISOString()
                 });
             }
+
+            // 3. Award Points (Revenue + Brand Placements)
+            // Note: MyDispensaries 'Mark Sold' is a simple summary. 
+            // We use 'interestedBrands' as a fallback if specific brands aren't logged.
+            try {
+                await awardOrderPoints(
+                    currentUser?.uid || 'test-user-123',
+                    lead.id || 'unknown',
+                    revAmount,
+                    lead.interestedBrands || [] // Fallback to interested brands for simplified flow
+                );
+            } catch (pErr) {
+                console.warn("Points awarding failed.", pErr);
+            }
             // Note: MyDispensaries aggregates, so `lead` object here might be an aggregation.
             // Ideally we need the actual Lead ID. `getMyDispensaries` might not return it if aggregated?
             // "My Dispensaries" usually comes from Leads/Shifts. 
@@ -126,10 +144,15 @@ export default function MyDispensaries() {
             setMarkSoldModal({ isOpen: false, lead: null, revenue: '', saleType: '', submitting: false, error: '' });
 
             // Refresh Data
-            const data = await getMyDispensaries(currentUser?.uid);
             setDispensaries(data);
 
-            alert(`Sale recorded! Commission Earned: $${commission.toFixed(2)}`);
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            showNotification(`Sale recorded! Commission Earned: $${commission.toFixed(2)}`, 'success');
 
         } catch (e) {
             console.error("Failed to mark sold", e);
@@ -139,7 +162,7 @@ export default function MyDispensaries() {
 
     const handleDeliverSamples = async (disp) => {
         if (!disp.id) {
-            alert("No lead record found for this dispensary.");
+            showNotification("No lead record found for this dispensary.", 'warning');
             return;
         }
 
@@ -149,13 +172,12 @@ export default function MyDispensaries() {
             logActivity('SAMPLES_DELIVERED', disp.name, currentUser?.uid, {});
 
             // Refresh Data
-            const data = await getMyDispensaries(currentUser?.uid);
             setDispensaries(data);
 
-            alert("Samples marked as delivered!");
+            showNotification("Samples marked as delivered!", 'success');
         } catch (e) {
             console.error("Failed to update samples delivery", e);
-            alert("Failed to update status.");
+            showNotification("Failed to update status: " + (e.message || 'Unknown error'), 'error');
         }
     };
 
@@ -263,9 +285,9 @@ export default function MyDispensaries() {
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${disp.leadStatus === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                                            disp.leadStatus === 'samples_delivered' ? 'bg-amber-100 text-amber-700' :
-                                                disp.leadStatus === 'samples_requested' ? 'bg-red-100 text-red-700' :
-                                                    'bg-slate-100 text-slate-500'
+                                        disp.leadStatus === 'samples_delivered' ? 'bg-amber-100 text-amber-700' :
+                                            disp.leadStatus === 'samples_requested' ? 'bg-red-100 text-red-700' :
+                                                'bg-slate-100 text-slate-500'
                                         }`}>
                                         {disp.leadStatus === 'active' ? 'Active' :
                                             disp.leadStatus === 'samples_delivered' ? 'Samples Delivered' :

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useBrandAuth, BRAND_LICENSES } from '../contexts/BrandAuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 // Imports
 import {
     getAllShifts,
@@ -12,7 +13,8 @@ import {
     updateSaleStatus,
     markRepAsPaid,
     seedBrands,
-    getActivations
+    getActivations,
+    wipeAllData
 } from '../services/firestoreService';
 import NewActivationModal from '../components/NewActivationModal';
 // eslint-disable-next-line no-unused-vars
@@ -36,7 +38,6 @@ import {
     BarChart,
     Calendar,
     HandCoins,
-    Trophy,
     Crown,
     Store,
     Shield,
@@ -45,27 +46,40 @@ import {
     Plus,
     MapPin,
     Tag,
-    Clock
+    Clock,
+    BarChart3,
+    TrendingUp,
+    PieChart,
+    Rocket
 } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'; // Animation Lib
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    BarChart as RechartsBarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie
+} from 'recharts';
+
 
 
 const HOURLY_RATE = 20;
 
 export default function AdminDashboard() {
-    const { currentUser } = useAuth();
     const { impersonateBrand, logoutBrand, brandUser } = useBrandAuth(); // New Hook Usage
+    const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('payroll');
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [selectedBrandId, setSelectedBrandId] = useState('all');
 
 
 
     // Data States
     const [shifts, setShifts] = useState([]);
+    const [allShiftsData, setAllShiftsData] = useState([]); // Store all shifts for history/stats
     const [sales, setSales] = useState([]);
     const [leads, setLeads] = useState([]);
     const [usersMap, setUsersMap] = useState({}); // userId -> name map
@@ -86,7 +100,9 @@ export default function AdminDashboard() {
         biWeeklyGross: 0,
         biWeeklyNet: 0,
         quarterlyNet: 0, // Sales Net
-        shiftNet: 0      // Anctivation Net
+        shiftNet: 0,      // Anctivation Net
+        salesHistory: [],
+        productMix: []
     });
 
     // Security Check
@@ -116,6 +132,7 @@ export default function AdminDashboard() {
                 // Pending Shifts
                 const pending = allShifts.filter(s => s.status === 'pending');
                 setShifts(pending);
+                setAllShiftsData(allShifts);
 
                 // Sales
                 setSales(allSales);
@@ -188,12 +205,14 @@ export default function AdminDashboard() {
                 const totalRepPayout = wagesAndExpenses + commissionsAndBonuses;
 
                 // 5. Net Profit (Real Logic as requested)
-                // Net = Gross Revenue - Total Outflow
-                const companyNet = companyGross - totalRepPayout;
+                // quarterlyNet is purely the 3% margin from sales
+                const quarterlyNet = salesRevenue - salesCommissions;
 
-                // Detailed Nets
-                const quarterlyNet = salesRevenue - commissionsAndBonuses;
+                // shiftNet is the profit from activations (Fees - Rep Cost)
                 const shiftNet = totalShiftRevenue - wagesAndExpenses;
+
+                // companyNet is the TOTAL profit including all revenue and minus ALL outflows (wages, comms, bonuses)
+                const companyNet = (totalShiftRevenue + salesRevenue) - (wagesAndExpenses + commissionsAndBonuses);
 
                 // Needed for Project Payroll Box (Pending Shifts Only)
                 let payrollTotal = 0;
@@ -238,8 +257,68 @@ export default function AdminDashboard() {
                     biWeeklyGross,
                     biWeeklyNet,
                     quarterlyNet,
-                    shiftNet
+                    shiftNet,
+                    salesHistory: [], // Will populate below
+                    productMix: []    // Will populate below
                 });
+
+                // --- Calculate Chart Data (Filtered if needed) ---
+                const filteredSales = selectedBrandId === 'all'
+                    ? allSales
+                    : allSales.filter(sale => sale.items?.some(i => i.brandId === selectedBrandId));
+
+                // 1. Sales History
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const salesHistoryMap = {};
+
+                filteredSales.forEach(sale => {
+                    const saleDate = sale.date?.toDate ? sale.date.toDate() : new Date(sale.date);
+                    const monthName = months[saleDate.getMonth()];
+
+                    let revenue = 0;
+                    if (selectedBrandId === 'all') {
+                        revenue = parseFloat(sale.amount) || 0;
+                    } else {
+                        revenue = sale.items
+                            ?.filter(i => i.brandId === selectedBrandId)
+                            .reduce((sum, i) => sum + (parseFloat(i.price) * parseInt(i.quantity) || 0), 0) || 0;
+                    }
+
+                    salesHistoryMap[monthName] = (salesHistoryMap[monthName] || 0) + revenue;
+                });
+
+                const salesHistory = [];
+                const today = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                    const mName = months[d.getMonth()];
+                    salesHistory.push({
+                        month: mName,
+                        revenue: salesHistoryMap[mName] || 0
+                    });
+                }
+
+                // 2. Product Mix
+                const productSalesMap = {};
+                filteredSales.forEach(sale => {
+                    const items = selectedBrandId === 'all'
+                        ? (sale.items || [])
+                        : (sale.items || []).filter(i => i.brandId === selectedBrandId);
+
+                    items.forEach(item => {
+                        productSalesMap[item.name] = (productSalesMap[item.name] || 0) + item.quantity;
+                    });
+                });
+
+                const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+                const productMix = Object.entries(productSalesMap)
+                    .map(([name, qty]) => ({ name, value: qty }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5)
+                    .map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] }));
+
+                // Update financials with chart data
+                setFinancials(prev => ({ ...prev, salesHistory, productMix }));
                 // -----------------------------
 
                 // Build User Map
@@ -281,9 +360,31 @@ export default function AdminDashboard() {
             // Remove from local state
             setShifts(prev => prev.filter(s => !selectedShiftIds.includes(s.id)));
             setSelectedShiftIds([]);
+            showNotification(`${selectedShiftIds.length} shifts marked as paid`, 'success');
         } catch (error) {
             console.error("Error processing payments:", error);
-            alert("Failed to update status for some shifts.");
+            showNotification("Failed to update status for some shifts.", 'error');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleFactoryReset = async () => {
+        const confirm1 = window.confirm("WARNING: You are about to perform a FACTORY RESET. This will wipe ALL sales, leads, shifts, and logs. This cannot be undone. Are you absolutely sure?");
+        if (!confirm1) return;
+
+        const confirm2 = window.prompt("To proceed, type 'RESET' in the box below:");
+        if (confirm2 !== 'RESET') return;
+
+        setProcessing(true);
+        try {
+            await wipeAllData();
+            showNotification("CRM Factory Reset Successful: App is now in Zero-Hour state.", "success");
+            // Give Firebase a moment to settle then reload
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (error) {
+            console.error("Wipe failed:", error);
+            showNotification("Wipe failed. Check console for details.", "error");
         } finally {
             setProcessing(false);
         }
@@ -292,7 +393,7 @@ export default function AdminDashboard() {
     const handleSyncToHubSpot = async () => {
         const unsyncedLeads = leads.filter(l => !l.syncedToHubspot);
         if (unsyncedLeads.length === 0) {
-            alert("All leads are already synced!");
+            showNotification("All leads are already synced!", 'info');
             return;
         }
 
@@ -312,7 +413,7 @@ export default function AdminDashboard() {
             }
         }
 
-        alert(`Sync Complete:\nSuccess: ${successCount}\nFailed: ${failCount}\n${failCount > 0 ? "Check console for details (Likely CORS issue on localhost, requires backend proxy)." : ""}`);
+        showNotification(`Sync Complete: ${successCount} Success, ${failCount} Failed.`, failCount > 0 ? 'warning' : 'success');
 
         // Refresh leads
         const updatedLeads = await getLeads();
@@ -339,7 +440,7 @@ export default function AdminDashboard() {
             impersonateBrand(brandId); // Set Ghost User
             navigate('/brand'); // Go to Portal
         } catch (error) {
-            alert(error.message);
+            showNotification(error.message, 'error');
         }
     };
 
@@ -391,12 +492,12 @@ export default function AdminDashboard() {
         setImportProgress({ current: 0, total: 0, message: '' });
 
         if (result.success) {
-            alert(`Import Successful! Added/Updated ${result.count} dispensaries.`);
+            showNotification(`Import Successful! Added/Updated ${result.count} dispensaries.`, 'success');
             // Refresh
             const updatedLeads = await getLeads();
             setLeads(updatedLeads);
         } else {
-            alert(`Import Failed: ${result.error}`);
+            showNotification(`Import Failed: ${result.error}`, 'error');
         }
     };
 
@@ -428,7 +529,7 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
                         <p className="text-slate-500 font-medium mb-1 text-sm">Sales Revenue (5%)</p>
-                        <h3 className="text-3xl font-black text-slate-900">${(financials.salesCommissionRevenue > 0 ? financials.salesCommissionRevenue : (Math.random() > 0.5 ? 420 : 710)).toFixed(2)}</h3>
+                        <h3 className="text-3xl font-black text-slate-900">${financials.salesCommissionRevenue.toFixed(2)}</h3>
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
                         <DollarSign size={14} />
@@ -440,7 +541,7 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
                         <p className="text-slate-500 font-medium mb-1 text-sm">Rep Commissions</p>
-                        <h3 className="text-3xl font-black text-slate-900">${(financials.commissionsAndBonuses > 0 ? financials.commissionsAndBonuses : (Math.random() > 0.5 ? 420 : 710)).toFixed(2)}</h3>
+                        <h3 className="text-3xl font-black text-slate-900">${financials.commissionsAndBonuses.toFixed(2)}</h3>
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
                         <Users size={14} />
@@ -449,10 +550,9 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* 3. Quarterly Net Profit (PREMIUM GOLD CARD) */}
-                {/* 3. Quarterly Net Profit (PREMIUM GOLD CARD) */}
                 <PremiumStatCard
                     title="Quarterly Net"
-                    value={financials.quarterlyNet > 0 ? financials.quarterlyNet : (Math.random() > 0.5 ? 420 : 710)} // 420/710 Placeholder Rule
+                    value={financials.quarterlyNet}
                     icon={Banknote} // Updated Icon
                     gradient="bg-gradient-to-br from-amber-400 to-orange-500"
                     subtext="Company Sales Profit"
@@ -470,7 +570,7 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
                         <p className="text-slate-500 font-medium mb-1 text-sm">Activation Revenue</p>
-                        <h3 className="text-3xl font-black text-slate-900">${(financials.activationRevenue > 0 ? financials.activationRevenue : (Math.random() > 0.5 ? 420 : 710)).toFixed(2)}</h3>
+                        <h3 className="text-3xl font-black text-slate-900">${financials.activationRevenue.toFixed(2)}</h3>
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
                         <DollarSign size={14} />
@@ -482,7 +582,7 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
                         <p className="text-slate-500 font-medium mb-1 text-sm">Rep Wages & Expenses</p>
-                        <h3 className="text-3xl font-black text-slate-900">${(financials.wagesAndExpenses > 0 ? financials.wagesAndExpenses : (Math.random() > 0.5 ? 420 : 710)).toFixed(2)}</h3>
+                        <h3 className="text-3xl font-black text-slate-900">${financials.wagesAndExpenses.toFixed(2)}</h3>
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
                         <Users size={14} />
@@ -493,13 +593,116 @@ export default function AdminDashboard() {
                 {/* 3. Activation Net Profit (PREMIUM GREEN CARD) */}
                 <PremiumStatCard
                     title="Payroll Net"
-                    value={financials.shiftNet > 0 ? financials.shiftNet : (Math.random() > 0.5 ? 420 : 710)} // 420/710 Placeholder Rule
+                    value={financials.shiftNet}
                     icon={CircleDollarSign} // Updated Icon
                     gradient="bg-gradient-to-br from-emerald-500 to-green-600"
                     subtext="Net Profit" // Updated Text
                     delay={0.4}
                     iconStyle="pulse" // New Animation
                 />
+            </div>
+
+            {/* ROW 3: NETWORK ANALYTICS */}
+            <div className="flex justify-between items-center mb-3">
+                <h3 className="text-slate-500 font-bold uppercase tracking-wider text-xs flex items-center gap-2">
+                    <BarChart3 size={16} /> {selectedBrandId === 'all' ? 'Network' : BRAND_LICENSES[Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === selectedBrandId)]?.brandName} Performance
+                </h3>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 font-medium">Filter Brand:</span>
+                    <select
+                        value={selectedBrandId}
+                        onChange={(e) => setSelectedBrandId(e.target.value)}
+                        className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium text-slate-600"
+                    >
+                        <option value="all">All Brands (Network)</option>
+                        {Object.values(BRAND_LICENSES).map(brand => (
+                            <option key={brand.brandId} value={brand.brandId}>{brand.brandName}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {/* Sales Trend */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h3 className="text-slate-900 font-bold mb-4 flex items-center gap-2">
+                        <TrendingUp size={18} className="text-emerald-500" />
+                        Network Sales Trend
+                    </h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={financials.salesHistory}>
+                                <defs>
+                                    <linearGradient id="colorRevenueAdmin" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="month"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    tickFormatter={(value) => `$${value / 1000}k`}
+                                />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="revenue"
+                                    stroke="#8b5cf6"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorRevenueAdmin)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Product Mix */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h3 className="text-slate-900 font-bold mb-4 flex items-center gap-2">
+                        <PieChart size={18} className="text-indigo-500" />
+                        Global Product Mix
+                    </h3>
+                    <div className="h-64 flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPC>
+                                <Pie
+                                    data={financials.productMix}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {financials.productMix?.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                />
+                                <Legend
+                                    verticalAlign="middle"
+                                    layout="vertical"
+                                    align="right"
+                                    iconType="circle"
+                                />
+                            </RechartsPC>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -533,6 +736,18 @@ export default function AdminDashboard() {
                     onClick={() => setActiveTab('scheduling')}
                     icon={<Calendar size={18} />}
                     label="Scheduling"
+                />
+                <TabButton
+                    active={activeTab === 'ambassadors'}
+                    onClick={() => setActiveTab('ambassadors')}
+                    icon={<Trophy size={18} />}
+                    label="Ambassadors"
+                />
+                <TabButton
+                    active={activeTab === 'launch'}
+                    onClick={() => setActiveTab('launch')}
+                    icon={<Rocket size={18} />}
+                    label="Launch Control"
                 />
             </div>
 
@@ -771,6 +986,15 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
+                {/* Ambassadors Tab (Rep Tracking) */}
+                {activeTab === 'ambassadors' && (
+                    <AmbassadorsTab
+                        usersMap={usersMap}
+                        allShifts={allShiftsData}
+                        allSales={sales}
+                    />
+                )}
+
                 {/* Partners Tab (Admin Backdoor) */}
                 {activeTab === 'partners' && (
                     <div className="p-6">
@@ -880,6 +1104,66 @@ export default function AdminDashboard() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Launch Control Tab (Zero-Hour Reset) */}
+                {activeTab === 'launch' && (
+                    <div className="p-8 max-w-2xl mx-auto text-center">
+                        <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-amber-100">
+                            <Rocket size={40} />
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2" id="launch-mode-title">Launch Mode</h2>
+                        <p className="text-slate-500 mb-8">
+                            Ready to go live? Use this tool to clear all test data and return the CRM to a pristine "Zero-Hour" state.
+                        </p>
+
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left mb-8">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Shield className="text-brand-600" size={18} />
+                                What will be wiped:
+                            </h3>
+                            <ul className="space-y-3 text-sm text-slate-600">
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                                    <span>All <strong>Sales & Invoices</strong> (Wipes all transaction history)</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                                    <span>All <strong>Leads & Pipeline Data</strong> (Clears prospecting records)</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                                    <span>All <strong>Shifts & Activations</strong> (Clears historical calendar)</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                                    <span>All <strong>Logs & Statistics</strong> (Zeroes out user leaderboards)</span>
+                                </li>
+                            </ul>
+                            <div className="mt-6 pt-6 border-t border-slate-200">
+                                <p className="text-xs text-amber-700 font-medium">
+                                    <strong>Note:</strong> Your official brand roster (Smoothie Bar, Honey King, etc.) will be automatically restored so you can start logging sales immediately.
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            id="factory-reset-btn"
+                            onClick={handleFactoryReset}
+                            disabled={processing}
+                            className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-xl ${processing
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : 'bg-slate-900 text-white hover:bg-black hover:scale-[1.02] active:scale-[0.98] shadow-slate-200'
+                                }`}
+                        >
+                            {processing ? <RefreshCw className="animate-spin" /> : <Rocket size={24} />}
+                            {processing ? 'Performing Reset...' : 'EXECUTE FACTORY RESET'}
+                        </button>
+
+                        <p className="mt-6 text-xs text-slate-400">
+                            This action is final and recorded in security logs.
+                        </p>
                     </div>
                 )}
 
@@ -1047,7 +1331,7 @@ const PayrollAccordionItem = ({ name, data, onMarkPaid, onMarkRepPaid }) => {
 // Premium Animated Stat Card
 const PremiumStatCard = ({ title, value, icon: Icon, gradient, subtext, delay = 0, iconStyle }) => {
     const count = useMotionValue(0);
-    const rounded = useTransform(count, Math.round);
+    const displayValue = useTransform(count, (latest) => latest.toFixed(2));
 
     useEffect(() => {
         const animation = animate(count, value, { duration: 1.5, ease: "circOut" });
@@ -1071,7 +1355,7 @@ const PremiumStatCard = ({ title, value, icon: Icon, gradient, subtext, delay = 
                 <div className="flex items-baseline gap-1 mb-2">
                     <span className="text-4xl font-black">$</span>
                     <motion.h3 className="text-4xl font-black">
-                        {rounded}
+                        {displayValue}
                     </motion.h3>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-medium bg-black/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
@@ -1096,6 +1380,115 @@ const PremiumStatCard = ({ title, value, icon: Icon, gradient, subtext, delay = 
             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                 {/* Removed the giant icon to focus on the Badge */}
             </div>
-        </motion.div>
+        </motion.div >
     );
 };
+
+function AmbassadorsTab({ usersMap, allShifts, allSales }) {
+    // Aggregate Stats
+    const stats = React.useMemo(() => {
+        const map = {};
+
+        // Initialize with known users
+        Object.keys(usersMap).forEach(uid => {
+            map[uid] = {
+                id: uid,
+                name: usersMap[uid],
+                totalSales: 0,
+                totalCommission: 0,
+                activationCount: 0,
+                totalHours: 0,
+                lastActive: new Date(0) // Epoch
+            };
+        });
+
+        // Process Sales
+        allSales.forEach(sale => {
+            const uid = sale.userId || sale.repId;
+            if (!uid) return;
+            if (!map[uid]) {
+                map[uid] = { id: uid, name: usersMap[uid] || 'Unknown', totalSales: 0, totalCommission: 0, activationCount: 0, totalHours: 0, lastActive: new Date(0) };
+            }
+
+            const amount = parseFloat(sale.amount) || 0;
+            map[uid].totalSales += amount;
+            map[uid].totalCommission += (amount * 0.02); // 2%
+
+            const date = new Date(sale.date); // Allow invalid date check?
+            if (!isNaN(date) && date > map[uid].lastActive) map[uid].lastActive = date;
+        });
+
+        // Process Shifts
+        allShifts.forEach(shift => {
+            const uid = shift.userId;
+            if (!uid) return;
+            if (!map[uid]) {
+                map[uid] = { id: uid, name: usersMap[uid] || 'Unknown', totalSales: 0, totalCommission: 0, activationCount: 0, totalHours: 0, lastActive: new Date(0) };
+            }
+
+            map[uid].activationCount += 1;
+            map[uid].totalHours += parseFloat(shift.hoursWorked) || 0;
+
+            const date = shift.date?.toDate ? shift.date.toDate() : new Date(shift.date || shift.startTime);
+            if (!isNaN(date) && date > map[uid].lastActive) map[uid].lastActive = date;
+        });
+
+        // Sort by Total Sales Descending
+        return Object.values(map).sort((a, b) => b.totalSales - a.totalSales);
+    }, [usersMap, allShifts, allSales]);
+
+    return (
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-800">Team Performance</h2>
+                    <p className="text-sm text-slate-500">Sales Representatives Leaderboard</p>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto border rounded-xl border-slate-200">
+                <table className="w-full text-left bg-white">
+                    <thead className="bg-slate-50">
+                        <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            <th className="py-3 px-4">Ambassador</th>
+                            <th className="py-3 px-4 text-center">Activations</th>
+                            <th className="py-3 px-4 text-center">Hours</th>
+                            <th className="py-3 px-4 text-right">Total Sales</th>
+                            <th className="py-3 px-4 text-right">Commissions (2%)</th>
+                            <th className="py-3 px-4 text-right">Last Active</th>
+                        </tr>
+                    </thead>
+                    <tbody className="text-sm divide-y divide-slate-100">
+                        {stats.map((rep, idx) => (
+                            <tr key={rep.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="py-3 px-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${idx === 0 ? 'bg-yellow-500 shadow-sm' : idx === 1 ? 'bg-slate-400' : idx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-500'}`}>
+                                            {idx < 3 ? <Trophy size={14} /> : idx + 1}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-700">{rep.name}</p>
+                                            <p className="text-xs text-slate-400 font-mono">{rep.id.substring(0, 8)}...</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="py-3 px-4 text-center text-slate-600 font-medium">{rep.activationCount}</td>
+                                <td className="py-3 px-4 text-center text-slate-600">{rep.totalHours.toFixed(1)}</td>
+                                <td className="py-3 px-4 text-right font-bold text-emerald-600">
+                                    ${rep.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-3 px-4 text-right text-slate-600 font-mono">
+                                    ${rep.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-3 px-4 text-right text-slate-400 text-xs">
+                                    {rep.lastActive && rep.lastActive.getTime() > 0 ? rep.lastActive.toLocaleDateString() : '-'}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+

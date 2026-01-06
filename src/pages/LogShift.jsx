@@ -4,11 +4,13 @@ import { uploadTollReceipt } from '../services/storageService';
 import { addShift } from '../services/firestoreService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../contexts/NotificationContext';
 
 
 export default function LogShift() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const { showNotification } = useNotification();
     // location removed
     const [loading, setLoading] = useState(false);
     const [receipt, setReceipt] = useState(null);
@@ -123,11 +125,11 @@ export default function LogShift() {
             };
 
             await addShift(shiftData);
-            alert('Shift logged successfully!');
+            showNotification('Shift logged successfully!', 'success');
             navigate('/history');
         } catch (error) {
             console.error('Error logging shift:', error);
-            alert('Failed to log shift. Check console.');
+            showNotification('Failed to log shift: ' + (error.message || 'Unknown error'), 'error');
         } finally {
             setLoading(false);
         }
