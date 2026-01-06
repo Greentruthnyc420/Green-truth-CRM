@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import { getBrandProducts, updateBrandProducts, updateBrandMenuUrl } from '../../services/firestoreService';
-import { parseMenuDocument } from '../../services/aiService';
+import { parseMenuDocument } from '../../services/geminiService';
 import {
     Package, Plus, Edit2, Trash2, Save, X,
     DollarSign, Hash, AlertCircle, Check, Upload, Tag, ToggleLeft, ToggleRight, Sparkles, RefreshCw, Eye
@@ -59,16 +59,9 @@ export default function BrandMenuEditor() {
 
             // 3. AI Scanning/Parsing (Skip if upload_only)
             if (scanMode === 'both' || scanMode === 'scan_only') {
-                // Convert file to Base64 for AI Scanning
-                const base64 = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(file);
-                });
-
                 // 4. Send to Gemini for Parsing
                 console.log("Sending to Gemini for parsing...");
-                const aiProducts = await parseMenuDocument(base64, file.type);
+                const aiProducts = await parseMenuDocument(file);
 
                 if (aiProducts && aiProducts.length > 0) {
                     // Ensure IDs are unique
@@ -165,10 +158,11 @@ export default function BrandMenuEditor() {
                                         <h3 className="font-bold text-slate-800">{p.name}</h3>
                                         <span className="font-bold text-amber-600">${p.price}</span>
                                     </div>
-                                    <div className="flex gap-2 text-xs mb-2">
-                                        <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600">{p.category}</span>
-                                        {p.thc && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded">{p.thc}</span>}
-                                        {p.strainType && <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded">{p.strainType}</span>}
+                                    <div className="flex gap-2 text-[10px] mb-2">
+                                        <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-bold uppercase tracking-wider">{p.category}</span>
+                                        {p.thc && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded font-bold uppercase tracking-wider">{p.thc} THC</span>}
+                                        {p.strainType && <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded font-bold uppercase tracking-wider">{p.strainType}</span>}
+                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded font-bold uppercase tracking-wider">{p.caseSize || 1} units/case</span>
                                     </div>
                                     <p className="text-sm text-slate-500 line-clamp-2">{p.description}</p>
                                 </div>

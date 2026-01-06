@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getMyDispensaries, logActivity, addSale, updateLead, deliverSamples } from '../services/firestoreService';
 import { calculateRepCommission } from '../services/compensationService';
 import { awardOrderPoints } from '../services/pointsService';
-import { generateEmailDraft } from '../services/aiService';
+import { generateEmailDraft } from '../services/geminiService';
 import { initGmailAuth, requestGmailAccess, sendEmail as gmailSendEmail, hasGmailAccess } from '../services/gmailService';
 import { Store, Calendar, DollarSign, ArrowLeft, Mail, X, Loader, Phone, MessageCircle, ExternalLink, Send, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
