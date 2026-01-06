@@ -6,77 +6,116 @@ import {
     ChevronDown, Search, Filter
 } from 'lucide-react';
 
-// Mock orders data
-const getMockOrders = (brandId) => [
-    {
-        id: 'ORD-001', dispensary: 'Green Leaf NYC', contact: 'John Doe', products: [
-            { name: 'Croutons', quantity: 10, price: 65 },
-            { name: 'Vape AIO', quantity: 5, price: 18 }
-        ], total: 740, status: 'pending', orderDate: '2026-01-02', deliveryDate: null
-    },
-    {
-        id: 'ORD-002', dispensary: 'Canna Corner', contact: 'Jane Smith', products: [
-            { name: 'Slice of Bread', quantity: 32, price: 18 }
-        ], total: 576, status: 'accepted', orderDate: '2026-01-01', deliveryDate: '2026-01-05'
-    },
-    {
-        id: 'ORD-003', dispensary: 'High Times BK', contact: 'Mike Johnson', products: [
-            { name: 'Baguette (High THC)', quantity: 50, price: 6 }
-        ], total: 300, status: 'fulfilled', orderDate: '2025-12-28', deliveryDate: '2025-12-30'
-    },
-    {
-        id: 'ORD-004', dispensary: 'Elevated Greens', contact: 'Sarah Lee', products: [
-            { name: 'Croutons', quantity: 5, price: 65 },
-            { name: 'Slice of Bread', quantity: 16, price: 18 }
-        ], total: 613, status: 'rejected', orderDate: '2025-12-25', deliveryDate: null
-    },
-    {
-        id: 'ORD-005', dispensary: 'Cloud Nine', contact: 'Tom Wilson', products: [
-            { name: 'Vape AIO', quantity: 20, price: 18 }
-        ], total: 360, status: 'pending', orderDate: '2026-01-03', deliveryDate: null
-    }
-];
+import { getSales, updateSaleStatus, updateSale } from '../../services/firestoreService';
 
 export default function BrandOrders() {
     const { brandUser } = useBrandAuth();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
     const [deliveryModal, setDeliveryModal] = useState({ open: false, orderId: null, date: '' });
 
     useEffect(() => {
-        setTimeout(() => {
-            setOrders(getMockOrders(brandUser?.brandId));
-            setLoading(false);
-        }, 300);
+        async function fetchOrders() {
+            if (!brandUser?.brandId) return;
+
+            setLoading(true);
+            try {
+                const allSales = await getSales();
+
+                // Transform sales into orders format for the brand
+                const brandOrders = allSales.filter(sale =>
+                    sale.items?.some(item => item.brandId === brandUser.brandId)
+                ).map(sale => {
+                    const brandItems = sale.items.filter(item => item.brandId === brandUser.brandId);
+                    const total = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+                    return {
+                        id: sale.id || 'N/A',
+                        dispensary: sale.dispensaryName || 'Unknown',
+                        contact: sale.contactPerson || sale.userName || 'N/A',
+                        products: brandItems.map(item => ({
+                            name: item.name,
+                            quantity: item.quantity,
+                            price: item.price
+                        })),
+                        total: total,
+                        status: sale.status || 'pending',
+                        orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
+                        deliveryDate: sale.deliveryDate || null
+                    };
+                });
+
+                setOrders(brandOrders);
+            } catch (error) {
+                console.error("Failed to fetch brand orders", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchOrders();
     }, [brandUser]);
 
     const handleAccept = (orderId) => {
         setDeliveryModal({ open: true, orderId, date: '' });
     };
 
-    const confirmAccept = () => {
-        setOrders(prev => prev.map(o =>
-            o.id === deliveryModal.orderId
-                ? { ...o, status: 'accepted', deliveryDate: deliveryModal.date }
-                : o
-        ));
-        setDeliveryModal({ open: false, orderId: null, date: '' });
-    };
-
-    const handleReject = (orderId) => {
-        if (confirm('Are you sure you want to reject this order?')) {
-            setOrders(prev => prev.map(o =>
-                o.id === orderId ? { ...o, status: 'rejected' } : o
-            ));
+    const confirmAccept = async () => {
+        setProcessing(true);
+        try {
+            const success = await updateSale(deliveryModal.orderId, {
+                status: 'accepted',
+                deliveryDate: deliveryModal.date
+            });
+            if (success) {
+                setOrders(prev => prev.map(o =>
+                    o.id === deliveryModal.orderId
+                        ? { ...o, status: 'accepted', deliveryDate: deliveryModal.date }
+                        : o
+                ));
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setProcessing(false);
+            setDeliveryModal({ open: false, orderId: null, date: '' });
         }
     };
 
-    const handleFulfill = (orderId) => {
-        setOrders(prev => prev.map(o =>
-            o.id === orderId ? { ...o, status: 'fulfilled' } : o
-        ));
+    const handleReject = async (orderId) => {
+        if (!confirm('Are you sure you want to reject this order?')) return;
+        setProcessing(true);
+        try {
+            const success = await updateSaleStatus(orderId, 'rejected');
+            if (success) {
+                setOrders(prev => prev.map(o =>
+                    o.id === orderId ? { ...o, status: 'rejected' } : o
+                ));
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleFulfill = async (orderId) => {
+        setProcessing(true);
+        try {
+            const success = await updateSaleStatus(orderId, 'fulfilled');
+            if (success) {
+                setOrders(prev => prev.map(o =>
+                    o.id === orderId ? { ...o, status: 'fulfilled' } : o
+                ));
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const filteredOrders = orders
@@ -130,8 +169,8 @@ export default function BrandOrders() {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${filter === f
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}

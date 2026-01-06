@@ -14,45 +14,6 @@ import { getSales as getAllSales, getAllShifts } from '../../services/firestoreS
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import RequestActivationModal from '../../components/RequestActivationModal';
 
-// Mock data for dashboard - will be replaced with Firestore queries
-const getMockAnalytics = (brandId) => ({
-    revenue: {
-        current: 24500,
-        previous: 21200,
-        change: 15.6
-    },
-    orders: {
-        total: 47,
-        pending: 8,
-        fulfilled: 39
-    },
-    // Chart Data
-    salesHistory: [
-        { month: 'Jan', revenue: 12000 },
-        { month: 'Feb', revenue: 15400 },
-        { month: 'Mar', revenue: 18900 },
-        { month: 'Apr', revenue: 14500 },
-        { month: 'May', revenue: 21000 },
-        { month: 'Jun', revenue: 24500 },
-    ],
-    productMix: [
-        { name: 'Croutons', value: 45, color: '#f59e0b' },
-        { name: 'Slice of Bread', value: 30, color: '#fcd34d' },
-        { name: 'Vape AIO', value: 15, color: '#fbbf24' },
-        { name: 'Baguette', value: 10, color: '#d97706' },
-    ],
-    invoices: {
-        paid: 18500,
-        unpaid: 6000,
-        overdue: 1200
-    },
-    recentOrders: [
-        { id: 'ORD-001', dispensary: 'Green Leaf NYC', amount: 450, status: 'pending', date: '2026-01-02' },
-        { id: 'ORD-002', dispensary: 'Canna Corner', amount: 890, status: 'fulfilled', date: '2026-01-01' },
-        { id: 'ORD-003', dispensary: 'High Times BK', amount: 320, status: 'pending', date: '2025-12-31' }
-    ]
-});
-
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 
 export default function BrandDashboard() {

@@ -14,7 +14,7 @@ import {
     markRepAsPaid,
     seedBrands,
     getActivations,
-    wipeAllData
+
 } from '../services/firestoreService';
 import NewActivationModal from '../components/NewActivationModal';
 // eslint-disable-next-line no-unused-vars
@@ -50,7 +50,7 @@ import {
     BarChart3,
     TrendingUp,
     PieChart,
-    Rocket
+
 } from 'lucide-react';
 import { Trophy } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
@@ -369,26 +369,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleFactoryReset = async () => {
-        const confirm1 = window.confirm("WARNING: You are about to perform a FACTORY RESET. This will wipe ALL sales, leads, shifts, and logs. This cannot be undone. Are you absolutely sure?");
-        if (!confirm1) return;
 
-        const confirm2 = window.prompt("To proceed, type 'RESET' in the box below:");
-        if (confirm2 !== 'RESET') return;
-
-        setProcessing(true);
-        try {
-            await wipeAllData();
-            showNotification("CRM Factory Reset Successful: App is now in Zero-Hour state.", "success");
-            // Give Firebase a moment to settle then reload
-            setTimeout(() => window.location.reload(), 1000);
-        } catch (error) {
-            console.error("Wipe failed:", error);
-            showNotification("Wipe failed. Check console for details.", "error");
-        } finally {
-            setProcessing(false);
-        }
-    };
 
     const handleSyncToHubSpot = async () => {
         const unsyncedLeads = leads.filter(l => !l.syncedToHubspot);
@@ -743,12 +724,7 @@ export default function AdminDashboard() {
                     icon={<Trophy size={18} />}
                     label="Ambassadors"
                 />
-                <TabButton
-                    active={activeTab === 'launch'}
-                    onClick={() => setActiveTab('launch')}
-                    icon={<Rocket size={18} />}
-                    label="Launch Control"
-                />
+
             </div>
 
             {/* Content Area */}
@@ -823,10 +799,10 @@ export default function AdminDashboard() {
                                                         {shift.hoursWorked || 0}
                                                     </td>
                                                     <td className="py-3 px-4 text-center text-slate-600">
-                                                        {shift.milesTraveled || (Math.random() > 0.5 ? 420 : 710)}
+                                                        {shift.milesTraveled || 0}
                                                     </td>
                                                     <td className="py-3 px-4 text-right text-slate-600 font-mono">
-                                                        ${(parseFloat(shift.tollAmount) || (Math.random() > 0.5 ? 420 : 710)).toFixed(2)}
+                                                        ${(parseFloat(shift.tollAmount) || 0).toFixed(2)}
                                                     </td>
                                                     <td className="py-3 px-4 text-right font-bold text-green-600 font-mono">
                                                         ${totalPay.toFixed(2)}
@@ -1107,65 +1083,7 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* Launch Control Tab (Zero-Hour Reset) */}
-                {activeTab === 'launch' && (
-                    <div className="p-8 max-w-2xl mx-auto text-center">
-                        <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-amber-100">
-                            <Rocket size={40} />
-                        </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2" id="launch-mode-title">Launch Mode</h2>
-                        <p className="text-slate-500 mb-8">
-                            Ready to go live? Use this tool to clear all test data and return the CRM to a pristine "Zero-Hour" state.
-                        </p>
 
-                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left mb-8">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Shield className="text-brand-600" size={18} />
-                                What will be wiped:
-                            </h3>
-                            <ul className="space-y-3 text-sm text-slate-600">
-                                <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
-                                    <span>All <strong>Sales & Invoices</strong> (Wipes all transaction history)</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
-                                    <span>All <strong>Leads & Pipeline Data</strong> (Clears prospecting records)</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
-                                    <span>All <strong>Shifts & Activations</strong> (Clears historical calendar)</span>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
-                                    <span>All <strong>Logs & Statistics</strong> (Zeroes out user leaderboards)</span>
-                                </li>
-                            </ul>
-                            <div className="mt-6 pt-6 border-t border-slate-200">
-                                <p className="text-xs text-amber-700 font-medium">
-                                    <strong>Note:</strong> Your official brand roster (Smoothie Bar, Honey King, etc.) will be automatically restored so you can start logging sales immediately.
-                                </p>
-                            </div>
-                        </div>
-
-                        <button
-                            id="factory-reset-btn"
-                            onClick={handleFactoryReset}
-                            disabled={processing}
-                            className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-xl ${processing
-                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                : 'bg-slate-900 text-white hover:bg-black hover:scale-[1.02] active:scale-[0.98] shadow-slate-200'
-                                }`}
-                        >
-                            {processing ? <RefreshCw className="animate-spin" /> : <Rocket size={24} />}
-                            {processing ? 'Performing Reset...' : 'EXECUTE FACTORY RESET'}
-                        </button>
-
-                        <p className="mt-6 text-xs text-slate-400">
-                            This action is final and recorded in security logs.
-                        </p>
-                    </div>
-                )}
 
             </div>
 

@@ -221,7 +221,7 @@ export default function Dashboard() {
                 <Link to="/app/payouts/wages" className="block">
                     <StatCard
                         title="Current Cycle Earnings"
-                        value={`$${(estimatedPay === 0 && storeCount === 0 ? 420 : estimatedPay).toFixed(2)}`}
+                        value={`$${estimatedPay.toFixed(2)}`}
                         subtext="Click for breakdown"
                         icon={Clock}
                         highlight={true}
@@ -230,7 +230,7 @@ export default function Dashboard() {
                 <Link to="/app/payouts/commissions" className="block">
                     <StatCard
                         title="Unpaid Commissions"
-                        value={`$${(totalCommission > 0 ? totalCommission : (Date.now() % 2 === 0 ? 420 : 710)).toFixed(2)}`}
+                        value={`$${totalCommission.toFixed(2)}`}
                         subtext="Pending sales commissions"
                         icon={DollarSign}
                     />

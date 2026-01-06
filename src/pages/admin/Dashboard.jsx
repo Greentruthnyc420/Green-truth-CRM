@@ -2,18 +2,21 @@ import React, { useState, useEffect } from 'react';
 import {
     DollarSign, Users, FileText, CheckCircle, ExternalLink, Loader,
     Download, AlertTriangle, RefreshCw, Award, BarChart, Calendar,
-    Store, CircleDollarSign, Banknote, Shield
+    Store, CircleDollarSign, Banknote, Shield, ShoppingCart, Package,
+    Search, Clock, Truck, X, ChevronDown, ChevronUp
 } from 'lucide-react';
 import {
     getAllShifts, updateShiftStatus, getSales, getLeads,
-    getUserProfile, updateSaleStatus, markRepAsPaid, seedBrands,
-    getActivations
+    getUserProfile, updateSaleStatus, updateSale, markRepAsPaid, seedBrands,
+    getActivations, wipeAllData
 } from '../../services/firestoreService';
+import { useNotification } from '../../contexts/NotificationContext';
+import { Rocket, Trash2, Database } from 'lucide-react';
 import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../../services/compensationService';
 import { syncLeadToHubSpot } from '../../services/hubspotService';
 import { convertToCSV, downloadCSV } from '../../utils/csvHelper';
 import { importOfficialDispensaries } from '../../services/dataSyncService';
-import { useBrandAuth } from '../../contexts/BrandAuthContext';
+import { useBrandAuth, BRAND_LICENSES } from '../../contexts/BrandAuthContext';
 import { useNavigate } from 'react-router-dom';
 
 // We can reuse some components if they are exported or duplicate minimal parts
@@ -55,6 +58,7 @@ const HOURLY_RATE = 20;
 export default function Dashboard() {
     const { impersonateBrand } = useBrandAuth();
     const navigate = useNavigate();
+    const { showNotification } = useNotification();
 
     // State
     const [loading, setLoading] = useState(true);
@@ -66,6 +70,7 @@ export default function Dashboard() {
     const [allShifts, setAllShifts] = useState([]);
     const [sales, setSales] = useState([]);
     const [leads, setLeads] = useState([]);
+
     const [financials, setFinancials] = useState({});
     const [usersMap, setUsersMap] = useState({});
     const [selectedShiftIds, setSelectedShiftIds] = useState([]);
@@ -126,6 +131,9 @@ export default function Dashboard() {
                 }
                 setUsersMap(map);
 
+                // --- Process Orders (Global) ---
+
+
             } catch (err) {
                 console.error("Admin Dashboard Data Error:", err);
             } finally {
@@ -149,6 +157,8 @@ export default function Dashboard() {
         }
     };
 
+
+
     const toggleSelectAll = () => {
         if (selectedShiftIds.length === shifts.length) setSelectedShiftIds([]);
         else setSelectedShiftIds(shifts.map(s => s.id));
@@ -156,6 +166,38 @@ export default function Dashboard() {
 
     const toggleShiftSelection = (id) => {
         setSelectedShiftIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const handleFactoryReset = async () => {
+        const confirm1 = window.confirm("WARNING: You are about to perform a FACTORY RESET. This will wipe ALL sales, leads, shifts, and logs. This cannot be undone. Are you absolutely sure?");
+        if (!confirm1) return;
+
+        const confirm2 = window.prompt("To proceed, type 'RESET' in the box below:");
+        if (confirm2 !== 'RESET') return;
+
+        setProcessing(true);
+        try {
+            await wipeAllData();
+            showNotification("CRM Factory Reset Successful: App is now in Zero-Hour state.", "success");
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (error) {
+            console.error("Wipe failed:", error);
+            showNotification("Wipe failed. Check console for details.", "error");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleSeedBrands = async () => {
+        setProcessing(true);
+        try {
+            await seedBrands();
+            showNotification("Official brands seeded successfully.", "success");
+        } catch (error) {
+            showNotification("Failed to seed brands.", "error");
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const exportPayroll = () => {
@@ -215,7 +257,9 @@ export default function Dashboard() {
             {/* Tabs */}
             <div className="flex bg-white rounded-xl shadow-sm border border-slate-200 mb-6 p-1 w-fit overflow-x-auto">
                 <TabButton active={activeTab === 'payroll'} onClick={() => setActiveTab('payroll')} icon={<DollarSign size={18} />} label="Payroll" />
+
                 <TabButton active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} icon={<Users size={18} />} label="Leads" />
+
             </div>
 
             {/* Content */}
@@ -279,6 +323,9 @@ export default function Dashboard() {
                     </>
                 )}
 
+                {/* Orders Tab */}
+
+
                 {/* Leads Tab */}
                 {activeTab === 'leads' && (
                     <>
@@ -314,7 +361,11 @@ export default function Dashboard() {
                     </>
                 )}
 
+
             </div>
+
+            {/* Delivery Date Modal */}
+
         </div>
     );
 }

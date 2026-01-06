@@ -740,7 +740,8 @@ export async function wipeAllData() {
         'activation_requests',
         'activity_logs',
         'security_logs',
-        'brand_products'
+        'brand_products',
+        'points_history'
     ];
 
     // Clear ALL collection-based data
@@ -761,7 +762,12 @@ export async function wipeAllData() {
     try {
         const usersSnapshot = await getDocs(collection(db, "users"));
         const userUpdatePromises = usersSnapshot.docs.map(docSnap =>
-            updateDoc(docSnap.ref, { totalSales: 0, updatedAt: serverTimestamp() })
+            updateDoc(docSnap.ref, {
+                totalSales: 0,
+                lifetimePoints: 0,
+                currentMonthPoints: 0,
+                updatedAt: serverTimestamp()
+            })
         );
         await Promise.all(userUpdatePromises);
         console.log(`Reset statistics for ${usersSnapshot.size} users.`);
