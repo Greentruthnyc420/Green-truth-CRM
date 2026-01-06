@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState } from "react";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import {
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    sendPasswordResetEmail
+} from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 
 // Placeholder licenses for all 8 brands
@@ -23,8 +31,42 @@ export function useBrandAuth() {
 
 export function BrandAuthProvider({ children }) {
     const [brandUser, setBrandUser] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const { currentUser } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const { currentUser: authUser } = useAuth(); // renamed for clarity
+
+    // Sync brandUser with Firebase Auth state
+    React.useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    // Check if this user is a brand user
+                    const docRef = doc(db, "brand_users", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const mapping = docSnap.data();
+                        const brandInfo = BRAND_LICENSES[mapping.licenseNumber];
+                        setBrandUser({
+                            ...brandInfo,
+                            email: user.email,
+                            uid: user.uid,
+                            licenseNumber: mapping.licenseNumber
+                        });
+                    } else if (brandUser && !brandUser.isImpersonating) {
+                        // User logged in but no brand mapping found
+                        setBrandUser(null);
+                    }
+                } catch (err) {
+                    console.error("Error fetching brand user mapping:", err);
+                    setBrandUser(null);
+                }
+            } else {
+                setBrandUser(null);
+            }
+            setLoading(false);
+        });
+
+        return unsubscribe;
+    }, []);
 
     // Validate license number and return brand info if valid
     function validateLicense(licenseNumber) {
@@ -41,18 +83,24 @@ export function BrandAuthProvider({ children }) {
                 throw new Error('Invalid license number. Please check your brand license.');
             }
 
-            // In production, this would create a new Firebase user and link to brand profile
-            const mockBrandUser = {
-                ...brandInfo,
-                email: email,
-                licenseNumber: licenseNumber.toUpperCase().trim(),
-                displayName: brandInfo.brandName,
-                uid: `brand-${brandInfo.brandId}`
-            };
+            // 1. Create User in Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
 
-            setBrandUser(mockBrandUser);
-            return mockBrandUser;
+            // 2. Create Mapping in Firestore
+            const license = licenseNumber.toUpperCase().trim();
+            await setDoc(doc(db, "brand_users", user.uid), {
+                uid: user.uid,
+                email: email,
+                licenseNumber: license,
+                brandId: brandInfo.brandId,
+                createdAt: new Date().toISOString()
+            });
+
+            // State will be updated by onAuthStateChanged
+            return user;
         } catch (error) {
+            console.error("Signup error:", error);
             throw error;
         } finally {
             setLoading(false);
@@ -68,20 +116,33 @@ export function BrandAuthProvider({ children }) {
                 throw new Error('Invalid license number. Please check your brand license.');
             }
 
-            // In production, this would authenticate with Firebase
-            // For now, we create a mock brand user
-            const mockBrandUser = {
-                ...brandInfo,
-                email: email,
-                licenseNumber: licenseNumber.toUpperCase().trim(),
-                displayName: brandInfo.brandName,
-                uid: `brand-${brandInfo.brandId}`
-            };
+            // 1. Sign in with Firebase Auth
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
 
-            setBrandUser(mockBrandUser);
-            return mockBrandUser;
+            // 2. Verification of mapping (optional as listener will catch it, but good for immediate feedback)
+            const docRef = doc(db, "brand_users", user.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (!docSnap.exists()) {
+                // If it's a new login or mapping missing, we might need to handle it
+                // For now, if license was provided and valid, we could auto-create mapping if we want
+                // But normally signup handles this. If they login with different license, what happens?
+                // Let's enforce that the mapping must match the provided license for standard login.
+                throw new Error('Account exists but not linked to this brand license. Please contact support.');
+            }
+
+            const mapping = docSnap.data();
+            if (mapping.licenseNumber.toUpperCase().trim() !== licenseNumber.toUpperCase().trim()) {
+                throw new Error("This account is linked to a different brand license.");
+            }
+
+            return user;
         } catch (error) {
-            throw error;
+            console.error("Login error:", error);
+            let msg = error.message;
+            if (msg.includes("auth/invalid-credential")) msg = "Invalid email or password.";
+            throw new Error(msg);
         } finally {
             setLoading(false);
         }
@@ -111,45 +172,51 @@ export function BrandAuthProvider({ children }) {
         return mockBrandUser;
     }
 
-    // Mock Google Login for Brand Portal
+    // Mock Google Login for Brand Portal - Updated to real logic
     async function loginWithGoogle(licenseNumber) {
         setLoading(true);
         try {
-            // Validate license first if provided (auto-linking logic would go here)
-            let brandInfo = null;
-            if (licenseNumber) {
-                brandInfo = validateLicense(licenseNumber);
+            const googleProvider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+
+            // Check for existing mapping
+            const docRef = doc(db, "brand_users", user.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (!docSnap.exists()) {
+                if (!licenseNumber) {
+                    // Force them to provide a license if they haven't linked yet
+                    await auth.signOut();
+                    throw new Error("This Google account is not linked to a brand. Please sign in with your brand license first.");
+                }
+
+                const brandInfo = validateLicense(licenseNumber);
                 if (!brandInfo) throw new Error('Invalid license number.');
-            } else {
-                // Mock logic: If no license, default to Wanders for demo, 
-                // OR ideally we would look up the user by email in Firestore
-                brandInfo = BRAND_LICENSES['OCM-AUCP-2024-000101'];
+
+                // Create the mapping
+                await setDoc(doc(db, "brand_users", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
+                    licenseNumber: licenseNumber.toUpperCase().trim(),
+                    brandId: brandInfo.brandId,
+                    createdAt: new Date().toISOString()
+                });
             }
 
-            const mockGoogleUser = {
-                ...brandInfo,
-                email: 'google-user@example.com',
-                displayName: brandInfo.brandName,
-                uid: `brand-google-${brandInfo.brandId}`,
-                photoURL: 'https://lh3.googleusercontent.com/a/ACg8ocIq8d...'
-            };
-
-            setTimeout(() => {
-                setBrandUser(mockGoogleUser);
-                setLoading(false);
-            }, 1000);
-
-            return mockGoogleUser;
+            return user;
         } catch (error) {
-            setLoading(false);
+            console.error("Google Login Error:", error);
             throw error;
+        } finally {
+            setLoading(false);
         }
     }
 
     // Admin Backdoor: Impersonate a brand
     function impersonateBrand(brandId) {
         // Verify Admin via AuthContext
-        const isAuthorized = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
+        const isAuthorized = authUser && ADMIN_EMAILS.includes(authUser.email?.toLowerCase());
 
         if (!isAuthorized) {
             console.error("Unauthorized attempt to impersonate brand.");
@@ -165,7 +232,7 @@ export function BrandAuthProvider({ children }) {
         const ghostUser = {
             ...brandInfo,
             licenseNumber: licenseKey,
-            email: currentUser.email, // Use admin email
+            email: authUser.email, // Use admin email
             displayName: `👻 ${brandInfo.brandName} (Admin)`,
             uid: `ghost-${brandId}`,
             isImpersonating: true
@@ -191,7 +258,8 @@ export function BrandAuthProvider({ children }) {
         }
     }
 
-    function logoutBrand() {
+    async function logoutBrand() {
+        await auth.signOut();
         setBrandUser(null);
     }
 
@@ -210,7 +278,7 @@ export function BrandAuthProvider({ children }) {
 
     return (
         <BrandAuthContext.Provider value={value}>
-            {children}
+            {!loading && children}
         </BrandAuthContext.Provider>
     );
 }

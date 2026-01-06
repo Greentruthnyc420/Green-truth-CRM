@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 
 export default function PrivateRoute() {
     const { currentUser, loading } = useAuth();
@@ -13,5 +13,14 @@ export default function PrivateRoute() {
         );
     }
 
-    return currentUser ? <Outlet /> : <Navigate to="/login" />;
+    const isOrgEmail = currentUser && (
+        ADMIN_EMAILS.includes(currentUser.email?.toLowerCase()) ||
+        currentUser.email?.toLowerCase().endsWith('@thegreentruthnyc.com')
+    );
+
+    if (!currentUser || !isOrgEmail) {
+        return <Navigate to="/login" />;
+    }
+
+    return <Outlet />;
 }
