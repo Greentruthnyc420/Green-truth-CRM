@@ -452,3 +452,17 @@ export async function deleteSale(id) {
     const { error } = await supabase.from('sales').delete().eq('id', id);
     return !error;
 }
+
+export async function resetDatabase() {
+    console.warn("⚠️ DELETING ALL DATA...");
+    // Delete all rows where ID is distinct from 0 (effectively all rows)
+    const { error: e1 } = await supabase.from('sales').delete().neq('id', 0);
+    const { error: e2 } = await supabase.from('leads').delete().neq('id', 0);
+    const { error: e3 } = await supabase.from('sample_requests').delete().neq('id', 0);
+    
+    if (e1 || e2 || e3) {
+        console.error("Error resetting DB:", e1, e2, e3);
+        return false;
+    }
+    return true;
+}

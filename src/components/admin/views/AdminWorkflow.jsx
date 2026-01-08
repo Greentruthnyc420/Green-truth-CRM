@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, FileText, Download, Loader, AlertTriangle, Gift } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
-import { getAllShifts, updateShiftStatus, markRepAsPaid, getUserProfile } from '../../../services/firestoreService';
+import { getAllShifts, updateShiftStatus, markRepAsPaid, getUserProfile, resetDatabase } from '../../../services/firestoreService';
 import SampleRequests from '../../SampleRequests';
 
 export default function AdminWorkflow() {
