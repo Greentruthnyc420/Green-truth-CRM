@@ -18,6 +18,15 @@ import { PRODUCT_CATALOG } from '../../data/productCatalog';
 
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
+    const [activeBrandId, setActiveBrandId] = useState(brandUser?.brandId);
+
+    // Update active brand if user context changes initial load
+    useEffect(() => {
+        if (brandUser?.brandId && !activeBrandId) {
+            setActiveBrandId(brandUser.brandId);
+        }
+    }, [brandUser]);
+
     const [financials, setFinancials] = useState({
         revenue: 0,
         commissionOwed: 0,
@@ -30,11 +39,16 @@ export default function BrandDashboard() {
     const [loading, setLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
-    const brandData = PRODUCT_CATALOG.find(b => b.id === brandUser?.brandId);
+    // Get current brand info either from allowed list or main user
+    const currentBrandInfo = brandUser?.allowedBrands?.find(b => b.brandId === activeBrandId) || brandUser;
+    // Fallback name if switching
+    const currentBrandName = currentBrandInfo?.brandName || brandUser?.brandName;
+
+    const brandData = PRODUCT_CATALOG.find(b => b.id === activeBrandId);
 
     useEffect(() => {
         async function fetchData() {
-            if (!brandUser?.brandId) return;
+            if (!activeBrandId) return;
 
             setLoading(true);
             try {
@@ -42,8 +56,8 @@ export default function BrandDashboard() {
                 const { getBrandLeads } = await import('../../services/firestoreService');
 
                 const [metrics, leads] = await Promise.all([
-                    calculateBrandMetrics(brandUser.brandId, brandUser.brandName),
-                    getBrandLeads(brandUser.brandId)
+                    calculateBrandMetrics(activeBrandId, currentBrandName),
+                    getBrandLeads(activeBrandId)
                 ]);
 
                 // Fetch sample requests count manually for now (or integrate into metrics service later)
@@ -54,7 +68,7 @@ export default function BrandDashboard() {
                     collection(db, 'sample_requests'),
                     // Check against brandName directly, but also check if the brand name might have an exclamation mark in the request
                     // Ideally we should store brand IDs in requests, but for now we try both common variations.
-                    where('requestedBrands', 'array-contains-any', [brandUser.brandName, `${brandUser.brandName}!`, brandUser.brandName.replace('!', '')]),
+                    where('requestedBrands', 'array-contains-any', [currentBrandName, `${currentBrandName}!`, currentBrandName.replace('!', '')]),
                     where('status', '==', 'Pending')
                 );
                 const snapshot = await getCountFromServer(qSamples);
@@ -70,9 +84,9 @@ export default function BrandDashboard() {
         }
 
         fetchData();
-    }, [brandUser]);
+    }, [activeBrandId, currentBrandName]);
 
-    if (loading) {
+    if (loading && !financials.revenue) { // Only show full loader on initial load
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
@@ -87,9 +101,31 @@ export default function BrandDashboard() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 leading-tight">
-                        {brandUser?.brandName} <span className="text-emerald-500">Portal</span>
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-black text-slate-900 leading-tight">
+                            {currentBrandName} <span className="text-emerald-500">Portal</span>
+                        </h1>
+
+                        {/* Brand Selector for Multi-Brand Users */}
+                        {brandUser?.allowedBrands && brandUser.allowedBrands.length > 1 && (
+                            <div className="relative group">
+                                <button className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors">
+                                    Switch Brand <ArrowRight size={12} />
+                                </button>
+                                <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block z-50">
+                                    {brandUser.allowedBrands.map(b => (
+                                        <button
+                                            key={b.brandId}
+                                            onClick={() => setActiveBrandId(b.brandId)}
+                                            className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-slate-50 transition-colors ${activeBrandId === b.brandId ? 'text-emerald-600 bg-emerald-50' : 'text-slate-600'}`}
+                                        >
+                                            {b.brandName}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <p className="text-slate-500 mt-1 font-medium italic">Welcome back! Here's your brand performance at a glance.</p>
                 </div>
                 <div className="flex items-center gap-3">

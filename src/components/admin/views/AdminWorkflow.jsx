@@ -75,12 +75,41 @@ export default function AdminWorkflow() {
         }
     };
 
+
+    const handleResetDatabase = async () => {
+        if (window.confirm("⚠️ DANGER: This will delete ALL Sales, Leads, and Sample Requests!\n\nUser accounts will be kept.\n\nAre you sure you want to proceed?")) {
+            const confirmed = window.confirm("Final Warning: This action cannot be undone. Wipe all data?");
+            if (confirmed) {
+                setProcessing(true);
+                const success = await resetDatabase();
+                setProcessing(false);
+                if (success) {
+                    showNotification("Database has been reset successfully!", "success");
+                    fetchPendingShifts(); // Refresh
+                } else {
+                    showNotification("Failed to reset database. Check console.", "error");
+                }
+            }
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Workflow & Approvals</h1>
                     <p className="text-slate-500">Action items requiring your attention.</p>
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleResetDatabase}
+                        disabled={processing}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+                    >
+                        <AlertTriangle size={18} />
+                        {processing ? 'Resetting...' : 'Reset Database'}
+                    </button>
                 </div>
             </div>
 

@@ -44,12 +44,31 @@ export function BrandAuthProvider({ children }) {
                     if (docSnap.exists()) {
                         const mapping = docSnap.data();
                         const brandInfo = BRAND_LICENSES[mapping.licenseNumber];
-                        setBrandUser({
-                            ...brandInfo,
-                            email: user.email,
-                            uid: user.uid,
-                            licenseNumber: mapping.licenseNumber
-                        });
+
+                        if (!brandInfo) {
+                            console.warn("Brand license not found for user:", mapping.licenseNumber);
+                            // Don't crash, just log out or set null
+                            setBrandUser(null);
+                        } else {
+                            // Support for multi-brand: Check for 'allowedBrands' array in Firestore doc
+                            // If present, it should be an array of brandIds: ['pines', 'smoothie-bar', 'waferz']
+                            // We will Attach the full brand info for each
+                            let extraBrands = [];
+                            if (mapping.allowedBrands && Array.isArray(mapping.allowedBrands)) {
+                                extraBrands = mapping.allowedBrands.map(bid => {
+                                    const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
+                                    return key ? { ...BRAND_LICENSES[key], license: key } : null;
+                                }).filter(Boolean);
+                            }
+
+                            setBrandUser({
+                                ...brandInfo,
+                                email: user.email,
+                                uid: user.uid,
+                                licenseNumber: mapping.licenseNumber,
+                                allowedBrands: extraBrands.length > 0 ? extraBrands : [{ ...brandInfo, license: mapping.licenseNumber }]
+                            });
+                        }
                     } else if (brandUser && !brandUser.isImpersonating) {
                         // User logged in but no brand mapping found
                         setBrandUser(null);
