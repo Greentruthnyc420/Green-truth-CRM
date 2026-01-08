@@ -40,6 +40,7 @@ import AdminTeam from './components/admin/views/AdminTeam';
 import AdminGrowth from './components/admin/views/AdminGrowth';
 import LegacyAdminDashboard from './pages/AdminDashboard'; // Restored as Legacy Console
 import AdminWorkflow from './components/admin/views/AdminWorkflow';
+import AmbassadorOverview from './components/admin/AmbassadorOverview';
 
 // Brand Portal Imports
 import BrandLogin from './pages/brand/BrandLogin';
@@ -81,6 +82,7 @@ function App() {
             <Route path="financials" element={<AdminFinancials />} />
             <Route path="territory" element={<AdminTerritory />} />
             <Route path="team" element={<AdminTeam />} />
+            <Route path="team/:userId" element={<AmbassadorOverview />} />
             <Route path="pipeline" element={<AdminGrowth />} /> {/* Reusing AdminGrowth component for Pipeline view */}
             <Route path="growth" element={<LegacyAdminDashboard />} /> {/* Legacy Console is now the main Growth view */}
           </Route>

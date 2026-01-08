@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getAllUsers, getAllShifts, getSales } from '../../../services/firestoreService';
 import { Users, Trophy, TrendingUp, Clock, Award } from 'lucide-react';
 
@@ -137,9 +138,12 @@ export default function AdminTeam() {
                                                 ${member.totalCommission.toFixed(2)}
                                             </td>
                                             <td className="py-4 px-6 text-center">
-                                                <button className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline">
+                                                <Link
+                                                    to={`/admin/team/${member.id}`}
+                                                    className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline"
+                                                >
                                                     View Profile
-                                                </button>
+                                                </Link>
                                             </td>
                                         </tr>
                                     ))}

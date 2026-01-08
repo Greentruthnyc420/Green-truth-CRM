@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { DollarSign, Clock, TrendingUp, Award, PartyPopper } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { getMyDispensaries, getSales, getUserShifts } from '../../services/firestoreService';
+import { getMyDispensaries, getSales, getUserShifts, getUserProfile } from '../../services/firestoreService';
 import { useAuth, ADMIN_EMAILS } from '../../contexts/AuthContext';
 import {
     calculateHourlyRate,
@@ -70,8 +70,14 @@ const MilestoneOverlay = ({ message, onClose }) => {
 export default function AmbassadorOverview({ currentUserOverride, showHourlyRate = true }) {
     // Keep internal state logic similar to legacy Dashboard
     const { currentUser: authUser } = useAuth();
-    // Allow overriding user for admin view of specific rep (future proofing), default to authUser
-    const currentUser = currentUserOverride || authUser;
+    const { userId: paramUserId } = useParams();
+
+    // Priority: 1. Override prop, 2. URL Param (Admin View), 3. Auth User (Self View)
+    // We need to construct a "user-like" object if we only have an ID from params
+    const effectiveUser = currentUserOverride || (paramUserId ? { uid: paramUserId } : authUser);
+
+    // Renaming for clarity in rest of component
+    const currentUser = effectiveUser;
 
     const [storeCount, setStoreCount] = useState(0);
     const [hourlyRate, setHourlyRate] = useState(20);
