@@ -276,6 +276,19 @@ const RequestCard = ({ request, onStatusUpdate, onDelete, userRole }) => {
                     </button>
                 </div>
             )}
+
+            {/* Separate Always-Visible Delete Button */}
+            {userRole !== 'dispensary' && (
+                <div className={displayStatus === 'Pending' ? "mt-3" : "mt-4 pt-4 border-t border-slate-100"}>
+                    <button
+                        onClick={() => onDelete(request.id)}
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 text-red-700 font-bold rounded-xl hover:bg-red-600 hover:text-white border-2 border-red-300 hover:border-red-600 transition-all shadow-sm"
+                    >
+                        <Trash2 size={20} />
+                        Delete Request
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
