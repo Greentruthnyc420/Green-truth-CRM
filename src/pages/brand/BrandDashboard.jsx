@@ -33,7 +33,9 @@ export default function BrandDashboard() {
         activationCosts: 0,
         orderCount: 0,
         pendingOrders: 0,
-        pendingSampleRequests: 0 // New field
+        pendingSampleRequests: 0,
+        salesHistory: [], // Initialize to prevent Recharts undefined crash
+        productMix: []    // Initialize to prevent map crash
     });
     const [brandLeads, setBrandLeads] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -64,17 +66,20 @@ export default function BrandDashboard() {
                 // Assuming we have a collection 'sample_requests'
                 const { collection, query, where, getCountFromServer } = await import('firebase/firestore');
                 const { db } = await import('../../firebase');
-                const qSamples = query(
-                    collection(db, 'sample_requests'),
-                    // Check against brandName directly, but also check if the brand name might have an exclamation mark in the request
-                    // Ideally we should store brand IDs in requests, but for now we try both common variations.
-                    where('requestedBrands', 'array-contains-any', [currentBrandName, `${currentBrandName}!`, currentBrandName.replace('!', '')]),
-                    where('status', '==', 'Pending')
-                );
-                const snapshot = await getCountFromServer(qSamples);
-                const pendingSamples = snapshot.data().count;
+                if (currentBrandName) {
+                    const qSamples = query(
+                        collection(db, 'sample_requests'),
+                        where('requestedBrands', 'array-contains-any', [currentBrandName, `${currentBrandName}!`, currentBrandName.replace('!', '')]),
+                        where('status', '==', 'Pending')
+                    );
+                    const snapshot = await getCountFromServer(qSamples);
+                    const pendingSamples = snapshot.data().count;
+                    metrics.pendingSampleRequests = pendingSamples; // Add to metrics
+                } else {
+                    metrics.pendingSampleRequests = 0;
+                }
 
-                setFinancials({ ...metrics, pendingSampleRequests: pendingSamples });
+                setFinancials(prev => ({ ...prev, ...metrics }));
                 setBrandLeads(leads);
             } catch (error) {
                 console.error("Failed to load brand dashboard data", error);
