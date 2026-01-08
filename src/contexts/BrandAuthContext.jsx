@@ -11,22 +11,35 @@ import {
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 
-// Placeholder licenses for brands (Wanders removed)
+// Available brands for signup - users select from dropdown and enter their REAL license
+// No fake license validation - license is stored as-is
+export const AVAILABLE_BRANDS = {
+    'honey-king': { brandId: 'honey-king', brandName: 'Honey King' },
+    'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
+    'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots' },
+    'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers' },
+    'smoothie-bar': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
+    'waferz': { brandId: 'waferz', brandName: 'Waferz NY' },
+    'pines': { brandId: 'pines', brandName: 'Pines' },
+    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', isProcessor: true }
+};
+
+// Legacy support: Map old license numbers to brands (for existing users)
+// New users should not use these - they select brand from dropdown
 export const BRAND_LICENSES = {
-    'OCM-AUCP-2024-000102': { brandId: 'honey-king', brandName: 'Honey King' },
-    'OCM-AUCP-2024-000103': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
-    'OCM-AUCP-2024-000104': { brandId: 'canna-dots', brandName: 'Canna Dots' },
-    'OCM-AUCP-2024-000105': { brandId: 'space-poppers', brandName: 'Space Poppers' },
-    'OCM-AUCP-2024-000106': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
-    'OCM-AUCP-2024-000107': { brandId: 'waferz', brandName: 'Waferz NY' },
-    'OCM-AUCP-2024-000108': { brandId: 'pines', brandName: 'Pines' },
+    ...Object.fromEntries(
+        Object.entries(AVAILABLE_BRANDS).map(([id, brand]) => [id, brand])
+    )
 };
 
 // Users who manage multiple brands (email -> brandIds)
-// When these users sign up with ANY of their brands, they get access to ALL their brands
 const MULTI_BRAND_USERS = {
     'paripatelny@gmail.com': ['pines', 'smoothie-bar', 'waferz']
 };
+
+// FLX Processor users get access to all FLX sub-brands
+const FLX_SUB_BRANDS = ['pines', 'smoothie-bar', 'waferz'];
+
 
 
 const BrandAuthContext = createContext();

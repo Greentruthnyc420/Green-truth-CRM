@@ -171,5 +171,13 @@ export const PRODUCT_CATALOG = [
             { id: 'pines-conc-ritz-carlton-3.5g', name: 'Ritz Carlton Live Resin', description: '3.5g Concentrate - Rainbow Belts #37 x Gelato #41', price: 55.00, caseSize: 10, unit: 'unit', thc: '72.62%', strainType: 'Hybrid', category: 'Concentrate', inStock: true },
             { id: 'pines-conc-blueberry-sherbet-3.5g', name: 'Blueberry Sherbet Live Resin', description: '3.5g Concentrate - Blueberry x Cherry Pie', price: 55.00, caseSize: 10, unit: 'unit', thc: '66.03%', strainType: 'Indica', category: 'Concentrate', inStock: true }
         ]
+    },
+    {
+        id: 'flx-extracts',
+        name: 'FLX Extracts',
+        logo: '/logos/flx-extracts.png',
+        isProcessor: true, // This is a processor, not a regular brand
+        subBrands: ['pines', 'smoothie-bar', 'waferz'], // Brands under this processor
+        products: [] // Processor doesn't have its own products - manages sub-brands
     }
 ];

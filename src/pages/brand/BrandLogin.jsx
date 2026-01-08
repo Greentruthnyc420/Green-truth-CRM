@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
-import { useBrandAuth, BRAND_LICENSES } from '../../contexts/BrandAuthContext';
+import { useBrandAuth, AVAILABLE_BRANDS } from '../../contexts/BrandAuthContext';
 import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 // BrandLoginGate removed
@@ -25,7 +25,8 @@ const BRAND_LOGOS = {
     'space-poppers': partner2,
     'smoothie-bar': smoothieBar,
     'waferz': waferz,
-    'pines': flxExtracts, // Updated to FLX as requested
+    'pines': null, // Will show initials
+    'flx-extracts': flxExtracts, // Processor
 };
 
 export default function BrandLogin() {
@@ -55,9 +56,9 @@ export default function BrandLogin() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    // Convert BRAND_LICENSES object to array for mapping
-    const brandList = Object.entries(BRAND_LICENSES).map(([license, info]) => ({
-        license,
+    // Convert AVAILABLE_BRANDS object to array for brand selection
+    const brandList = Object.entries(AVAILABLE_BRANDS).map(([brandId, info]) => ({
+        brandId,
         ...info
     }));
 
@@ -97,15 +98,16 @@ export default function BrandLogin() {
         }
     };
 
-    // Brand Code Mapping (2-8) - Wanders removed
+    // Brand Code Mapping (2-9)
     const BRAND_CODE_MAP = {
         '2': 'honey-king',
         '3': 'bud-cracker',
         '4': 'space-poppers',
-        '5': 'canna-dots', // "Canada's"
+        '5': 'canna-dots',
         '6': 'smoothie-bar',
-        '7': 'waferz', // "Wafers"
-        '8': 'pines', // "FLX"
+        '7': 'waferz',
+        '8': 'pines',
+        '9': 'flx-extracts', // Processor
     };
 
     const handleDevLogin = async (brandIdOverride = null) => {
