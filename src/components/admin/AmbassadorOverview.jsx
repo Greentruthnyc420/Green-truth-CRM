@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DollarSign, Clock, TrendingUp, Award, PartyPopper } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -74,7 +74,10 @@ export default function AmbassadorOverview({ currentUserOverride, showHourlyRate
 
     // Priority: 1. Override prop, 2. URL Param (Admin View), 3. Auth User (Self View)
     // We need to construct a "user-like" object if we only have an ID from params
-    const effectiveUser = currentUserOverride || (paramUserId ? { uid: paramUserId } : authUser);
+    // MEMOIZED to prevent infinite loops (since creating a new object trigers useEffect repeatedly)
+    const effectiveUser = useMemo(() => {
+        return currentUserOverride || (paramUserId ? { uid: paramUserId } : authUser);
+    }, [currentUserOverride, paramUserId, authUser]);
 
     // Renaming for clarity in rest of component
     const currentUser = effectiveUser;
