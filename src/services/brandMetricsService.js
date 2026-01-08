@@ -131,7 +131,9 @@ export async function calculateBrandMetrics(brandId, brandName) {
             pendingOrders: 0,
             topProduct: 'N/A',
             aov: 0,
-            outstandingInvoices: 0
+            outstandingInvoices: 0,
+            salesHistory: [],  // Added to prevent Recharts crash
+            productMix: []     // Added to prevent Recharts crash
         };
     }
 }
