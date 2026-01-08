@@ -18,15 +18,7 @@ import { PRODUCT_CATALOG } from '../../data/productCatalog';
 
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
-    const [activeBrandId, setActiveBrandId] = useState(brandUser?.brandId);
-
-    // Update active brand if user context changes initial load
-    useEffect(() => {
-        if (brandUser?.brandId && !activeBrandId) {
-            setActiveBrandId(brandUser.brandId);
-        }
-    }, [brandUser]);
-
+    const [activeBrandId, setActiveBrandId] = useState(null);
     const [financials, setFinancials] = useState({
         revenue: 0,
         commissionOwed: 0,
@@ -34,23 +26,34 @@ export default function BrandDashboard() {
         orderCount: 0,
         pendingOrders: 0,
         pendingSampleRequests: 0,
-        salesHistory: [], // Initialize to prevent Recharts undefined crash
-        productMix: []    // Initialize to prevent map crash
+        salesHistory: [],
+        productMix: [],
+        topProduct: 'N/A',
+        aov: 0,
+        outstandingInvoices: 0
     });
     const [brandLeads, setBrandLeads] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
-    // Get current brand info either from allowed list or main user
-    const currentBrandInfo = brandUser?.allowedBrands?.find(b => b.brandId === activeBrandId) || brandUser;
-    // Fallback name if switching
-    const currentBrandName = currentBrandInfo?.brandName || brandUser?.brandName;
+    // Set active brand when user loads
+    useEffect(() => {
+        if (brandUser?.brandId && !activeBrandId) {
+            setActiveBrandId(brandUser.brandId);
+        }
+    }, [brandUser, activeBrandId]);
 
+    // Current brand name for display
+    const currentBrandName = brandUser?.brandName || 'Brand';
     const brandData = PRODUCT_CATALOG.find(b => b.id === activeBrandId);
 
+    // Fetch dashboard data
     useEffect(() => {
         async function fetchData() {
-            if (!activeBrandId) return;
+            if (!activeBrandId) {
+                setLoading(false);
+                return;
+            }
 
             setLoading(true);
             try {
