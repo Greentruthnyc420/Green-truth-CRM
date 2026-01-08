@@ -15,9 +15,16 @@ import { calculateAgencyShiftCost } from '../../utils/pricing';
 import RequestActivationModal from '../../components/RequestActivationModal';
 
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
+import FLXProcessorDashboard from './FLXProcessorDashboard';
 
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
+
+    // If user is FLX Extracts (processor), render the processor dashboard
+    if (brandUser?.brandId === 'flx-extracts') {
+        return <FLXProcessorDashboard />;
+    }
+
     const [activeBrandId, setActiveBrandId] = useState(null);
     const [financials, setFinancials] = useState({
         revenue: 0,
