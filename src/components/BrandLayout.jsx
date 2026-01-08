@@ -55,8 +55,8 @@ export default function BrandLayout() {
             icon: '/logos/flx-extracts.png'
         },
         'pines': {
-            top: null, // Will show initials
-            icon: null // Will show initials
+            top: '/logos/pines.png',
+            icon: '/logos/pines.png'
         }
     };
 

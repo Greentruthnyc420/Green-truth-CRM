@@ -17,6 +17,8 @@ import waferz from '../../assets/images/waferz.png';
 import smoothieBar from '../../assets/images/smoothie-bar.png';
 import flxExtracts from '../../assets/images/flx-extracts.png';
 
+import pinesLogo from '../../assets/images/pines.png';
+
 // Map brand IDs to logos
 const BRAND_LOGOS = {
     'honey-king': partner5,
@@ -25,8 +27,8 @@ const BRAND_LOGOS = {
     'space-poppers': partner2,
     'smoothie-bar': smoothieBar,
     'waferz': waferz,
-    'pines': null, // Will show initials
-    'flx-extracts': flxExtracts, // Processor
+    'pines': pinesLogo,
+    'flx-extracts': flxExtracts,
 };
 
 export default function BrandLogin() {
