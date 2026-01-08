@@ -32,7 +32,9 @@ export default function Accounts() {
         async function load() {
             if (currentUser) {
                 const data = await getAllAccounts(currentUser.uid, isAdmin);
-                setAccounts(data);
+                // Handle if getAllAccounts returns object or array
+                const accountsArray = Array.isArray(data) ? data : (data?.leads || []);
+                setAccounts(accountsArray);
             }
             setLoading(false);
         }
