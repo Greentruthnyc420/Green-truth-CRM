@@ -22,6 +22,13 @@ export const BRAND_LICENSES = {
     'OCM-AUCP-2024-000108': { brandId: 'pines', brandName: 'Pines' },
 };
 
+// Users who manage multiple brands (email -> brandIds)
+// When these users sign up with ANY of their brands, they get access to ALL their brands
+const MULTI_BRAND_USERS = {
+    'paripatelny@gmail.com': ['pines', 'smoothie-bar', 'waferz']
+};
+
+
 const BrandAuthContext = createContext();
 
 export function useBrandAuth() {
@@ -50,11 +57,19 @@ export function BrandAuthProvider({ children }) {
                             // Don't crash, just log out or set null
                             setBrandUser(null);
                         } else {
-                            // Support for multi-brand: Check for 'allowedBrands' array in Firestore doc
-                            // If present, it should be an array of brandIds: ['pines', 'smoothie-bar', 'waferz']
-                            // We will Attach the full brand info for each
+                            // Support for multi-brand: Check for allowedBrands in MULTI_BRAND_USERS config first, then Firestore
                             let extraBrands = [];
-                            if (mapping.allowedBrands && Array.isArray(mapping.allowedBrands)) {
+
+                            // Check hardcoded multi-brand users (takes precedence)
+                            const multiBrandConfig = MULTI_BRAND_USERS[user.email?.toLowerCase()];
+                            if (multiBrandConfig && Array.isArray(multiBrandConfig)) {
+                                extraBrands = multiBrandConfig.map(bid => {
+                                    const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
+                                    return key ? { ...BRAND_LICENSES[key], license: key } : null;
+                                }).filter(Boolean);
+                            }
+                            // Fallback to Firestore allowedBrands
+                            else if (mapping.allowedBrands && Array.isArray(mapping.allowedBrands)) {
                                 extraBrands = mapping.allowedBrands.map(bid => {
                                     const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
                                     return key ? { ...BRAND_LICENSES[key], license: key } : null;
