@@ -5,16 +5,10 @@ import {
     CreditCard, Download, ExternalLink, Clock
 } from 'lucide-react';
 
-// Mock invoice data for MONEY GOING OUT (To GreenTruth)
+// Mock invoice data for MONEY GOING OUT (To GreenTruth) - Set to $0
 const getMockGreenTruthInvoices = (brandId) => ({
-    outstanding: [
-        { id: 'GT-INV-2026-01', description: 'January 2026 Platform Fees', amount: 1500, dueDate: '2026-02-01', status: 'unpaid' },
-        { id: 'GT-COMM-2025-12', description: 'Dec 2025 Commission Override', amount: 850, dueDate: '2026-01-15', status: 'overdue' },
-    ],
-    history: [
-        { id: 'GT-INV-2025-12', description: 'December 2025 Platform Fees', amount: 1500, paidDate: '2026-01-02', status: 'paid' },
-        { id: 'GT-INV-2025-11', description: 'November 2025 Platform Fees', amount: 1500, paidDate: '2025-12-05', status: 'paid' },
-    ]
+    outstanding: [],
+    history: []
 });
 
 export default function BrandInvoicesGreenTruth() {
@@ -57,7 +51,7 @@ export default function BrandInvoicesGreenTruth() {
                     {/* Total Paid (New) */}
                     <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
                         <p className="text-xs text-slate-600 font-medium uppercase tracking-wider">Total Paid</p>
-                        <p className="text-xl font-bold text-slate-700">$3,000</p>
+                        <p className="text-xl font-bold text-slate-700">$0.00</p>
                     </div>
                 </div>
             </div>

@@ -33,7 +33,6 @@ export default function LogShift() {
 
     const availableBrands = [
         '🍯 Honey King',
-        'Wanders New York',
         'Bud Cracker Boulevard',
         'Canna Dots',
         'Space Poppers!',

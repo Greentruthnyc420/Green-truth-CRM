@@ -187,6 +187,22 @@ export default function AdminLogin() {
                         Sign in with Google
                     </button>
 
+                    {import.meta.env.DEV && (
+                        <div className="mt-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    devLogin('omar@thegreentruthnyc.com');
+                                    navigate('/admin');
+                                }}
+                                className="w-full bg-slate-800 text-slate-300 border border-slate-700 py-3 rounded-xl font-medium text-sm hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2 group"
+                            >
+                                <Shield size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                                <span>Log in as <span className="text-white font-bold">Admin</span> (Dev)</span>
+                            </button>
+                        </div>
+                    )}
+
 
                     <div className="mt-8 text-center text-xs text-slate-500">
                         Authorized Personnel Only

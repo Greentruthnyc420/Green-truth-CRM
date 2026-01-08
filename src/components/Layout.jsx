@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { logout } = useAuth();
@@ -103,27 +104,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     );
 };
 
-const BottomNav = () => (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-4 py-2 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <MobileNavItem to="/app" icon={<LayoutDashboard size={22} />} label="Home" />
-        <MobileNavItem to="/app/history" icon={<History size={22} />} label="History" />
-
-        {/* Floating Action Button for main actions */}
-        <div className="relative -top-5">
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group">
-                <NavLink
-                    to="/app/log-shift"
-                    className="w-14 h-14 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 transition-colors"
-                >
-                    <PlusCircle size={28} />
-                </NavLink>
-            </div>
-        </div>
-
-        <MobileNavItem to="/app/new-lead" icon={<Users size={22} />} label="Leads" />
-        <MobileNavItem to="/app/log-sale" icon={<DollarSign size={22} />} label="Sales" />
-    </nav>
-);
 
 const NavItem = ({ to, icon, label, isCollapsed }) => (
     <NavLink
@@ -167,6 +147,17 @@ export default function Layout() {
         ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
         : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U'));
 
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
+    const { logout } = useAuth();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            window.location.href = '/login';
+        } catch (error) {
+            console.error("Failed to log out", error);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 flex">
@@ -191,11 +182,105 @@ export default function Layout() {
                 <div className="p-4 md:p-8 pb-32 md:pb-8 max-w-7xl mx-auto">
                     <Outlet />
                 </div>
-
-
             </main>
 
-            <BottomNav />
+            {/* Bottom Nav with More Menu Trigger */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-200 pb-safe z-50 px-4 py-2 flex justify-between items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+                <MobileNavItem to="/app" icon={<LayoutDashboard size={20} />} label="Home" />
+                <MobileNavItem to="/app/new-lead" icon={<Users size={20} />} label="Leads" />
+
+                <div className="relative -top-4">
+                    <NavLink
+                        to="/app/log-sale"
+                        className="w-14 h-14 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-brand-600/40 border-4 border-white active:scale-95 transition-all"
+                    >
+                        <PlusCircle size={28} />
+                    </NavLink>
+                </div>
+
+                <MobileNavItem to="/app/history" icon={<History size={20} />} label="History" />
+
+                <button
+                    onClick={() => setIsMoreMenuOpen(true)}
+                    className="flex flex-col items-center justify-center gap-1 py-1 px-2 text-slate-400 hover:text-brand-600 transition-colors"
+                >
+                    <Menu size={20} />
+                    <span className="text-[10px] font-medium">More</span>
+                </button>
+            </nav>
+
+            {/* More Menu Slide-up / Overlay */}
+            <AnimatePresence>
+                {isMoreMenuOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsMoreMenuOpen(false)}
+                            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] md:hidden"
+                        />
+                        <motion.div
+                            initial={{ y: '100%' }}
+                            animate={{ y: 0 }}
+                            exit={{ y: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] z-[70] md:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                        >
+                            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-xl font-bold text-slate-800">All Actions</h2>
+                                <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4 pb-8">
+                                <MoreMenuItem to="/app/map" icon={<Navigation className="text-brand-500" />} label="Map" onClick={() => setIsMoreMenuOpen(false)} />
+                                <MoreMenuItem to="/app/schedule" icon={<Calendar className="text-blue-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
+                                <MoreMenuItem to="/app/log-shift" icon={<Car className="text-orange-500" />} label="Shift" onClick={() => setIsMoreMenuOpen(false)} />
+                                <MoreMenuItem to="/app/accounts" icon={<Building2 className="text-indigo-500" />} label="Accounts" onClick={() => setIsMoreMenuOpen(false)} />
+                                <MoreMenuItem to="/app/leaderboard" icon={<Trophy className="text-yellow-500" />} label="Leaderboard" onClick={() => setIsMoreMenuOpen(false)} />
+                                <MoreMenuItem to="/app/menus" icon={<FileText className="text-emerald-500" />} label="Menus" onClick={() => setIsMoreMenuOpen(false)} />
+
+                                {isAdmin && (
+                                    <>
+                                        <MoreMenuItem to="/admin" icon={<ShieldCheck className="text-purple-500" />} label="Admin" onClick={() => setIsMoreMenuOpen(false)} />
+                                        <MoreMenuItem to="/app/brand-oversight" icon={<Building2 className="text-pink-500" />} label="Oversight" onClick={() => setIsMoreMenuOpen(false)} />
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="border-t border-slate-100 pt-6 mt-2">
+                                <button
+                                    onClick={() => { setIsMoreMenuOpen(false); handleLogout(); }}
+                                    className="w-full flex items-center justify-center gap-3 p-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                >
+                                    <LogOut size={20} />
+                                    Sign Out
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
+
+const MoreMenuItem = ({ to, icon, label, onClick }) => (
+    <NavLink
+        to={to}
+        onClick={onClick}
+        className={({ isActive }) =>
+            `flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${isActive
+                ? 'bg-brand-50 border-brand-200 text-brand-600'
+                : 'bg-white border-slate-100 text-slate-600 active:bg-slate-50'
+            }`
+        }
+    >
+        {React.cloneElement(icon, { size: 24 })}
+        <span className="text-[11px] font-bold text-center leading-tight">{label}</span>
+    </NavLink>
+);

@@ -23,13 +23,9 @@ export default function BrandLayout() {
         ? brandUser.brandName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
         : 'BR';
 
-    // Unified Brand Logo Mapping
+    // Unified Brand Logo Mapping - Wanders removed
     // Format: { brandId: { top: 'Path to large sidebar logo', icon: 'Path to small icon logo' } }
     const BRAND_ASSETS = {
-        'wanders': {
-            top: '/logos/partner-1.png',
-            icon: '/logos/partner-1.png'
-        },
         'space-poppers': {
             top: '/logos/space-poppers.png',
             icon: '/logos/space-poppers.png'

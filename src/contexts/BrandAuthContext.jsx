@@ -11,9 +11,8 @@ import {
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 
-// Placeholder licenses for all 8 brands
+// Placeholder licenses for brands (Wanders removed)
 export const BRAND_LICENSES = {
-    'OCM-AUCP-2024-000101': { brandId: 'wanders', brandName: 'Wanders New York' },
     'OCM-AUCP-2024-000102': { brandId: 'honey-king', brandName: 'Honey King' },
     'OCM-AUCP-2024-000103': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
     'OCM-AUCP-2024-000104': { brandId: 'canna-dots', brandName: 'Canna Dots' },

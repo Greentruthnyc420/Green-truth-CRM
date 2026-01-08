@@ -1,18 +1,6 @@
 
 export const PRODUCT_CATALOG = [
     {
-        id: 'wanders',
-        name: 'Wanders New York',
-        logo: null,
-        products: [
-            { id: 'wanders-croutons', name: 'Croutons', description: '3.5g Wander Bread Water Hash', price: 65.00, caseSize: 10, unit: 'unit', thc: '32%', strainType: 'Hybrid', category: 'Concentrate', inStock: true },
-            { id: 'wanders-slice', name: 'Slice of Bread', description: '3.5g Wander Bread Piff Flower', price: 18.00, caseSize: 32, unit: 'unit', thc: '24%', strainType: 'Sativa', category: 'Flower', inStock: true },
-            { id: 'wanders-baguette-low', name: 'Baguette (Low THC)', description: '1g Preroll – Anginetti', price: 3.00, caseSize: 50, unit: 'unit', thc: '18%', strainType: 'Indica', category: 'Pre-Roll', inStock: true },
-            { id: 'wanders-baguette-high', name: 'Baguette (High THC)', description: '1g Preroll – Mocha Afghani', price: 6.00, caseSize: 50, unit: 'unit', thc: '28%', strainType: 'Indica', category: 'Pre-Roll', inStock: true },
-            { id: 'wanders-vape', name: 'Vape AIO', description: '.5g Cream Puff Live Resin Butter', price: 18.00, caseSize: 20, unit: 'unit', thc: '82%', strainType: 'Hybrid', category: 'Vape', inStock: true }
-        ]
-    },
-    {
         id: 'honey-king',
         name: 'Honey King',
         logo: '/logos/partner-6.png',

@@ -43,7 +43,6 @@ export default function Menus() {
 
             const staticMenus = [
                 { title: 'Honey King Pricing', src: '/menus/Honey_King_Menu.jpg', autoLink: true, brandName: 'Honey King' },
-                { title: 'Wanders New York Menu', src: '/menus/wanderers.jpg', autoLink: true, brandName: 'Wanderers' },
                 { title: 'Canna Dots Price List', src: '/menus/Canna_Dots_Menu.png', autoLink: true, brandName: 'Canna Dots' },
                 { title: 'Space Poppers Menu', src: '/menus/space-poppers-2025.jpg', autoLink: true, brandName: 'Space Poppers' },
                 { title: 'Smoothie Bar Pricing', src: '/menus/smoothie-bar-sheet.jpg', autoLink: true, brandName: 'Smoothie Bar' },

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { getSales, updateSaleStatus, updateSale } from '../../services/firestoreService';
+import SampleRequests from '../../components/SampleRequests';
 
 export default function BrandOrders() {
     const { brandUser } = useBrandAuth();
@@ -44,7 +45,8 @@ export default function BrandOrders() {
                         total: total,
                         status: sale.status || 'pending',
                         orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
-                        deliveryDate: sale.deliveryDate || null
+                        deliveryDate: sale.deliveryDate || null,
+                        representative: sale.representativeName || sale.userName || 'Unassigned'
                     };
                 });
 
@@ -203,6 +205,7 @@ export default function BrandOrders() {
                                             </span>
                                         </div>
                                         <p className="text-sm text-slate-500">{order.dispensary} • {order.contact}</p>
+                                        <p className="text-[10px] font-bold text-brand-600 uppercase tracking-widest mt-1">Rep: {order.representative}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">

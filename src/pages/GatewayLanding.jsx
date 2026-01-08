@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Package, Shield, Sparkles } from 'lucide-react';
+import { Users, Package, Shield, Sparkles, Store } from 'lucide-react';
 
 // Import main logo
 import logoMain from '../assets/images/logo-main.png';
@@ -18,16 +18,15 @@ import smoothieBar from '../assets/images/smoothie-bar.png';
 import flxExtracts from '../assets/images/flx-extracts.png';
 
 const partnerLogos = [
-    { src: partner1, name: 'Wanders New York' },
     { src: partner5, name: 'Honey King' },
     { src: partner2, name: 'Space Poppers' },
-    { src: partner4, name: 'Budcracker Blvd' }, // Primary
+    { src: partner4, name: 'Budcracker Blvd' }, // Placeholder licenses for brands (Wanders removed)
     { src: partner3, name: 'Canna Dots' },
     { src: waferz, name: 'Waferz' },
     { src: partner6, name: 'Honey King Lion' },
     { src: smoothieBar, name: 'Smoothie Bar' },
     { src: flxExtracts, name: 'FLX Extracts' },
-    { src: partner7, name: 'Budcracker NYC' },  // Secondary
+    { src: partner7, name: 'Budcracker NYC' },
 ];
 
 // SVG Component for a simplified Cannabis Leaf
@@ -61,6 +60,15 @@ export default function GatewayLanding() {
             color: 'from-amber-500 to-orange-600',
             path: '/brand/login',
             glow: 'shadow-amber-500/50'
+        },
+        {
+            id: 'dispensary',
+            title: 'Dispensaries',
+            description: 'Browse products & place orders',
+            icon: Store,
+            color: 'from-purple-500 to-indigo-600',
+            path: '/dispensary/verify',
+            glow: 'shadow-purple-500/50'
         },
         {
             id: 'admin',
@@ -194,7 +202,7 @@ export default function GatewayLanding() {
                         Select Portal
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
                         {portalCards.map((card, index) => (
                             <motion.button
                                 key={card.id}

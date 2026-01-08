@@ -33,8 +33,27 @@ export default function BrandOversight() {
                     const brandMetric = await calculateBrandMetrics(brand.brandId, brand.brandName);
                     metrics[brand.brandId] = {
                         ...brand,
-                        ...brandMetric
+                        ...brandMetric,
+                        // Add fetching of pending samples here if we want it real-time, 
+                        // but for oversight we might just want to know if there ARE any.
+                        // We can fetch it client side for each brand row or do a bulk fetch.
+                        // For prototype, let's fetch it here.
+                        pendingSamples: 0 // Will populate below
                     };
+
+                    // Quick fetch for pending samples per brand
+                    // Optimization: In real app, this should be an aggregation query or cloud function counter on the brand doc.
+                    const { collection, query, where, getCountFromServer } = await import('firebase/firestore');
+                    const { db } = await import('../firebase');
+                    try {
+                        const q = query(
+                            collection(db, 'sample_requests'),
+                            where('requestedBrands', 'array-contains', brand.brandName),
+                            where('status', '==', 'Pending')
+                        );
+                        const snap = await getCountFromServer(q);
+                        metrics[brand.brandId].pendingSamples = snap.data().count;
+                    } catch (e) { console.warn('Failed to fetch sample count', e) }
                 }
                 setBrandMetrics(metrics);
             } catch (error) {
@@ -152,11 +171,19 @@ export default function BrandOversight() {
                                         <p className="text-xs text-emerald-600 mb-1">Orders</p>
                                         <p className="text-lg font-bold text-emerald-700">
                                             {brand.orderCount}
-                                            {brand.pendingOrders > 0 && (
-                                                <span className="text-sm font-normal text-slate-500"> ({brand.pendingOrders} pending)</span>
-                                            )}
                                         </p>
                                     </div>
+
+                                    {/* Pending Samples Badge - New */}
+                                    {brand.pendingSamples > 0 && (
+                                        <div className="bg-purple-100 p-3 rounded-lg border border-purple-200">
+                                            <p className="text-xs text-purple-700 mb-1 font-bold uppercase">Sample Requests</p>
+                                            <p className="text-lg font-black text-purple-800 flex items-center gap-2">
+                                                {brand.pendingSamples}
+                                                <span className="text-[10px] font-medium bg-purple-200 px-1.5 py-0.5 rounded text-purple-800">PENDING</span>
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
     Package, ShoppingCart, DollarSign,
     TrendingUp, AlertCircle, CheckCircle, Clock,
-    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus
+    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus, Gift, ArrowRight
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -23,7 +23,8 @@ export default function BrandDashboard() {
         commissionOwed: 0,
         activationCosts: 0,
         orderCount: 0,
-        pendingOrders: 0
+        pendingOrders: 0,
+        pendingSampleRequests: 0 // New field
     });
     const [brandLeads, setBrandLeads] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,7 +46,21 @@ export default function BrandDashboard() {
                     getBrandLeads(brandUser.brandId)
                 ]);
 
-                setFinancials(metrics);
+                // Fetch sample requests count manually for now (or integrate into metrics service later)
+                // Assuming we have a collection 'sample_requests'
+                const { collection, query, where, getCountFromServer } = await import('firebase/firestore');
+                const { db } = await import('../../firebase');
+                const qSamples = query(
+                    collection(db, 'sample_requests'),
+                    // Check against brandName directly, but also check if the brand name might have an exclamation mark in the request
+                    // Ideally we should store brand IDs in requests, but for now we try both common variations.
+                    where('requestedBrands', 'array-contains-any', [brandUser.brandName, `${brandUser.brandName}!`, brandUser.brandName.replace('!', '')]),
+                    where('status', '==', 'Pending')
+                );
+                const snapshot = await getCountFromServer(qSamples);
+                const pendingSamples = snapshot.data().count;
+
+                setFinancials({ ...metrics, pendingSampleRequests: pendingSamples });
                 setBrandLeads(leads);
             } catch (error) {
                 console.error("Failed to load brand dashboard data", error);
@@ -97,6 +112,26 @@ export default function BrandDashboard() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Pending Sample Requests - HIGH VISIBILITY */}
+                {financials.pendingSampleRequests > 0 && (
+                    <Link to="/brand/orders?tab=samples" className="col-span-1 md:col-span-2 lg:col-span-4 bg-purple-600 rounded-xl p-6 text-white shadow-xl shadow-purple-200 hover:bg-purple-700 transition-all flex items-center justify-between group">
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                <Gift size={32} className="text-white" />
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold text-purple-100 uppercase tracking-wider mb-1">Action Required</p>
+                                <h3 className="text-3xl font-black text-white leading-none">
+                                    {financials.pendingSampleRequests} New Request{financials.pendingSampleRequests !== 1 && 's'}
+                                </h3>
+                                <p className="text-purple-100 mt-1">Dispensaries are waiting for samples!</p>
+                            </div>
+                        </div>
+                        <div className="bg-white text-purple-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 group-hover:translate-x-1 transition-transform">
+                            View Requests <ArrowRight size={20} />
+                        </div>
+                    </Link>
+                )}
                 {/* Revenue */}
                 <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
@@ -172,7 +207,7 @@ export default function BrandDashboard() {
                     <p className="text-sm text-slate-500">Top Selling Product</p>
                 </div>
 
-                {/* GreenTruth Owed (5% Commission) */}
+                {/* GreenTruth Owed (5% Commission) - Set to $0 */}
                 <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm relative overflow-hidden group hover:border-red-200 transition-all">
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <PieChart size={64} className="text-red-600" />
@@ -188,7 +223,7 @@ export default function BrandDashboard() {
                             <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">Paid Quarterly</span>
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800 relative z-10">{formatCurrency(financials.commissionOwed)}</p>
+                    <p className="text-2xl font-bold text-slate-800 relative z-10">$0.00</p>
                     <div className="flex items-center gap-1 mt-1">
                         <p className="text-sm text-slate-500 relative z-10">Owed to GreenTruth</p>
                         <div className="group/tip relative">

@@ -221,6 +221,8 @@ export default function LogSale() {
                 commissionEarned: commission,
                 userId: currentUser?.uid || 'test-user-123',
                 userName: currentUser?.displayName || currentUser?.email || 'Unknown User',
+                representativeId: currentUser?.uid || 'test-user-123',
+                representativeName: currentUser?.displayName || currentUser?.email || 'Unknown User',
                 activeBrands: selectedBrandIds.map(id => {
                     const b = PRODUCT_CATALOG.find(cat => cat.id === id);
                     return b ? b.name : null;
@@ -362,6 +364,7 @@ export default function LogSale() {
                                 onChange={(e) => setBasicInfo({ ...basicInfo, paymentTerms: e.target.value })}
                             >
                                 <option value="COD">COD (Cash on Delivery)</option>
+                                <option value="Net 14">Net 14</option>
                                 <option value="Net 30">Net 30</option>
                             </select>
                         </div>
@@ -457,6 +460,11 @@ export default function LogSale() {
                                         if (isSelected) {
                                             setSelectedBrandIds(prev => prev.filter(id => id !== brand.id));
                                         } else {
+                                            // Restricted Payment Logic: Space Poppers only COD/Net 14
+                                            if (brand.id === 'space-poppers' && basicInfo.paymentTerms === 'Net 30') {
+                                                setBasicInfo(prev => ({ ...prev, paymentTerms: 'COD' }));
+                                                showNotification("Space Poppers! is restricted to COD or Net 14 only.", 'warning');
+                                            }
                                             setSelectedBrandIds(prev => [...prev, brand.id]);
                                         }
                                     }}

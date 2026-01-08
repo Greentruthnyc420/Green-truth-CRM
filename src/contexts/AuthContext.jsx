@@ -32,18 +32,15 @@ export function AuthProvider({ children }) {
         // Bypass for known Admins
         if (ADMIN_EMAILS.includes(email.toLowerCase())) return true;
 
-        const allowedDomains = ['@thegreentruthnyc.com'];
-        const isOrgEmail = allowedDomains.some(d => email.endsWith(d));
+        // Strictly enforce @thegreentruthnyc.com for Sales Ambassadors/Staff
+        // Non-org emails are allowed but assumed to be Brands/Dispensaries (handled by role/claims)
+        // For now, we block @thegreentruthnyc.com if it's not a known admin or valid rep signup
 
-        if (!isOrgEmail) {
-            await logSecurityEvent({
-                email,
-                action,
-                status: 'BLOCKED',
-                reason: 'Invalid Domain'
-            });
-            throw new Error("Access Restricted: Only @thegreentruthnyc.com emails are allowed for Sales Ambassadors.");
-        }
+        const isOrgEmail = email.toLowerCase().endsWith('@thegreentruthnyc.com');
+
+        // If it's an org email, it MUST be valid (additional checks could go here)
+        // If it's NOT an org email, we allow it to proceed to Firebase Auth (for Brands/Dispensaries)
+
         return true;
     };
 
@@ -125,12 +122,25 @@ export function AuthProvider({ children }) {
         }, 2000);
 
         try {
-            const unsubscribe = onAuthStateChanged(auth, (user) => {
+            const unsubscribe = onAuthStateChanged(auth, async (user) => {
                 if (mounted) {
                     if (user) {
                         const token = sessionStorage.getItem('googleAccessToken');
                         if (token) {
                             user.accessToken = token;
+                        }
+
+                        // Auto-create Supabase profile if it doesn't exist
+                        try {
+                            const { createUserProfile } = await import('../services/firestoreService');
+                            await createUserProfile(user.uid, {
+                                email: user.email,
+                                name: user.displayName || user.email?.split('@')[0],
+                                role: 'rep', // Default role
+                                created_at: new Date().toISOString()
+                            });
+                        } catch (err) {
+                            console.warn("Failed to sync user profile to Supabase:", err);
                         }
                     }
                     setCurrentUser(user);

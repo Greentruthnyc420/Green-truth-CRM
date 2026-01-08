@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 // BrandLoginGate removed
 
 // Import logos (matching Gateway imports)
-import partner1 from '../../assets/images/partner-1.png'; // Wanders
+// Wanders removed - partner1 import deleted
 import partner2 from '../../assets/images/partner-2.png'; // Space Poppers
 import partner3 from '../../assets/images/partner-3.jpg'; // Canna Dots
 import partner4 from '../../assets/images/partner-4.png'; // Budcracker
@@ -19,7 +19,6 @@ import flxExtracts from '../../assets/images/flx-extracts.png';
 
 // Map brand IDs to logos
 const BRAND_LOGOS = {
-    'wanders': partner1,
     'honey-king': partner5,
     'bud-cracker': partner4,
     'canna-dots': partner3,
@@ -98,9 +97,8 @@ export default function BrandLogin() {
         }
     };
 
-    // Brand Code Mapping (1-8)
+    // Brand Code Mapping (2-8) - Wanders removed
     const BRAND_CODE_MAP = {
-        '1': 'wanders',
         '2': 'honey-king',
         '3': 'bud-cracker',
         '4': 'space-poppers',
@@ -113,7 +111,7 @@ export default function BrandLogin() {
     const handleDevLogin = async (brandIdOverride = null) => {
         setLoading(true);
         try {
-            const bId = brandIdOverride || selectedBrand?.brandId || 'wanders';
+            const bId = brandIdOverride || selectedBrand?.brandId || 'honey-king';
             await devBrandLogin(bId);
             navigate(from, { replace: true });
         } catch (err) {

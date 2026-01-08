@@ -32,8 +32,14 @@ import AdminPrivateRoute from './components/AdminPrivateRoute';
 // Wait, I should create AdminLayout first.
 // I'll proceed with adding imports assuming I will create AdminLayout immediately after or use a placeholder.
 // I'll use a placeholder import for now.
-import AdminLayout from './components/AdminLayout'; // New Layout
-import NewAdminDashboard from './pages/admin/Dashboard'; // New Dashboard
+import AdminLayout from './components/admin/AdminLayout';
+import NewAdminDashboard from './pages/admin/Dashboard'; // Is this still needed? Yes, for the main overview
+import AdminFinancials from './components/admin/views/AdminFinancials';
+import AdminTerritory from './components/admin/views/AdminTerritory';
+import AdminTeam from './components/admin/views/AdminTeam';
+import AdminGrowth from './components/admin/views/AdminGrowth';
+import LegacyAdminDashboard from './pages/AdminDashboard'; // Restored as Legacy Console
+import AdminWorkflow from './components/admin/views/AdminWorkflow';
 
 // Brand Portal Imports
 import BrandLogin from './pages/brand/BrandLogin';
@@ -48,10 +54,20 @@ import BrandMap from './pages/brand/BrandMap';
 import BrandNewLead from './pages/brand/BrandNewLead';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
+// Dispensary Portal Imports
+import DispensaryVerification from './pages/dispensary/DispensaryVerification';
+import DispensaryLogin from './pages/dispensary/DispensaryLogin';
+import DispensaryRegistration from './pages/dispensary/DispensaryRegistration';
+import DispensaryLayout from './components/DispensaryLayout';
+import DispensaryDashboard from './pages/dispensary/DispensaryDashboard';
+import DispensaryPrivateRoute from './components/DispensaryPrivateRoute';
+import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
+
 function App() {
   return (
     <NotificationProvider>
       <Routes>
+
         {/* Gateway Landing Page */}
         <Route path="/" element={<GatewayLanding />} />
 
@@ -61,6 +77,12 @@ function App() {
         <Route element={<AdminPrivateRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<NewAdminDashboard />} />
+            <Route path="workflow" element={<AdminWorkflow />} />
+            <Route path="financials" element={<AdminFinancials />} />
+            <Route path="territory" element={<AdminTerritory />} />
+            <Route path="team" element={<AdminTeam />} />
+            <Route path="pipeline" element={<AdminGrowth />} /> {/* Reusing AdminGrowth component for Pipeline view */}
+            <Route path="growth" element={<LegacyAdminDashboard />} /> {/* Legacy Console is now the main Growth view */}
           </Route>
         </Route>
 
@@ -104,6 +126,18 @@ function App() {
             <Route path="menu" element={<BrandMenuEditor />} />
             <Route path="map" element={<BrandMap />} />
             <Route path="new-lead" element={<BrandNewLead />} />
+          </Route>
+        </Route>
+
+        {/* Dispensary Portal */}
+        <Route path="/dispensary/verify" element={<DispensaryVerification />} />
+        <Route path="/dispensary/login" element={<DispensaryLogin />} />
+        <Route path="/dispensary/register" element={<DispensaryRegistration />} />
+
+        <Route element={<DispensaryPrivateRoute />}>
+          <Route path="/dispensary" element={<DispensaryLayout />}>
+            <Route index element={<DispensaryDashboard />} />
+            <Route path="marketplace" element={<DispensaryMarketplace />} />
           </Route>
         </Route>
       </Routes>

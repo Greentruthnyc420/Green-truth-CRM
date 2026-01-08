@@ -28,6 +28,7 @@ export default function NewLead() {
         licenseNumber: '',
         meetingDate: '',
         samplesRequested: [],
+        priority: 'Normal', // Default priority
         contacts: [
             { name: '', role: 'Manager', email: '', phone: '' }
         ]
@@ -57,7 +58,6 @@ export default function NewLead() {
 
     const availableBrands = [
         '🍯 Honey King',
-        'Wanders New York',
         'Bud Cracker Boulevard',
         'Canna Dots',
         'Space Poppers!',
@@ -382,7 +382,7 @@ export default function NewLead() {
                         )}
                     </div>
 
-                    <div>
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Date</label>
                         <div className="relative">
                             <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -395,41 +395,61 @@ export default function NewLead() {
                             />
                         </div>
                     </div>
-
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
-                    <h2 className="font-semibold text-slate-800">Samples Requested</h2>
-                    <div className="grid grid-cols-2 gap-3">
-                        {availableBrands.map(brand => (
-                            <label
-                                key={brand}
-                                className={`
-                  flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
-                  ${(formData.samplesRequested || []).includes(brand)
-                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                                        : 'border-slate-200 hover:bg-slate-50'}
-                `}
-                            >
-                                <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300"
-                                    checked={(formData.samplesRequested || []).includes(brand)}
-                                    onChange={() => handleBrandToggle(brand)}
-                                />
-                                <span className="font-medium text-sm">{brand}</span>
-                            </label>
-                        ))}
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                        <h2 className="font-semibold text-slate-800">Lead Priority</h2>
+                        <div className="grid grid-cols-3 gap-3">
+                            {['Low', 'Normal', 'High'].map(p => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, priority: p })}
+                                    className={`py-2 px-4 rounded-lg border font-medium transition-all ${formData.priority === p
+                                        ? (p === 'High' ? 'bg-red-50 border-red-200 text-red-600' :
+                                            p === 'Normal' ? 'bg-blue-50 border-blue-200 text-blue-600' :
+                                                'bg-slate-50 border-slate-200 text-slate-600')
+                                        : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                    {loading ? 'Adding...' : 'Add Lead'}
-                </button>
+                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                        <h2 className="font-semibold text-slate-800">Samples Requested</h2>
+                        <div className="grid grid-cols-2 gap-3">
+                            {availableBrands.map(brand => (
+                                <label
+                                    key={brand}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${(formData.samplesRequested || []).includes(brand)
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                        : 'border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300"
+                                        checked={(formData.samplesRequested || []).includes(brand)}
+                                        onChange={() => handleBrandToggle(brand)}
+                                    />
+                                    <span className="font-medium text-sm">{brand}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Adding...' : 'Add Lead'}
+                    </button>
+                </div>
             </form>
         </div>
     );

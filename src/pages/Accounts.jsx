@@ -150,6 +150,7 @@ export default function Accounts() {
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Store Name</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Priority</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner (Rep)</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Age</th>
@@ -170,6 +171,15 @@ export default function Accounts() {
                                         >
                                             <td className="px-6 py-4 font-bold text-slate-800">
                                                 {acc.dispensaryName}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {acc.priority === 'High' ? (
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200 uppercase tracking-tighter">High</span>
+                                                ) : acc.priority === 'Low' ? (
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-tighter">Low</span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-500 border border-blue-100 uppercase tracking-tighter">Normal</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 {acc.status === 'Sold' ? (
@@ -279,6 +289,19 @@ export default function Accounts() {
                                         <option value="New">New Lead</option>
                                         <option value="Sold">Sold Client</option>
                                         <option value="Lost">Lost / Archive</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
+                                    <select
+                                        className="w-full p-3 border border-slate-200 rounded-xl focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                        value={selectedAccount?.priority || 'Normal'}
+                                        onChange={e => setSelectedAccount({ ...selectedAccount, priority: e.target.value })}
+                                    >
+                                        <option value="High">High</option>
+                                        <option value="Normal">Normal</option>
+                                        <option value="Low">Low</option>
                                     </select>
                                 </div>
 

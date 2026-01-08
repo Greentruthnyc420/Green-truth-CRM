@@ -232,7 +232,7 @@ export default function Login() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    devLogin('rep@test.com');
+                                    devLogin('rep@thegreentruthnyc.com');
                                     navigate('/app');
                                 }}
                                 className="w-full bg-slate-100 text-slate-500 border border-slate-200 py-3 rounded-xl font-medium text-sm hover:bg-slate-200 hover:text-slate-700 transition-all flex items-center justify-center gap-2"
