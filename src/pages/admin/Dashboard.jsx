@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DollarSign, Users, Award, TrendingUp, Store } from 'lucide-react';
+import { DollarSign, Users, Award, TrendingUp, Store, Globe, CheckCircle, AlertTriangle, Zap } from 'lucide-react';
 import AmbassadorOverview from '../../components/admin/AmbassadorOverview';
-import { useAuth } from '../../contexts/AuthContext';
-import { getSales, getLeads } from '../../services/firestoreService';
+import { getSales } from '../../services/firestoreService';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
+import { db } from '../../firebase';
+import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 
 export default function Dashboard() {
-    const { currentUser } = useAuth();
     const [stats, setStats] = useState({
         totalRevenue: 0,
         totalSalesCount: 0,
@@ -15,11 +15,16 @@ export default function Dashboard() {
         revenueData: [],
         productMix: []
     });
+    const [integrationStats, setIntegrationStats] = useState({
+        connectedBrands: 0,
+        totalSyncs: 0,
+        failedSyncs: 0,
+        syncsLast24h: 0,
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function fetchAnalytics() {
-            setLoading(true);
             try {
                 const sales = await getSales();
 
@@ -32,7 +37,7 @@ export default function Dashboard() {
                     let d;
                     try {
                         d = (s.date?.toDate ? s.date.toDate() : new Date(s.date)).toLocaleDateString();
-                    } catch (e) {
+                    } catch {
                         d = 'Invalid';
                     }
                     if (d !== 'Invalid') {
@@ -80,11 +85,41 @@ export default function Dashboard() {
 
             } catch (err) {
                 console.error("Failed to load analytics", err);
-            } finally {
-                setLoading(false);
             }
         }
+
+        async function fetchIntegrationStats() {
+            try {
+                const integrationsSnapshot = await getDocs(collection(db, 'brand_integrations'));
+                const connectedBrands = integrationsSnapshot.docs.filter(doc => doc.data().mondayApiToken).length;
+
+                const logsCollection = collection(db, 'brand_sync_logs');
+                const syncLogsSnapshot = await getDocs(logsCollection);
+                const totalSyncs = syncLogsSnapshot.size;
+
+                const failedQuery = query(logsCollection, where('success', '==', false));
+                const failedSnapshot = await getDocs(failedQuery);
+                const failedSyncs = failedSnapshot.size;
+
+                const oneDayAgo = Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000);
+                const recentQuery = query(logsCollection, where('timestamp', '>', oneDayAgo));
+                const recentSnapshot = await getDocs(recentQuery);
+                const syncsLast24h = recentSnapshot.size;
+
+                setIntegrationStats({
+                    connectedBrands,
+                    totalSyncs,
+                    failedSyncs,
+                    syncsLast24h,
+                });
+
+            } catch (err) {
+                console.error("Failed to load integration stats", err);
+            }
+        }
+
         fetchAnalytics();
+        fetchIntegrationStats();
     }, []);
 
     // Custom Tooltip for Charts
@@ -186,6 +221,49 @@ export default function Dashboard() {
                                 <Legend verticalAlign="bottom" height={36} />
                             </PieChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Integration Health Section */}
+            <div className="mt-8">
+                <h2 className="text-xl font-bold text-slate-800 mb-4">Monday.com Integration Health</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-sky-100 text-sky-600 rounded-lg">
+                                <Globe size={20} />
+                            </div>
+                            <h3 className="text-slate-500 font-medium text-sm">Connected Brands</h3>
+                        </div>
+                        <p className="text-3xl font-black text-slate-800">{integrationStats.connectedBrands}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                                <CheckCircle size={20} />
+                            </div>
+                            <h3 className="text-slate-500 font-medium text-sm">Total Syncs</h3>
+                        </div>
+                        <p className="text-3xl font-black text-slate-800">{integrationStats.totalSyncs.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <h3 className="text-slate-500 font-medium text-sm">Failed Syncs</h3>
+                        </div>
+                        <p className="text-3xl font-black text-slate-800">{integrationStats.failedSyncs.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg">
+                                <Zap size={20} />
+                            </div>
+                            <h3 className="text-slate-500 font-medium text-sm">Activity (24h)</h3>
+                        </div>
+                        <p className="text-3xl font-black text-slate-800">{integrationStats.syncsLast24h.toLocaleString()}</p>
                     </div>
                 </div>
             </div>

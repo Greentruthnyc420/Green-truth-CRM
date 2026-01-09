@@ -105,6 +105,44 @@ async function getBrandMondayToken(brandId) {
     return data.mondayApiToken;
 }
 
+/**
+ * Helper: Log a sync event to Firestore
+ * @param {string} brandId - The brand's ID
+ * @param {string} action - e.g., 'syncLead', 'syncOrder'
+ * @param {boolean} success - Whether the sync was successful
+ * @param {object} details - Additional details (e.g., leadId, orderId)
+ * @param {string|null} error - Error message if failed
+ */
+async function logSyncEvent(brandId, action, success, details, error = null) {
+    try {
+        const timestamp = admin.firestore.FieldValue.serverTimestamp();
+        const logData = {
+            brandId,
+            action,
+            success,
+            details,
+            error,
+            timestamp,
+        };
+        await db.collection('brand_sync_logs').add(logData);
+
+        const integrationRef = db.collection('brand_integrations').doc(brandId);
+        await integrationRef.update({
+            lastSync: {
+                timestamp,
+                success,
+                action,
+            }
+        });
+    } catch (logError) {
+        functions.logger.error('Failed to log sync event', {
+            brandId,
+            action,
+            error: logError.message
+        });
+    }
+}
+
 // ============================================================
 // FUNCTION: Test Monday.com Connection
 // ============================================================
@@ -204,12 +242,15 @@ exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
             });
         }
 
+        await logSyncEvent(brandId, 'syncInvoice', true, { invoiceId: invoice.id, mondayItemId: result.data.create_item.id });
+
         return {
             success: true,
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
         functions.logger.error('syncInvoiceToMonday error:', error);
+        await logSyncEvent(brandId, 'syncInvoice', false, { invoiceId: invoice.id }, error.message);
         return {
             success: false,
             error: error.message
@@ -317,12 +358,15 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
             });
         }
 
+        await logSyncEvent(brandId, 'syncLead', true, { leadId: lead.id, mondayItemId: result.data.create_item.id });
+
         return {
             success: true,
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
         functions.logger.error('syncLeadToMonday error:', error);
+        await logSyncEvent(brandId, 'syncLead', false, { leadId: lead.id }, error.message);
         return {
             success: false,
             error: error.message
@@ -387,17 +431,44 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
             });
         }
 
+        await logSyncEvent(brandId, 'syncOrder', true, { orderId: order.id, mondayItemId: result.data.create_item.id });
+
         return {
             success: true,
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
         functions.logger.error('syncOrderToMonday error:', error);
+        await logSyncEvent(brandId, 'syncOrder', false, { orderId: order.id }, error.message);
         return {
             success: false,
             error: error.message
         };
     }
+});
+
+// ============================================================
+// SCHEDULED FUNCTION: Trim Sync Logs
+// ============================================================
+exports.trimSyncLogs = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+    const integrationsSnapshot = await db.collection('brand_integrations').get();
+    for (const doc of integrationsSnapshot.docs) {
+        const brandId = doc.id;
+        const logsQuery = db.collection('brand_sync_logs').where('brandId', '==', brandId);
+        const snapshot = await logsQuery.count().get();
+        const count = snapshot.data().count;
+
+        if (count > 100) {
+            const logsToDeleteQuery = logsQuery.orderBy('timestamp', 'asc').limit(count - 100);
+            const logsToDeleteSnapshot = await logsToDeleteQuery.get();
+            const batch = db.batch();
+            logsToDeleteSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        }
+    }
+    return null;
 });
 
 // ============================================================
