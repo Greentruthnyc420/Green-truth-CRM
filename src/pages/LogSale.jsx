@@ -299,7 +299,7 @@ export default function LogSale() {
                                     <optgroup label="My Leads">
                                         {availableStores.myLeads.map(lead => {
                                             // Calculate countdown
-                                            const createdAt = lead.createdAt ? new Date(lead.createdAt.toDate()) : new Date();
+                                            const createdAt = lead.createdAt ? new Date(lead.createdAt) : new Date();
                                             const now = new Date();
                                             const diffTime = Math.abs(now - createdAt);
                                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -728,7 +728,7 @@ export default function LogSale() {
     };
 
     return (
-        <div className="max-w-xl mx-auto pb-24">
+        <div className="max-w-xl mx-auto pb-24 px-4 sm:px-0">
             {/* Header / Steps Indicator */}
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-2">

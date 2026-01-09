@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllUsers, getAllShifts, getSales } from '../../../services/firestoreService';
-import { Users, Trophy, TrendingUp, Clock, Award } from 'lucide-react';
+import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff } from 'lucide-react';
+import { db } from '../../../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function AdminTeam() {
     const [teamMembers, setTeamMembers] = useState([]);
@@ -12,14 +14,17 @@ export default function AdminTeam() {
             setLoading(true);
             try {
                 // Fetch all data for computation
-                const [users, shifts, sales] = await Promise.all([
+                const [users, shifts, sales, integrationsSnapshot] = await Promise.all([
                     getAllUsers(),
                     getAllShifts(),
-                    getSales()
+                    getSales(),
+                    getDocs(collection(db, 'brand_integrations'))
                 ]);
 
-                // Filter for "Rep" roles (assuming default or explicit role)
-                // If role field isn't strict, we show all users for now.
+                const integrationsData = {};
+                integrationsSnapshot.forEach(doc => {
+                    integrationsData[doc.id] = doc.data();
+                });
 
                 const memberStats = users.map(user => {
                     const userShifts = shifts.filter(s => s.userId === user.id);
@@ -28,13 +33,19 @@ export default function AdminTeam() {
                     const totalHours = userShifts.reduce((sum, s) => sum + (parseFloat(s.hoursWorked) || 0), 0);
                     const totalSalesAmount = userSales.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
                     const totalCommission = userSales.reduce((sum, s) => sum + (parseFloat(s.commissionEarned) || 0), 0);
+                    const integration = integrationsData[user.id];
 
                     return {
                         ...user,
                         totalHours,
                         totalSalesAmount,
                         totalCommission,
-                        saleCount: userSales.length
+                        saleCount: userSales.length,
+                        integration: {
+                            connected: !!integration?.mondayApiToken,
+                            lastSyncTimestamp: integration?.lastSync?.timestamp?.toDate(),
+                            hasErrors: integration?.lastSync ? !integration.lastSync.success : false,
+                        }
                     };
                 });
 
@@ -103,6 +114,7 @@ export default function AdminTeam() {
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-100">
                                         <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Ambassador</th>
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Monday.com Status</th>
                                         <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Total Sales</th>
                                         <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Hours Worked</th>
                                         <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Commission</th>
@@ -127,6 +139,25 @@ export default function AdminTeam() {
                                                         </span>
                                                     )}
                                                 </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                {member.integration.connected ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle size={16} className="text-emerald-500" />
+                                                        <div>
+                                                            <span className="font-bold text-sm text-emerald-600">Connected</span>
+                                                            <p className="text-xs text-slate-400">
+                                                                Last sync: {member.integration.lastSyncTimestamp ? member.integration.lastSyncTimestamp.toLocaleDateString() : 'N/A'}
+                                                                {member.integration.hasErrors && <AlertTriangle size={12} className="inline ml-1 text-red-500" />}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-slate-400">
+                                                        <PowerOff size={16} />
+                                                        <span className="text-sm font-medium">Not Connected</span>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="py-4 px-6 text-right font-medium text-slate-700">
                                                 ${member.totalSalesAmount.toLocaleString()}

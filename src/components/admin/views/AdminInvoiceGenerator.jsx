@@ -4,6 +4,8 @@ import {
     CheckCircle, Clock, Send, Printer, Eye, RefreshCw
 } from 'lucide-react';
 import { AVAILABLE_BRANDS } from '../../../contexts/BrandAuthContext';
+import { db } from '../../../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 // Company Info
 const COMPANY_INFO = {
@@ -22,13 +24,45 @@ export default function AdminInvoiceGenerator() {
         end: new Date().toISOString().split('T')[0] // Today
     });
     const [loading, setLoading] = useState(false);
+    const [sendLoading, setSendLoading] = useState(false);
     const [invoiceData, setInvoiceData] = useState(null);
     const [showPreview, setShowPreview] = useState(false);
+    const [brandUsers, setBrandUsers] = useState([]);
+    const [selectedRecipient, setSelectedRecipient] = useState('');
 
     // Get brand list (exclude processors for now)
     const brandList = Object.entries(AVAILABLE_BRANDS)
         .filter(([_, b]) => !b.isProcessor)
         .map(([id, b]) => ({ id, ...b }));
+
+    // Fetch brand users when brand changes
+    useEffect(() => {
+        const fetchBrandUsers = async () => {
+            if (!selectedBrand) {
+                setBrandUsers([]);
+                return;
+            }
+            try {
+                const q = query(
+                    collection(db, 'brand_users'),
+                    where('brandId', '==', selectedBrand)
+                );
+                const querySnapshot = await getDocs(q);
+                const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setBrandUsers(users);
+
+                // Pre-select first user if available
+                if (users.length > 0) {
+                    setSelectedRecipient(users[0].email);
+                } else {
+                    setSelectedRecipient('');
+                }
+            } catch (error) {
+                console.error('Error fetching brand users:', error);
+            }
+        };
+        fetchBrandUsers();
+    }, [selectedBrand]);
 
     // Generate invoice data
     const generateInvoice = async () => {
@@ -71,7 +105,7 @@ export default function AdminInvoiceGenerator() {
                 invoiceNumber,
                 brand: brand.brandName,
                 brandId: selectedBrand,
-                brandEmail: `billing@${selectedBrand.replace('-', '')}.com`, // Placeholder
+                brandEmail: selectedRecipient || `billing@${selectedBrand.replace('-', '')}.com`,
                 type: invoiceType,
                 dateRange,
                 issueDate: new Date().toISOString().split('T')[0],
@@ -137,9 +171,28 @@ export default function AdminInvoiceGenerator() {
         printWindow.print();
     };
 
-    // Send email (placeholder)
-    const sendEmail = () => {
-        alert('📧 Email feature coming soon!\n\nThis will automatically send the invoice to the brand\'s billing email when email integration is connected.');
+    // Send email
+    const sendEmail = async () => {
+        if (!invoiceData) return;
+
+        setSendLoading(true);
+        try {
+            const { sendInvoiceEmail } = await import('../../../services/emailService');
+            const result = await sendInvoiceEmail(invoiceData, invoiceData.brandEmail);
+
+            if (result.success) {
+                if (result.mock) {
+                    alert(`ℹ️ Mock Delivery Success:\n\n${result.message}\n\nRecipient: ${invoiceData.brandEmail}`);
+                } else {
+                    alert(`✅ Invoice sent successfully to ${invoiceData.brandEmail}!`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to send email:', error);
+            alert(`❌ Failed to send email: ${error.message}`);
+        } finally {
+            setSendLoading(false);
+        }
     };
 
     return (
@@ -180,6 +233,27 @@ export default function AdminInvoiceGenerator() {
                         </select>
                     </div>
 
+                    {/* Recipient Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-2">Recipient Email</label>
+                        <select
+                            value={selectedRecipient}
+                            onChange={(e) => setSelectedRecipient(e.target.value)}
+                            disabled={!selectedBrand || brandUsers.length === 0}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white disabled:bg-slate-50 transition-all font-medium"
+                        >
+                            <option value="">
+                                {brandUsers.length === 0 ? 'No users found' : 'Select recipient...'}
+                            </option>
+                            {brandUsers.map(user => (
+                                <option key={user.id} value={user.email}>{user.email}</option>
+                            ))}
+                        </select>
+                        {!selectedRecipient && selectedBrand && brandUsers.length > 0 && (
+                            <p className="text-xs text-amber-600 mt-1 font-medium">Please select a recipient email</p>
+                        )}
+                    </div>
+
                     {/* Invoice Type */}
                     <div>
                         <label className="block text-sm font-medium text-slate-600 mb-2">Invoice Type</label>
@@ -217,7 +291,7 @@ export default function AdminInvoiceGenerator() {
                 {/* Generate Button */}
                 <button
                     onClick={generateInvoice}
-                    disabled={!selectedBrand || loading}
+                    disabled={!selectedBrand || !selectedRecipient || loading}
                     className="w-full md:w-auto px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {loading ? (
@@ -256,10 +330,15 @@ export default function AdminInvoiceGenerator() {
                             </button>
                             <button
                                 onClick={sendEmail}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                                disabled={sendLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium disabled:opacity-50"
                             >
-                                <Mail size={16} />
-                                Send Email
+                                {sendLoading ? (
+                                    <RefreshCw className="animate-spin" size={16} />
+                                ) : (
+                                    <Mail size={16} />
+                                )}
+                                {sendLoading ? 'Sending...' : 'Send Email'}
                             </button>
                         </div>
                     </div>

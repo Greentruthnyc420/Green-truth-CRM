@@ -11,6 +11,9 @@ import {
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 
+// Reserved System IDs
+export const INTERNAL_BRAND_ID = 'greentruth';
+
 // Available brands for signup - users select from dropdown and enter their REAL license
 // No fake license validation - license is stored as-is
 export const AVAILABLE_BRANDS = {
@@ -29,7 +32,8 @@ export const AVAILABLE_BRANDS = {
 export const BRAND_LICENSES = {
     ...Object.fromEntries(
         Object.entries(AVAILABLE_BRANDS).map(([id, brand]) => [id, brand])
-    )
+    ),
+    'greentruth': { brandId: 'greentruth', brandName: 'Green Truth NYC' }
 };
 
 // Users who manage multiple brands (email -> brandIds)
@@ -260,7 +264,7 @@ export function BrandAuthProvider({ children }) {
     }
 
     // Admin Backdoor: Impersonate a brand
-    function impersonateBrand(brandId) {
+    function impersonateBrand(brandId, returnUrl = null) {
         // Verify Admin via AuthContext
         const isAuthorized = authUser && ADMIN_EMAILS.includes(authUser.email?.toLowerCase());
 
@@ -281,7 +285,8 @@ export function BrandAuthProvider({ children }) {
             email: authUser.email, // Use admin email
             displayName: `👻 ${brandInfo.brandName} (Admin)`,
             uid: `ghost-${brandId}`,
-            isImpersonating: true
+            isImpersonating: true,
+            returnUrl: returnUrl // Store the URL to return to
         };
 
         setBrandUser(ghostUser);
@@ -305,8 +310,13 @@ export function BrandAuthProvider({ children }) {
     }
 
     async function logoutBrand() {
-        await auth.signOut();
-        setBrandUser(null);
+        try {
+            await auth.signOut();
+        } catch (err) {
+            console.error("Error during brand sign out:", err);
+        } finally {
+            setBrandUser(null);
+        }
     }
 
     const value = {

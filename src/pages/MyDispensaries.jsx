@@ -5,7 +5,7 @@ import { calculateRepCommission } from '../services/compensationService';
 import { awardOrderPoints } from '../services/pointsService';
 import { generateEmailDraft } from '../services/geminiService';
 import { initGmailAuth, requestGmailAccess, sendEmail as gmailSendEmail, hasGmailAccess } from '../services/gmailService';
-import { Store, Calendar, DollarSign, ArrowLeft, Mail, X, Loader, Phone, MessageCircle, ExternalLink, Send, CheckCircle } from 'lucide-react';
+import { Store, Calendar, DollarSign, ArrowLeft, Mail, X, Loader, Phone, MessageCircle, ExternalLink, Send, CheckCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 import confetti from 'canvas-confetti';
@@ -41,7 +41,8 @@ export default function MyDispensaries() {
         isSending: false,
         gmailConnected: false,
         sendSuccess: false,
-        sendError: ''
+        sendError: '',
+        showGmailGuide: false
     });
 
     const [markSoldModal, setMarkSoldModal] = useState({
@@ -204,14 +205,17 @@ export default function MyDispensaries() {
     const handleSendViaGmail = async () => {
         const { lead, subject, body } = emailModal;
 
+        // Check auth first
+        if (!hasGmailAccess()) {
+            setEmailModal(prev => ({ ...prev, showGmailGuide: true }));
+            return;
+        }
+
         setEmailModal(prev => ({ ...prev, isSending: true, sendError: '' }));
 
         try {
-            // Request Gmail access if not already connected
-            if (!hasGmailAccess()) {
-                await requestGmailAccess();
-                setEmailModal(prev => ({ ...prev, gmailConnected: true }));
-            }
+            // Already connected if we got here
+            // (The guide modal handles the initial connection now)
 
             // Send email via Gmail API
             await gmailSendEmail({
@@ -591,6 +595,78 @@ export default function MyDispensaries() {
 
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+            {/* Google "Unverified App" Guide Modal */}
+            {emailModal.showGmailGuide && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border-2 border-amber-400">
+                        <div className="bg-amber-50 p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-amber-100 rounded-full text-amber-600">
+                                    <AlertTriangle size={32} strokeWidth={2.5} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800 mb-1">One-Time Setup Required</h3>
+                                    <p className="text-slate-600 font-medium text-sm leading-relaxed">
+                                        Google will show a generic "Unverified App" warning because we haven't paid them for a brand verification yet.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600 shrink-0">1</span>
+                                    <p className="text-slate-700 text-sm font-medium">Click <strong className="text-slate-900">Advanced</strong> on the warning screen.</p>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600 shrink-0">2</span>
+                                    <p className="text-slate-700 text-sm font-medium">Click <strong className="text-slate-900">Go to Green Truth (unsafe)</strong> at the bottom.</p>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600 shrink-0">3</span>
+                                    <p className="text-slate-700 text-sm font-medium">Check the boxes and click <strong className="text-slate-900">Continue</strong>.</p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-blue-50 text-blue-800 text-xs font-bold rounded-xl flex items-center gap-2">
+                                <ShieldCheck size={16} />
+                                This is perfectly safe. It's just our internal app!
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setEmailModal(prev => ({ ...prev, showGmailGuide: false }))}
+                                    className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        setEmailModal(prev => ({ ...prev, showGmailGuide: false }));
+                                        // Proceed with auth
+                                        try {
+                                            await requestGmailAccess();
+                                            setEmailModal(prev => ({ ...prev, gmailConnected: true }));
+                                            // Optionally auto-send or let user click send again. 
+                                            // Let's toggle connected state so they see "Sent!" if we auto-send?
+                                            // Better to just let them click Send again or auto-retry?
+                                            // Original logic was inside handleSendViaGmail. 
+                                            // We'll just connect here. The user will be back on the modal with "Send" button.
+                                        } catch (e) {
+                                            console.error(e);
+                                            setEmailModal(prev => ({ ...prev, sendError: "Connection failed. Please try again." }));
+                                        }
+                                    }}
+                                    className="flex-1 py-3 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-200 hover:bg-amber-600 transition-transform active:scale-95"
+                                >
+                                    I Understand, Connect
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

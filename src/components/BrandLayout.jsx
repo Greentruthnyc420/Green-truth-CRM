@@ -13,8 +13,9 @@ export default function BrandLayout() {
     };
 
     const handleExitGhostMode = () => {
+        const returnUrl = brandUser?.returnUrl || '/app/admin';
         logoutBrand();
-        navigate('/app/admin');
+        navigate(returnUrl);
     };
 
     const isGhost = brandUser?.isImpersonating;
@@ -26,6 +27,10 @@ export default function BrandLayout() {
     // Unified Brand Logo Mapping - Wanders removed
     // Format: { brandId: { top: 'Path to large sidebar logo', icon: 'Path to small icon logo' } }
     const BRAND_ASSETS = {
+        'greentruth': {
+            top: '/logos/logo-main.png', // Use master logo for internal portal
+            icon: '/logos/logo-main.png'
+        },
         'space-poppers': {
             top: '/logos/space-poppers.png',
             icon: '/logos/space-poppers.png'

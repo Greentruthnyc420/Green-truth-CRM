@@ -58,9 +58,11 @@ export default function AdminLayout() {
     const location = useLocation();
 
     const handleLogout = async () => {
+        console.log("Logout button clicked");
         try {
             await logout();
-            navigate('/login');
+            console.log("Firebase signOut successful, navigating to admin login...");
+            navigate('/admin/login');
         } catch (error) {
             console.error("Failed to log out", error);
         }
@@ -75,6 +77,7 @@ export default function AdminLayout() {
         { path: '/admin/team', label: 'Team', icon: Users },
         { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch },
         { path: '/admin/growth', label: 'Growth', icon: TrendingUp },
+        { path: '/admin/integrations', label: 'Integrations', icon: GitBranch }, // Reusing GitBranch or similar for integrations
     ];
 
     return (

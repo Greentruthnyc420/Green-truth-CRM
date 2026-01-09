@@ -208,7 +208,7 @@ export default function NewLead() {
     };
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto pb-24 px-4 sm:px-0">
             <div className="mb-8 text-center">
                 <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4">
                     <User size={32} />
@@ -291,7 +291,7 @@ export default function NewLead() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {/* Role */}
                                         <div>
                                             <label className="block text-xs font-medium text-slate-500 mb-1">Role</label>
@@ -398,9 +398,9 @@ export default function NewLead() {
                 </div>
 
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4 mb-4">
                         <h2 className="font-semibold text-slate-800">Lead Priority</h2>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
                             {['Low', 'Normal', 'High'].map(p => (
                                 <button
                                     key={p}
@@ -421,7 +421,7 @@ export default function NewLead() {
 
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
                         <h2 className="font-semibold text-slate-800">Samples Requested</h2>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {availableBrands.map(brand => (
                                 <label
                                     key={brand}
@@ -450,7 +450,7 @@ export default function NewLead() {
                         {loading ? 'Adding...' : 'Add Lead'}
                     </button>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 }

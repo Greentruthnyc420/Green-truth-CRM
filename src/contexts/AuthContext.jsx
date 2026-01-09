@@ -81,9 +81,10 @@ export function AuthProvider({ children }) {
         }
     }
 
-    function logout() {
+    async function logout() {
         sessionStorage.removeItem('googleAccessToken');
-        return signOut(auth);
+        await signOut(auth);
+        setCurrentUser(null);
     }
 
     async function resetPassword(email) {

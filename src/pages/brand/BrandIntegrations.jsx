@@ -13,22 +13,23 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useBrandAuth } from '../../contexts/BrandAuthContext';
+import { useBrandAuth, AVAILABLE_BRANDS, INTERNAL_BRAND_ID } from '../../contexts/BrandAuthContext';
 import {
     Settings, Link2, Check, X, Loader, Eye, EyeOff,
-    ArrowLeft, Save, RefreshCw, ExternalLink, AlertTriangle
+    ArrowLeft, Save, RefreshCw, ExternalLink, AlertTriangle, ShieldCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
     testMondayConnection,
-    saveMondaySettings,
-    getMondayIntegrationStatus
+    saveMondaySettings
 } from '../../services/mondayService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import MondayOnboarding from '../../components/brand/MondayOnboarding';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function BrandIntegrations() {
-    const { brandUser } = useBrandAuth();
+    const { brandUser, impersonateBrand } = useBrandAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
@@ -44,8 +45,9 @@ export default function BrandIntegrations() {
 
     // Status State
     const [connectionStatus, setConnectionStatus] = useState(null); // null, 'success', 'error'
-    const [connectedUser, setConnectedUser] = useState(null);
+
     const [lastSaved, setLastSaved] = useState(null);
+    const [showOnboarding, setShowOnboarding] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [webhookEvents, setWebhookEvents] = useState([]);
@@ -53,7 +55,10 @@ export default function BrandIntegrations() {
     // Load existing settings
     useEffect(() => {
         async function loadSettings() {
-            if (!brandUser?.brandId) return;
+            if (!brandUser?.brandId) {
+                setLoading(false);
+                return;
+            }
 
             try {
                 const docRef = doc(db, 'brand_integrations', brandUser.brandId);
@@ -65,6 +70,8 @@ export default function BrandIntegrations() {
                     if (data.mondayApiToken) {
                         setApiToken('••••••••••••••••••••'); // Masked
                         setConnectionStatus('success');
+                    } else {
+                        setShowOnboarding(true);
                     }
                     setLeadsBoardId(data.leadsBoardId || '');
                     setOrdersBoardId(data.ordersBoardId || '');
@@ -114,7 +121,7 @@ export default function BrandIntegrations() {
 
         if (result.success) {
             setConnectionStatus('success');
-            setConnectedUser(result.user);
+
             setSuccess(`Connected as ${result.user?.name || 'Unknown User'}`);
         } else {
             setConnectionStatus('error');
@@ -164,14 +171,128 @@ export default function BrandIntegrations() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <Loader className="animate-spin text-emerald-500" size={32} />
+            <div className="max-w-3xl mx-auto animate-pulse p-8">
+                <div className="h-8 bg-slate-200 rounded w-1/4 mb-4"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/2 mb-8"></div>
+                <div className="bg-slate-200 rounded-2xl h-96 w-full"></div>
+            </div>
+        );
+    }
+
+    // Admin/Ghost View: System Management & Partner Lists
+    if (!brandUser) {
+        return (
+            <div className="max-w-6xl mx-auto p-8">
+                <TrustHeader />
+
+                {/* System Owner Header */}
+                <div className="mb-12 mt-12">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+                                <ShieldCheck className="text-emerald-500" size={32} />
+                                System Administration
+                            </h1>
+                            <p className="text-slate-500 mt-1">Manage Green Truth internal operations and brand partner integrations.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Green Truth System Config */}
+                        <div className="bg-slate-900 rounded-2xl p-8 text-white flex flex-col justify-between border border-slate-800 shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-500/20 transition-all"></div>
+                            <div className="relative z-10">
+                                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center mb-6">
+                                    <Settings className="text-emerald-400" size={28} />
+                                </div>
+                                <h2 className="text-2xl font-bold mb-3">Green Truth Internal</h2>
+                                <p className="text-slate-400 text-sm leading-relaxed mb-8">
+                                    Access the master control for **Green Truth** internal operations. Configure central Monday.com boards for system-wide logistics, financials, and automated workflows.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setLoading(true);
+                                    impersonateBrand(INTERNAL_BRAND_ID, window.location.pathname);
+                                }}
+                                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20"
+                            >
+                                <ExternalLink size={20} />
+                                Launch System Configuration
+                            </button>
+                        </div>
+
+                        {/* Security Fact Sheet */}
+                        <div className="bg-white border border-slate-200 rounded-2xl p-8 flex flex-col shadow-sm">
+                            <h3 className="font-bold text-slate-900 text-lg mb-4 flex items-center gap-2">
+                                <ShieldCheck className="text-emerald-500" size={20} />
+                                Enterprise Security Facts
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Isolation</p>
+                                    <p className="text-sm text-slate-700">Dedicated Firestore documents per Brand ID ensures zero data leakage.</p>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Encryption</p>
+                                    <p className="text-sm text-slate-700">API tokens are encrypted at rest and never exposed to any frontend interface.</p>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Audit Logs</p>
+                                    <p className="text-sm text-slate-700">Comprehensive real-time logging for every sync event and API interaction.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Partner Management */}
+                <div>
+                    <div className="flex items-center justify-between mb-8 border-t border-slate-100 pt-12">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                                <Link2 className="text-slate-400" />
+                                Brand Partner Integrations
+                            </h2>
+                            <p className="text-slate-500 mt-1">Troubleshoot and manage configurations for authorized brand partners.</p>
+                        </div>
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full uppercase tracking-tighter">
+                            Admin Troubleshooting Mode
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {Object.values(AVAILABLE_BRANDS).map(brand => (
+                            <BrandButton
+                                key={brand.brandId}
+                                brand={brand}
+                                onClick={() => {
+                                    setLoading(true);
+                                    impersonateBrand(brand.brandId, window.location.pathname);
+                                }}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="mt-8 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium text-center">
+                        {error}
+                    </div>
+                )}
             </div>
         );
     }
 
     return (
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto p-4 md:p-8">
+            <TrustHeader />
+
+            <MondayOnboarding
+                show={showOnboarding}
+                onClose={() => setShowOnboarding(false)}
+                onSave={handleSave}
+            />
             {/* Header */}
             <div className="mb-8">
                 <Link to="/brand" className="text-slate-500 hover:text-slate-700 flex items-center gap-2 mb-4 text-sm font-medium">
@@ -182,6 +303,7 @@ export default function BrandIntegrations() {
                     Integrations
                 </h1>
                 <p className="text-slate-500 mt-1">Connect your Monday.com workspace to sync leads and orders automatically.</p>
+                <Link to="/brand/sync-history" className="text-sm text-emerald-600 hover:underline mt-2 inline-block">View Sync History</Link>
             </div>
 
             {/* Monday.com Integration Card */}
@@ -213,18 +335,30 @@ export default function BrandIntegrations() {
                 {/* Form */}
                 <div className="p-6 space-y-6">
                     {/* Status Messages */}
-                    {error && (
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700">
-                            <AlertTriangle size={20} />
-                            <span className="text-sm font-medium">{error}</span>
-                        </div>
-                    )}
-                    {success && (
-                        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-700">
-                            <Check size={20} />
-                            <span className="text-sm font-medium">{success}</span>
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700"
+                            >
+                                <AlertTriangle size={20} />
+                                <span className="text-sm font-medium">{error}</span>
+                            </motion.div>
+                        )}
+                        {success && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-700"
+                            >
+                                <Check size={20} />
+                                <span className="text-sm font-medium">{success}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* API Token */}
                     <div>
@@ -359,15 +493,59 @@ export default function BrandIntegrations() {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center gap-2"
+                        className="relative px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center gap-2"
                     >
-                        {saving ? (
-                            <Loader size={18} className="animate-spin" />
-                        ) : (
+                        <AnimatePresence>
+                            {saving && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 flex items-center justify-center"
+                                >
+                                    <Loader size={18} className="animate-spin" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <motion.span
+                            animate={{ opacity: saving ? 0 : 1 }}
+                            className="flex items-center gap-2"
+                        >
                             <Save size={18} />
-                        )}
-                        Save Settings
+                            Save Settings
+                        </motion.span>
                     </button>
+                </div>
+            </div>
+
+            {/* How it works section */}
+            <div className="mt-6 p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
+                <h3 className="font-bold text-emerald-900 mb-4 flex items-center gap-2">
+                    <RefreshCw className="text-emerald-500" size={20} />
+                    How Your Automation Works
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                        <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">1</div>
+                        <p className="font-bold text-emerald-800 text-sm">Lead Sync</p>
+                        <p className="text-xs text-emerald-600 leading-relaxed">
+                            Every time a sales rep picks up a new lead in the CRM, it's instantly created on your Monday.com board.
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">2</div>
+                        <p className="font-bold text-emerald-800 text-sm">Order Logging</p>
+                        <p className="text-xs text-emerald-600 leading-relaxed">
+                            When a sale is finalized, transaction data is pushed to your Orders board, keeping your revenue tracking up-to-date.
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">3</div>
+                        <p className="font-bold text-emerald-800 text-sm">Two-Way Updates</p>
+                        <p className="text-xs text-emerald-600 leading-relaxed">
+                            By adding our webhook to your board, status changes in Monday.com will automatically update the Green Truth CRM.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -439,3 +617,72 @@ export default function BrandIntegrations() {
         </div>
     );
 }
+
+const TrustHeader = () => (
+    <div className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 md:p-10 text-white shadow-2xl relative overflow-hidden mb-12">
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-400/10 rounded-full blur-2xl -ml-24 -mb-24"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                <ShieldCheck size={48} className="text-emerald-50" />
+            </div>
+
+            <div className="text-center md:text-left">
+                <div className="flex flex-col md:flex-row md:items-center gap-2 mb-3">
+                    <h2 className="text-2xl md:text-3xl font-black tracking-tight">Professional Integration & Data Privacy</h2>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-400/30 text-emerald-50 border border-emerald-400/50 uppercase tracking-widest self-center md:self-auto">
+                        Enterprise Grade
+                    </span>
+                </div>
+                <p className="text-emerald-50/90 text-sm md:text-base leading-relaxed max-w-3xl font-medium">
+                    Your security is our highest priority at <span className="text-white font-bold">Green Truth</span>.
+                    Every brand integration is physically isolated using dedicated database documents and encrypted API management.
+                    Your Monday.com API tokens are never stored locally and are processed through secure system workers.
+                    Paths will never cross, and your company's data remains strictly private and protected.
+                </p>
+                <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-100/80">
+                        <Check size={14} className="text-emerald-300" />
+                        End-to-End Encryption
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-100/80">
+                        <Check size={14} className="text-emerald-300" />
+                        Physical Data Isolation
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-100/80">
+                        <Check size={14} className="text-emerald-300" />
+                        Secure Worker Processing
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const BrandButton = ({ brand, onClick, isInternal }) => (
+    <button
+        onClick={onClick}
+        className={`flex flex-col items-center p-6 bg-white border rounded-xl hover:shadow-md transition-all group text-center ${isInternal
+            ? 'border-emerald-200 hover:border-emerald-500 bg-emerald-50/30'
+            : 'border-slate-200 hover:border-emerald-500'
+            }`}
+    >
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${isInternal
+            ? 'bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200'
+            : 'bg-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-600'
+            }`}>
+            <Link2 size={24} />
+        </div>
+        <h3 className="font-bold text-slate-800">{brand.brandName}</h3>
+        <p className="text-xs text-slate-400 mt-1 font-mono uppercase truncate w-full px-2" title={brand.brandId}>
+            {brand.brandId}
+        </p>
+        {isInternal && (
+            <span className="mt-2 text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-100 px-2 py-0.5 rounded-full">
+                System Brand
+            </span>
+        )}
+    </button>
+);

@@ -18,6 +18,7 @@ const Bottleneck = require('bottleneck');
 const retry = require('async-retry');
 const Joi = require('joi');
 const fetch = require('node-fetch');
+const nodemailer = require('nodemailer');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -103,6 +104,44 @@ async function getBrandMondayToken(brandId) {
     }
 
     return data.mondayApiToken;
+}
+
+/**
+ * Helper: Log a sync event to Firestore
+ * @param {string} brandId - The brand's ID
+ * @param {string} action - e.g., 'syncLead', 'syncOrder'
+ * @param {boolean} success - Whether the sync was successful
+ * @param {object} details - Additional details (e.g., leadId, orderId)
+ * @param {string|null} error - Error message if failed
+ */
+async function logSyncEvent(brandId, action, success, details, error = null) {
+    try {
+        const timestamp = admin.firestore.FieldValue.serverTimestamp();
+        const logData = {
+            brandId,
+            action,
+            success,
+            details,
+            error,
+            timestamp,
+        };
+        await db.collection('brand_sync_logs').add(logData);
+
+        const integrationRef = db.collection('brand_integrations').doc(brandId);
+        await integrationRef.update({
+            lastSync: {
+                timestamp,
+                success,
+                action,
+            }
+        });
+    } catch (logError) {
+        functions.logger.error('Failed to log sync event', {
+            brandId,
+            action,
+            error: logError.message
+        });
+    }
 }
 
 // ============================================================
@@ -204,12 +243,15 @@ exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
             });
         }
 
+        await logSyncEvent(brandId, 'syncInvoice', true, { invoiceId: invoice.id, mondayItemId: result.data.create_item.id });
+
         return {
             success: true,
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
         functions.logger.error('syncInvoiceToMonday error:', error);
+        await logSyncEvent(brandId, 'syncInvoice', false, { invoiceId: invoice.id }, error.message);
         return {
             success: false,
             error: error.message
@@ -317,12 +359,15 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
             });
         }
 
+        await logSyncEvent(brandId, 'syncLead', true, { leadId: lead.id, mondayItemId: result.data.create_item.id });
+
         return {
             success: true,
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
         functions.logger.error('syncLeadToMonday error:', error);
+        await logSyncEvent(brandId, 'syncLead', false, { leadId: lead.id }, error.message);
         return {
             success: false,
             error: error.message
@@ -387,17 +432,44 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
             });
         }
 
+        await logSyncEvent(brandId, 'syncOrder', true, { orderId: order.id, mondayItemId: result.data.create_item.id });
+
         return {
             success: true,
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
         functions.logger.error('syncOrderToMonday error:', error);
+        await logSyncEvent(brandId, 'syncOrder', false, { orderId: order.id }, error.message);
         return {
             success: false,
             error: error.message
         };
     }
+});
+
+// ============================================================
+// SCHEDULED FUNCTION: Trim Sync Logs
+// ============================================================
+exports.trimSyncLogs = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+    const integrationsSnapshot = await db.collection('brand_integrations').get();
+    for (const doc of integrationsSnapshot.docs) {
+        const brandId = doc.id;
+        const logsQuery = db.collection('brand_sync_logs').where('brandId', '==', brandId);
+        const snapshot = await logsQuery.count().get();
+        const count = snapshot.data().count;
+
+        if (count > 100) {
+            const logsToDeleteQuery = logsQuery.orderBy('timestamp', 'asc').limit(count - 100);
+            const logsToDeleteSnapshot = await logsToDeleteQuery.get();
+            const batch = db.batch();
+            logsToDeleteSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        }
+    }
+    return null;
 });
 
 // ============================================================
@@ -436,5 +508,109 @@ exports.saveMondaySettings = functions.https.onCall(async (data, context) => {
             success: false,
             error: error.message
         };
+    }
+});
+
+// ============================================================
+// EMAIL: Transporter Setup
+// ============================================================
+// To configure, run: firebase functions:config:set email.user="your@email.com" email.pass="yourpassword"
+const transporter = nodemailer.createTransport({
+    service: 'gmail', // Default to gmail, can be changed
+    auth: {
+        user: functions.config().email?.user || process.env.EMAIL_USER,
+        pass: functions.config().email?.pass || process.env.EMAIL_PASS
+    }
+});
+
+// ============================================================
+// FUNCTION: Send Invoice Email
+// ============================================================
+const sendInvoiceEmailSchema = Joi.object({
+    invoiceData: Joi.object().required(),
+    recipientEmail: Joi.string().email().required(),
+});
+
+exports.sendInvoiceEmail = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    }
+
+    const { error, value } = sendInvoiceEmailSchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    }
+    const { invoiceData, recipientEmail } = value;
+
+    try {
+        // Build basic HTML template
+        const html = `
+            <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h1 style="color: #10b981; margin-bottom: 0;">Green Truth NYC</h1>
+                <p style="color: #64748b; margin-top: 5px;">Invoice #${invoiceData.invoiceNumber}</p>
+                
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #64748b; font-size: 12px; text-transform: uppercase;">Bill To:</h3>
+                    <p style="font-size: 18px; font-weight: bold; margin: 0;">${invoiceData.brand}</p>
+                    <p style="color: #64748b; margin: 0;">${recipientEmail}</p>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th style="text-align: left; padding: 10px; font-size: 12px; color: #64748b; border-bottom: 1px solid #e2e8f0;">DESCRIPTION</th>
+                            <th style="text-align: right; padding: 10px; font-size: 12px; color: #64748b; border-bottom: 1px solid #e2e8f0;">AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoiceData.lineItems.map(item => `
+                            <tr>
+                                <td style="padding: 15px 10px; border-bottom: 1px solid #f1f5f9;">${item.description}</td>
+                                <td style="text-align: right; padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-weight: bold;">$${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div style="text-align: right; margin-bottom: 30px;">
+                    <p style="font-size: 24px; font-weight: 900; color: #10b981; margin: 0;">Total Due: $${invoiceData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    <p style="color: #f59e0b; font-weight: bold; margin: 5px 0 0 0;">Due Date: ${invoiceData.dueDate}</p>
+                </div>
+
+                <div style="background: #fffbeb; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; font-size: 14px; color: #92400e;">
+                    <strong>Note:</strong> ${invoiceData.notes}
+                </div>
+
+                <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px;">
+                    <p>Questions? Contact us at billing@thegreentruthnyc.com</p>
+                    <p>&copy; ${new Date().getFullYear()} Green Truth NYC. All rights reserved.</p>
+                </div>
+            </div>
+        `;
+
+        if (!transporter.options.auth.user || !transporter.options.auth.pass) {
+            functions.logger.info('Email mock log (No credentials configured):', { recipientEmail, invoiceNumber: invoiceData.invoiceNumber });
+            return {
+                success: true,
+                mock: true,
+                message: 'No SMTP credentials configured. Email logged to system console instead.'
+            };
+        }
+
+        await transporter.sendMail({
+            from: `"Green Truth NYC" <${transporter.options.auth.user}>`,
+            to: recipientEmail,
+            subject: `Green Truth Invoice: ${invoiceData.invoiceNumber} - ${invoiceData.brand}`,
+            html: html
+        });
+
+        functions.logger.info(`Invoice email sent successfully to ${recipientEmail}`);
+
+        return { success: true };
+    } catch (error) {
+        functions.logger.error('sendInvoiceEmail error:', error);
+        throw new functions.https.HttpsError('internal', error.message);
     }
 });

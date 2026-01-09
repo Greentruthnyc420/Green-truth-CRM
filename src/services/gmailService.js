@@ -41,16 +41,24 @@ function initializeTokenClient(resolve, reject) {
             client_id: CLIENT_ID,
             scope: SCOPES,
             callback: (response) => {
+                console.log('Gmail Auth Callback Response:', response);
                 if (response.access_token) {
                     accessToken = response.access_token;
                     resolve(response.access_token);
                 } else {
-                    reject(new Error('Failed to get access token'));
+                    console.error('Gmail Auth Error:', response);
+                    reject(new Error('Failed to get access token: ' + JSON.stringify(response)));
                 }
             },
+            error_callback: (err) => {
+                console.error('Gmail Auth Client Error:', err);
+                reject(err);
+            }
         });
+        console.log('Gmail Token Client initialized with ID starting:', CLIENT_ID.substring(0, 10) + '...');
         resolve(tokenClient);
     } catch (error) {
+        console.error('Gmail Init Exception:', error);
         reject(error);
     }
 }

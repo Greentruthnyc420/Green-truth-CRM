@@ -418,7 +418,7 @@ export default function AdminDashboard() {
 
     const handleAccessBrand = (brandId) => {
         try {
-            impersonateBrand(brandId); // Set Ghost User
+            impersonateBrand(brandId, window.location.pathname); // Set Ghost User with return path
             navigate('/brand'); // Go to Portal
         } catch (error) {
             showNotification(error.message, 'error');
