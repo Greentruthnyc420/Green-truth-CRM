@@ -21,11 +21,12 @@ import {
 import { Link } from 'react-router-dom';
 import {
     testMondayConnection,
-    saveMondaySettings,
-    getMondayIntegrationStatus
+    saveMondaySettings
 } from '../../services/mondayService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import MondayOnboarding from '../../components/brand/MondayOnboarding';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function BrandIntegrations() {
     const { brandUser } = useBrandAuth();
@@ -44,8 +45,9 @@ export default function BrandIntegrations() {
 
     // Status State
     const [connectionStatus, setConnectionStatus] = useState(null); // null, 'success', 'error'
-    const [connectedUser, setConnectedUser] = useState(null);
+
     const [lastSaved, setLastSaved] = useState(null);
+    const [showOnboarding, setShowOnboarding] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [webhookEvents, setWebhookEvents] = useState([]);
@@ -65,6 +67,8 @@ export default function BrandIntegrations() {
                     if (data.mondayApiToken) {
                         setApiToken('••••••••••••••••••••'); // Masked
                         setConnectionStatus('success');
+                    } else {
+                        setShowOnboarding(true);
                     }
                     setLeadsBoardId(data.leadsBoardId || '');
                     setOrdersBoardId(data.ordersBoardId || '');
@@ -114,7 +118,7 @@ export default function BrandIntegrations() {
 
         if (result.success) {
             setConnectionStatus('success');
-            setConnectedUser(result.user);
+
             setSuccess(`Connected as ${result.user?.name || 'Unknown User'}`);
         } else {
             setConnectionStatus('error');
@@ -164,14 +168,21 @@ export default function BrandIntegrations() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <Loader className="animate-spin text-emerald-500" size={32} />
+            <div className="max-w-3xl mx-auto animate-pulse">
+                <div className="h-8 bg-slate-200 rounded w-1/4 mb-4"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/2 mb-8"></div>
+                <div className="bg-slate-200 rounded-2xl h-96 w-full"></div>
             </div>
         );
     }
 
     return (
         <div className="max-w-3xl mx-auto">
+            <MondayOnboarding
+                show={showOnboarding}
+                onClose={() => setShowOnboarding(false)}
+                onSave={handleSave}
+            />
             {/* Header */}
             <div className="mb-8">
                 <Link to="/brand" className="text-slate-500 hover:text-slate-700 flex items-center gap-2 mb-4 text-sm font-medium">
@@ -182,6 +193,7 @@ export default function BrandIntegrations() {
                     Integrations
                 </h1>
                 <p className="text-slate-500 mt-1">Connect your Monday.com workspace to sync leads and orders automatically.</p>
+                <Link to="/brand/sync-history" className="text-sm text-emerald-600 hover:underline mt-2 inline-block">View Sync History</Link>
             </div>
 
             {/* Monday.com Integration Card */}
@@ -213,18 +225,30 @@ export default function BrandIntegrations() {
                 {/* Form */}
                 <div className="p-6 space-y-6">
                     {/* Status Messages */}
-                    {error && (
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700">
-                            <AlertTriangle size={20} />
-                            <span className="text-sm font-medium">{error}</span>
-                        </div>
-                    )}
-                    {success && (
-                        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-700">
-                            <Check size={20} />
-                            <span className="text-sm font-medium">{success}</span>
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700"
+                            >
+                                <AlertTriangle size={20} />
+                                <span className="text-sm font-medium">{error}</span>
+                            </motion.div>
+                        )}
+                        {success && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-700"
+                            >
+                                <Check size={20} />
+                                <span className="text-sm font-medium">{success}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* API Token */}
                     <div>
@@ -359,14 +383,27 @@ export default function BrandIntegrations() {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center gap-2"
+                        className="relative px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center gap-2"
                     >
-                        {saving ? (
-                            <Loader size={18} className="animate-spin" />
-                        ) : (
+                        <AnimatePresence>
+                            {saving && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 flex items-center justify-center"
+                                >
+                                    <Loader size={18} className="animate-spin" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <motion.span
+                            animate={{ opacity: saving ? 0 : 1 }}
+                            className="flex items-center gap-2"
+                        >
                             <Save size={18} />
-                        )}
-                        Save Settings
+                            Save Settings
+                        </motion.span>
                     </button>
                 </div>
             </div>

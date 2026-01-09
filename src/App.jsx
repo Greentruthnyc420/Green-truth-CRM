@@ -55,6 +55,7 @@ import BrandSchedule from './pages/brand/BrandSchedule';
 import BrandMap from './pages/brand/BrandMap';
 import BrandNewLead from './pages/brand/BrandNewLead';
 import BrandIntegrations from './pages/brand/BrandIntegrations';
+import BrandSyncHistory from './pages/brand/BrandSyncHistory';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
 // Dispensary Portal Imports
@@ -132,6 +133,7 @@ function App() {
             <Route path="map" element={<BrandMap />} />
             <Route path="new-lead" element={<BrandNewLead />} />
             <Route path="integrations" element={<BrandIntegrations />} />
+            <Route path="sync-history" element={<BrandSyncHistory />} />
           </Route>
         </Route>
 
