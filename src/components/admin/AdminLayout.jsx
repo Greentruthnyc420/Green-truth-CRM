@@ -12,7 +12,8 @@ import {
     Activity,
     Map,
     Archive,
-    GitBranch
+    GitBranch,
+    FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -69,10 +70,11 @@ export default function AdminLayout() {
         { path: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
         { path: '/admin/workflow', label: 'Workflow', icon: CheckSquare },
         { path: '/admin/financials', label: 'Financials', icon: DollarSign },
+        { path: '/admin/invoices', label: 'Invoices', icon: FileText },
         { path: '/admin/territory', label: 'Territory', icon: Map },
         { path: '/admin/team', label: 'Team', icon: Users },
-        { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch }, // Was Growth
-        { path: '/admin/growth', label: 'Growth', icon: TrendingUp },  // Was Console/Global Export
+        { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch },
+        { path: '/admin/growth', label: 'Growth', icon: TrendingUp },
     ];
 
     return (

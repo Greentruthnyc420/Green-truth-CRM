@@ -40,6 +40,7 @@ import AdminTeam from './components/admin/views/AdminTeam';
 import AdminGrowth from './components/admin/views/AdminGrowth';
 import LegacyAdminDashboard from './pages/AdminDashboard'; // Restored as Legacy Console
 import AdminWorkflow from './components/admin/views/AdminWorkflow';
+import AdminInvoiceGenerator from './components/admin/views/AdminInvoiceGenerator';
 import AmbassadorOverview from './components/admin/AmbassadorOverview';
 
 // Brand Portal Imports
@@ -80,6 +81,7 @@ function App() {
             <Route index element={<NewAdminDashboard />} />
             <Route path="workflow" element={<AdminWorkflow />} />
             <Route path="financials" element={<AdminFinancials />} />
+            <Route path="invoices" element={<AdminInvoiceGenerator />} />
             <Route path="territory" element={<AdminTerritory />} />
             <Route path="team" element={<AdminTeam />} />
             <Route path="team/:userId" element={<AmbassadorOverview />} />
