@@ -142,6 +142,14 @@ exports.testMondayConnection = functions.https.onCall(async (data, context) => {
     }
 });
 
+// Export functions from other files
+const monday = require('./monday');
+const webhooks = require('./webhooks');
+
+exports.getRecentSyncHistory = monday.getRecentSyncHistory;
+exports.triggerFullSync = monday.triggerFullSync;
+exports.mondayWebhook = webhooks.mondayWebhook;
+
 // ============================================================
 // FUNCTION: Sync Invoice to Monday.com
 // ============================================================

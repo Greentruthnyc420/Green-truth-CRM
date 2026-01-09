@@ -113,3 +113,41 @@ export async function getMondayIntegrationStatus(brandId) {
         return { connected: false, lastSync: null };
     }
 }
+
+/**
+ * Fetch recent sync history for a brand
+ * @param {string} brandId - The brand's ID
+ * @returns {Promise<Array>}
+ */
+export async function getRecentSyncHistory(brandId) {
+    if (!brandId) {
+        return [];
+    }
+    try {
+        const getHistory = httpsCallable(functions, 'getRecentSyncHistory');
+        const result = await getHistory({ brandId });
+        return result.data;
+    } catch (error) {
+        console.error('getRecentSyncHistory error:', error);
+        return [];
+    }
+}
+
+/**
+ * Manually trigger a full sync for a brand
+ * @param {string} brandId - The brand's ID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function triggerFullSync(brandId) {
+    if (!brandId) {
+        return { success: false, error: 'Brand ID is required' };
+    }
+    try {
+        const triggerSync = httpsCallable(functions, 'triggerFullSync');
+        const result = await triggerSync({ brandId });
+        return result.data;
+    } catch (error) {
+        console.error('triggerFullSync error:', error);
+        return { success: false, error: error.message };
+    }
+}
