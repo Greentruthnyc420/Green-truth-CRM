@@ -76,7 +76,13 @@ export const PRODUCT_CATALOG = [
         id: 'bud-cracker',
         name: 'Bud Cracker Boulevard',
         logo: null,
-        products: [] // Pending Menu
+        products: [
+            // INDOOR Flower (3.5g)
+            { id: 'bc-st-135-74', name: 'Sour Tangie', description: '3.5g Indoor Flower', price: 17.00, caseSize: 10, unit: 'unit', thc: '21.03%', strainType: 'Sativa', category: 'Flower', inStock: true },
+            { id: 'bc-tc-135-71', name: 'Tropicana Cookies', description: '3.5g Indoor Flower', price: 17.00, caseSize: 10, unit: 'unit', thc: '21.20%', strainType: 'Hybrid', category: 'Flower', inStock: true },
+            { id: 'bc-wm-135-72', name: 'Watermelon Mimosa', description: '3.5g Indoor Flower', price: 17.00, caseSize: 10, unit: 'unit', thc: '24.00%', strainType: 'Hybrid', category: 'Flower', inStock: true },
+            { id: 'bc-tw-135-73', name: 'Train Wreck', description: '3.5g Indoor Flower', price: 17.00, caseSize: 10, unit: 'unit', thc: '20.90%', strainType: 'Sativa', category: 'Flower', inStock: true }
+        ]
     },
     {
         id: 'canna-dots',
