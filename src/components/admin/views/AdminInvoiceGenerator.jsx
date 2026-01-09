@@ -36,7 +36,7 @@ export default function AdminInvoiceGenerator() {
 
         setLoading(true);
         try {
-            const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
+            const { calculateBrandMetrics } = await import('../../../services/brandMetricsService');
             const brand = AVAILABLE_BRANDS[selectedBrand];
             const metrics = await calculateBrandMetrics(selectedBrand, brand.brandName);
 
