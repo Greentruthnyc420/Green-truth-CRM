@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { logout } = useAuth();
     const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
-    const initials = isAdmin ? 'O' : (currentUser?.displayName
-        ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-        : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U'));
+    // Extract name from email (e.g., amber@thegreentruthnyc.com -> Amber)
+    const userName = currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'User');
+    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
 
     const handleLogout = async () => {
         try {
@@ -85,7 +85,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                     </div>
                     {!isCollapsed && (
                         <div className="text-sm overflow-hidden whitespace-nowrap">
-                            <p className="font-medium text-white">{isAdmin ? 'Omar' : (currentUser?.displayName || 'Sales Representative')}</p>
+                            <p className="font-medium text-white">{userName}</p>
                             <p className="text-slate-400 text-xs truncate">{currentUser?.email || 'Ambassador'}</p>
                         </div>
                     )}
@@ -142,10 +142,9 @@ export default function Layout() {
 
     const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
 
-    // Calculate initials for mobile header too
-    const initials = isAdmin ? 'O' : (currentUser?.displayName
-        ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-        : (currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'U'));
+    // Extract name from email (e.g., amber@thegreentruthnyc.com -> Amber)
+    const userName = currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'User');
+    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
 
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
     const { logout } = useAuth();

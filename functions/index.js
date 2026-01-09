@@ -28,8 +28,7 @@ const MONDAY_API_URL = 'https://api.monday.com/v2';
  * @param {object} variables - Query variables
  */
 async function mondayRequest(apiToken, query, variables = {}) {
-    const fetch = (await import('node-fetch')).default;
-
+    // Node 20+ has native fetch support
     const response = await fetch(MONDAY_API_URL, {
         method: 'POST',
         headers: {

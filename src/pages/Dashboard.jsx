@@ -194,7 +194,7 @@ export default function Dashboard() {
             )}
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Welcome back, {ADMIN_EMAILS.includes(currentUser?.email?.toLowerCase()) ? 'Omar' : (currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'Ambassador'))}!</h1>
+                <h1 className="text-2xl font-bold text-slate-800">Welcome back, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'Ambassador')}!</h1>
                 <p className="text-slate-500">Here's your compensation breakdown.</p>
                 {milestoneMessage && (
                     <div className="mt-4 p-4 bg-gradient-to-r from-brand-100 via-white to-brand-100 border border-brand-200 text-brand-800 rounded-xl flex items-center justify-between gap-3 shadow-md animate-slideIn">
