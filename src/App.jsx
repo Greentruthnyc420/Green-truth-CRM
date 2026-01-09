@@ -54,6 +54,7 @@ import BrandMenuEditor from './pages/brand/BrandMenuEditor';
 import BrandSchedule from './pages/brand/BrandSchedule';
 import BrandMap from './pages/brand/BrandMap';
 import BrandNewLead from './pages/brand/BrandNewLead';
+import BrandIntegrations from './pages/brand/BrandIntegrations';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
 // Dispensary Portal Imports
@@ -130,6 +131,7 @@ function App() {
             <Route path="menu" element={<BrandMenuEditor />} />
             <Route path="map" element={<BrandMap />} />
             <Route path="new-lead" element={<BrandNewLead />} />
+            <Route path="integrations" element={<BrandIntegrations />} />
           </Route>
         </Route>
 
