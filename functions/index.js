@@ -143,6 +143,73 @@ exports.testMondayConnection = functions.https.onCall(async (data, context) => {
 });
 
 // ============================================================
+// FUNCTION: Sync Invoice to Monday.com
+// ============================================================
+const syncInvoiceToMondaySchema = Joi.object({
+    brandId: Joi.string().required(),
+    invoice: Joi.object().required(),
+    boardId: Joi.string().required(),
+});
+
+exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    }
+
+    const { error, value } = syncInvoiceToMondaySchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    }
+    const { brandId, invoice, boardId } = value;
+
+    try {
+        const apiToken = await getBrandMondayToken(brandId);
+
+        const query = `
+            mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
+                create_item (
+                    board_id: $boardId,
+                    item_name: $itemName,
+                    column_values: $columnValues
+                ) {
+                    id
+                }
+            }
+        `;
+
+        const columnValues = JSON.stringify({
+            'numbers': invoice.amount || 0,
+            'status': { label: invoice.status || 'Unpaid' },
+            'date4': { date: invoice.dueDate || new Date().toISOString().split('T')[0] }
+        });
+
+        const result = await mondayRequest(apiToken, query, {
+            boardId: boardId,
+            itemName: `Invoice: ${invoice.dispensaryName || 'Unknown'}`,
+            columnValues: columnValues
+        });
+
+        if (invoice.id) {
+            await db.collection('invoices').doc(invoice.id).update({
+                mondayItemId: result.data.create_item.id,
+                mondaySyncedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        return {
+            success: true,
+            mondayItemId: result.data.create_item.id
+        };
+    } catch (error) {
+        functions.logger.error('syncInvoiceToMonday error:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+// ============================================================
 // FUNCTION: Get Monday.com Integration Settings
 // ============================================================
 const getMondaySettingsSchema = Joi.object({

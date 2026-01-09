@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Store, User, FileText, Calendar, Camera, X, Plus, Sparkles, Loader, ChevronDown, UserPlus } from 'lucide-react';
 import { addLead, checkDuplicateLead, LEAD_STATUS } from '../../services/firestoreService';
 import { uploadTollReceipt } from '../../services/storageService';
@@ -8,6 +8,7 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { awardLeadPoints } from '../../services/pointsService';
+import { getMondayIntegrationStatus, syncLeadToMonday } from '../../services/mondayService';
 
 export default function BrandNewLead() {
     const navigate = useNavigate();
@@ -18,6 +19,8 @@ export default function BrandNewLead() {
     const [licenseImage, setLicenseImage] = useState(null);
     const [licensePreview, setLicensePreview] = useState(null);
     const [analyzingLicense, setAnalyzingLicense] = useState(false);
+    const [mondayIntegration, setMondayIntegration] = useState({ connected: false, leadsBoardId: null });
+    const [syncToMonday, setSyncToMonday] = useState(true);
 
     const [formData, setFormData] = useState({
         dispensaryName: '',
@@ -29,6 +32,16 @@ export default function BrandNewLead() {
             { name: '', role: 'Manager', email: '', phone: '' }
         ]
     });
+
+    useEffect(() => {
+        async function fetchMondayStatus() {
+            if (brandUser?.brandId) {
+                const status = await getMondayIntegrationStatus(brandUser.brandId);
+                setMondayIntegration(status);
+            }
+        }
+        fetchMondayStatus();
+    }, [brandUser]);
 
     const categories = [
         { id: LEAD_STATUS.PROSPECT, label: 'Prospect', color: 'bg-slate-100 text-slate-700' },
@@ -123,6 +136,17 @@ export default function BrandNewLead() {
                 }
             } catch (pErr) {
                 console.warn("Points awarding failed.", pErr);
+            }
+
+            // Sync to Monday.com if enabled
+            if (syncToMonday && mondayIntegration.connected && mondayIntegration.leadsBoardId) {
+                const leadDataForSync = { ...formData, id: leadRef.id };
+                const syncResult = await syncLeadToMonday(brandUser.brandId, leadDataForSync, mondayIntegration.leadsBoardId);
+                if (syncResult.success) {
+                    showNotification('Lead synced to Monday.com successfully!', 'success');
+                } else {
+                    showNotification(`Failed to sync lead to Monday.com: ${syncResult.error}`, 'error');
+                }
             }
 
             showNotification('Lead recorded and categorized successfully!', 'success');
@@ -312,6 +336,30 @@ export default function BrandNewLead() {
                         </label>
                     </div>
                 </div>
+
+                {mondayIntegration.connected && mondayIntegration.leadsBoardId && (
+                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-8 h-8" />
+                                <label htmlFor="syncToMonday" className="block text-sm font-medium text-slate-700">Sync to Monday.com</label>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSyncToMonday(!syncToMonday)}
+                                className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${syncToMonday ? 'bg-orange-600' : 'bg-gray-200'
+                                    }`}
+                                aria-pressed="false"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${syncToMonday ? 'translate-x-5' : 'translate-x-0'
+                                        }`}
+                                ></span>
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <button
                     type="submit"
