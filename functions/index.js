@@ -14,39 +14,75 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const Bottleneck = require('bottleneck');
+const retry = require('async-retry');
+const Joi = require('joi');
+const fetch = require('node-fetch');
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// Rate limiting: 50 requests per minute.
+const limiter = new Bottleneck({
+    reservoir: 50,
+    reservoirRefreshAmount: 50,
+    reservoirRefreshInterval: 60 * 1000, // per minute
+});
 
 // Monday.com GraphQL endpoint
 const MONDAY_API_URL = 'https://api.monday.com/v2';
 
 /**
- * Helper: Make a GraphQL request to Monday.com
+ * Helper: Make a GraphQL request to Monday.com with retry and rate limiting
  * @param {string} apiToken - The brand's Monday.com API token
  * @param {string} query - GraphQL query
  * @param {object} variables - Query variables
  */
 async function mondayRequest(apiToken, query, variables = {}) {
-    const fetch = (await import('node-fetch')).default;
+    return await retry(async bail => {
+        const response = await limiter.schedule(() => fetch(MONDAY_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': apiToken,
+                'API-Version': '2024-01'
+            },
+            body: JSON.stringify({ query, variables })
+        }));
 
-    const response = await fetch(MONDAY_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': apiToken,
-            'API-Version': '2024-01'
-        },
-        body: JSON.stringify({ query, variables })
+        // Handle non-ok responses
+        if (!response.ok) {
+            // Don't retry on client errors
+            if (response.status >= 400 && response.status < 500) {
+                const errorText = await response.text();
+                bail(new Error(`Client error: ${response.status} ${errorText}`));
+                return;
+            }
+            // Retry on server errors
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.errors) {
+            // Log the specific error for better debugging
+            functions.logger.error("Monday.com API Error", {
+                errors: data.errors
+            });
+            throw new Error(data.errors[0]?.message || 'Monday.com API Error');
+        }
+
+        return data;
+    }, {
+        retries: 3,
+        factor: 2,
+        minTimeout: 1000,
+        onRetry: (error, attempt) => {
+            functions.logger.warn(`Retrying Monday.com request (attempt ${attempt})`, {
+                error: error.message
+            });
+        }
     });
-
-    const data = await response.json();
-
-    if (data.errors) {
-        throw new Error(data.errors[0]?.message || 'Monday.com API Error');
-    }
-
-    return data;
 }
 
 /**
@@ -72,17 +108,22 @@ async function getBrandMondayToken(brandId) {
 // ============================================================
 // FUNCTION: Test Monday.com Connection
 // ============================================================
+const testMondayConnectionSchema = Joi.object({
+    apiToken: Joi.string().required(),
+});
+
 exports.testMondayConnection = functions.https.onCall(async (data, context) => {
     // Verify authenticated
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { apiToken } = data;
-
-    if (!apiToken) {
-        throw new functions.https.HttpsError('invalid-argument', 'API token is required');
+    // Validate input
+    const { error, value } = testMondayConnectionSchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
+    const { apiToken } = value;
 
     try {
         // Simple query to verify token works
@@ -104,16 +145,23 @@ exports.testMondayConnection = functions.https.onCall(async (data, context) => {
 // ============================================================
 // FUNCTION: Sync Lead to Monday.com
 // ============================================================
+const syncLeadToMondaySchema = Joi.object({
+    brandId: Joi.string().required(),
+    lead: Joi.object().required(),
+    boardId: Joi.string().required(),
+});
+
 exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { brandId, lead, boardId } = data;
-
-    if (!brandId || !lead || !boardId) {
-        throw new functions.https.HttpsError('invalid-argument', 'brandId, lead, and boardId are required');
+    // Validate input
+    const { error, value } = syncLeadToMondaySchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
+    const { brandId, lead, boardId } = value;
 
     try {
         const apiToken = await getBrandMondayToken(brandId);
@@ -159,7 +207,7 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
-        console.error('syncLeadToMonday error:', error);
+        functions.logger.error('syncLeadToMonday error:', error);
         return {
             success: false,
             error: error.message
@@ -170,16 +218,23 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
 // ============================================================
 // FUNCTION: Sync Order to Monday.com
 // ============================================================
+const syncOrderToMondaySchema = Joi.object({
+    brandId: Joi.string().required(),
+    order: Joi.object().required(),
+    boardId: Joi.string().required(),
+});
+
 exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { brandId, order, boardId } = data;
-
-    if (!brandId || !order || !boardId) {
-        throw new functions.https.HttpsError('invalid-argument', 'brandId, order, and boardId are required');
+    // Validate input
+    const { error, value } = syncOrderToMondaySchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
+    const { brandId, order, boardId } = value;
 
     try {
         const apiToken = await getBrandMondayToken(brandId);
@@ -222,7 +277,7 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
-        console.error('syncOrderToMonday error:', error);
+        functions.logger.error('syncOrderToMonday error:', error);
         return {
             success: false,
             error: error.message
@@ -233,16 +288,22 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
 // ============================================================
 // FUNCTION: Save Monday.com Integration Settings
 // ============================================================
+const saveMondaySettingsSchema = Joi.object({
+    brandId: Joi.string().required(),
+    settings: Joi.object().required(),
+});
+
 exports.saveMondaySettings = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { brandId, settings } = data;
-
-    if (!brandId) {
-        throw new functions.https.HttpsError('invalid-argument', 'brandId is required');
+    // Validate input
+    const { error, value } = saveMondaySettingsSchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
+    const { brandId, settings } = value;
 
     try {
         const docRef = db.collection('brand_integrations').doc(brandId);
@@ -255,7 +316,7 @@ exports.saveMondaySettings = functions.https.onCall(async (data, context) => {
 
         return { success: true };
     } catch (error) {
-        console.error('saveMondaySettings error:', error);
+        functions.logger.error('saveMondaySettings error:', error);
         return {
             success: false,
             error: error.message
