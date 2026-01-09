@@ -1,0 +1,32 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "leads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ownerBrandId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mondayItemId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "brandId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mondayItemId",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ]
+}

@@ -48,6 +48,7 @@ export default function BrandIntegrations() {
     const [lastSaved, setLastSaved] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [webhookEvents, setWebhookEvents] = useState([]);
 
     // Load existing settings
     useEffect(() => {
@@ -80,6 +81,23 @@ export default function BrandIntegrations() {
         }
 
         loadSettings();
+    }, [brandUser]);
+
+    useEffect(() => {
+        async function fetchWebhookEvents() {
+            if (!brandUser?.brandId) return;
+            const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
+            const q = query(
+                collection(db, 'brand_sync_logs'),
+                where('brandId', '==', brandUser.brandId),
+                orderBy('receivedAt', 'desc'),
+                limit(5)
+            );
+            const querySnapshot = await getDocs(q);
+            const events = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setWebhookEvents(events);
+        }
+        fetchWebhookEvents();
     }, [brandUser]);
 
     const handleTestConnection = async () => {
@@ -361,6 +379,62 @@ export default function BrandIntegrations() {
                     <li>2. Look at the URL: <code className="bg-blue-100 px-1 rounded">monday.com/boards/<strong>1234567890</strong></code></li>
                     <li>3. The number after "/boards/" is your Board ID</li>
                 </ol>
+            </div>
+
+            {/* Webhook URL Section */}
+            <div className="mt-8">
+                <h2 className="text-xl font-bold text-slate-800 mb-3">Webhook Configuration</h2>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <p className="text-sm text-slate-600 mb-4">
+                        To enable real-time updates from Monday.com (e.g., status changes), add the following webhook URL to your board's integration settings.
+                    </p>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            readOnly
+                            value={`${import.meta.env.VITE_WEBHOOK_URL}?brandId=${brandUser?.brandId}`}
+                            className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700"
+                        />
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(`${import.meta.env.VITE_WEBHOOK_URL}?brandId=${brandUser?.brandId}`);
+                                setSuccess('Webhook URL copied to clipboard!');
+                            }}
+                            className="px-4 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors"
+                        >
+                            Copy
+                        </button>
+                    </div>
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-bold text-gray-800 mb-2">Setup Instructions:</h4>
+                        <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
+                            <li>In your Monday.com board, click on "Integrate".</li>
+                            <li>Search for and select the "Webhooks" integration.</li>
+                            <li>Choose the trigger, e.g., "When a status changes to something".</li>
+                            <li>Paste the copied URL into the webhook URL field.</li>
+                            <li>Monday.com will send a challenge to the URL; our server handles it automatically.</li>
+                            <li>Your integration is now active!</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            {/* Webhook Event Log */}
+            <div className="mt-8">
+                <h2 className="text-xl font-bold text-slate-800 mb-3">Recent Webhook Events</h2>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    {webhookEvents.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center">No recent webhook events found.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                            {webhookEvents.map(event => (
+                                <li key={event.id} className="p-3 bg-gray-50 rounded-lg text-xs">
+                                    <pre className="whitespace-pre-wrap"><code>{JSON.stringify(event, null, 2)}</code></pre>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </div>
         </div>
     );

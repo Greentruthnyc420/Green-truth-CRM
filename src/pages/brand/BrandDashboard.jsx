@@ -11,6 +11,7 @@ import {
     BarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie
 } from 'recharts';
 import { getSales as getAllSales, getAllShifts } from '../../services/firestoreService';
+import { getMondayIntegrationStatus } from '../../services/mondayService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import RequestActivationModal from '../../components/RequestActivationModal';
 
@@ -26,6 +27,7 @@ export default function BrandDashboard() {
     }
 
     const [activeBrandId, setActiveBrandId] = useState(null);
+    const [mondayStatus, setMondayStatus] = useState({ connected: false, lastSync: null });
     const [financials, setFinancials] = useState({
         revenue: 0,
         commissionOwed: 0,
@@ -67,9 +69,10 @@ export default function BrandDashboard() {
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
                 const { getBrandLeads } = await import('../../services/firestoreService');
 
-                const [metrics, leads] = await Promise.all([
+                const [metrics, leads, mondayData] = await Promise.all([
                     calculateBrandMetrics(activeBrandId, currentBrandName),
-                    getBrandLeads(activeBrandId)
+                    getBrandLeads(activeBrandId),
+                    getMondayIntegrationStatus(activeBrandId)
                 ]);
 
                 // Fetch sample requests count manually for now (or integrate into metrics service later)
@@ -91,6 +94,7 @@ export default function BrandDashboard() {
 
                 setFinancials(prev => ({ ...prev, ...metrics }));
                 setBrandLeads(leads);
+                setMondayStatus(mondayData);
             } catch (error) {
                 console.error("Failed to load brand dashboard data", error);
             } finally {
@@ -312,6 +316,24 @@ export default function BrandDashboard() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Monday.com Integration Status */}
+                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${mondayStatus.connected ? 'bg-green-100' : 'bg-gray-100'}`}>
+                            <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-6 h-6" />
+                        </div>
+                        <Link to="/brand/integrations" className="text-xs font-bold text-emerald-600 hover:underline">
+                            Configure
+                        </Link>
+                    </div>
+                    <p className={`text-2xl font-bold ${mondayStatus.connected ? 'text-slate-800' : 'text-slate-500'}`}>
+                        {mondayStatus.connected ? 'Connected' : 'Not Connected'}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                        {mondayStatus.lastSync ? `Last sync: ${new Date(mondayStatus.lastSync).toLocaleString()}` : 'Data not syncing'}
+                    </p>
                 </div>
             </div>
 
