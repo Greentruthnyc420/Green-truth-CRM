@@ -101,13 +101,13 @@ export async function syncOrderToMonday(brandId, order, boardId) {
  * @returns {Promise<{connected: boolean, lastSync?: Date}>}
  */
 export async function getMondayIntegrationStatus(brandId) {
+    if (!brandId) {
+        return { connected: false, lastSync: null };
+    }
     try {
-        // This could be a Cloud Function or direct Firestore read
-        // For now, return placeholder - will be implemented fully
-        return {
-            connected: false,
-            lastSync: null
-        };
+        const getSettings = httpsCallable(functions, 'getMondaySettings');
+        const result = await getSettings({ brandId });
+        return result.data;
     } catch (error) {
         console.error('getMondayIntegrationStatus error:', error);
         return { connected: false, lastSync: null };

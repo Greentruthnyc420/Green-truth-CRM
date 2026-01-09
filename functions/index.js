@@ -143,6 +143,46 @@ exports.testMondayConnection = functions.https.onCall(async (data, context) => {
 });
 
 // ============================================================
+// FUNCTION: Get Monday.com Integration Settings
+// ============================================================
+const getMondaySettingsSchema = Joi.object({
+    brandId: Joi.string().required(),
+});
+
+exports.getMondaySettings = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    }
+
+    const { error, value } = getMondaySettingsSchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    }
+    const { brandId } = value;
+
+    try {
+        const docRef = db.collection('brand_integrations').doc(brandId);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return { connected: false };
+        }
+
+        const settings = doc.data();
+        // Return only non-sensitive data
+        return {
+            connected: !!settings.mondayApiToken,
+            lastSync: settings.lastSync || null,
+            leadsBoardId: settings.leadsBoardId || null,
+            ordersBoardId: settings.ordersBoardId || null,
+        };
+    } catch (error) {
+        functions.logger.error('getMondaySettings error:', error);
+        throw new functions.https.HttpsError('internal', 'Could not retrieve Monday.com settings');
+    }
+});
+
+// ============================================================
 // FUNCTION: Sync Lead to Monday.com
 // ============================================================
 const syncLeadToMondaySchema = Joi.object({
