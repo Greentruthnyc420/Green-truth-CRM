@@ -18,7 +18,8 @@ import {
     History,
     PlusCircle,
     Settings,
-    ShieldCheck
+    ShieldCheck,
+    Car
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -80,6 +81,7 @@ export default function AdminLayout() {
         { path: '/admin/workflow', label: 'Workflow', icon: CheckSquare },
         { path: '/admin/financials', label: 'Financials', icon: DollarSign },
         { path: '/admin/invoices', label: 'Invoices', icon: FileText },
+        { path: '/admin/logistics', label: 'Logistics', icon: Car },
         { path: '/admin/territory', label: 'Territory', icon: Map },
         { path: '/admin/team', label: 'Team', icon: Users },
         { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch },
