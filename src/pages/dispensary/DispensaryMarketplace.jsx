@@ -201,7 +201,7 @@ export default function DispensaryMarketplace() {
                                         <div>
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">{product.brandName}</span>
-                                                {product.thc && <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{product.thc}</span>}
+                                                {typeof product.thc === 'string' && product.thc.trim() && <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{product.thc}</span>}
                                             </div>
                                             <h3 className="font-bold text-slate-800 text-lg leading-tight mb-1 group-hover:text-emerald-700 transition-colors">{product.name}</h3>
                                             <p className="text-sm text-slate-400 font-medium mb-4 line-clamp-2" title={product.description}>{product.description}</p>
