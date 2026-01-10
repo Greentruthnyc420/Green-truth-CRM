@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
+import { getInvoices } from '../../services/invoiceService';
 import {
     FileText, DollarSign, Check, AlertTriangle,
     Clock, CheckCircle, Download, Eye
 } from 'lucide-react';
 
-// Mock invoices data
+// Mock invoices data (Keep Account Receivable mocks for now)
 const getMockInvoices = (brandId) => ({
     paid: [
         { id: 'INV-001', orderId: 'ORD-002', dispensary: 'Canna Corner', amount: 576, paidDate: '2026-01-03', dueDate: '2026-01-15' },
@@ -15,20 +16,41 @@ const getMockInvoices = (brandId) => ({
         { id: 'INV-003', orderId: 'ORD-001', dispensary: 'Green Leaf NYC', amount: 740, paidDate: null, dueDate: '2026-01-10', overdue: false },
         { id: 'INV-004', orderId: 'ORD-005', dispensary: 'Cloud Nine', amount: 360, paidDate: null, dueDate: '2026-01-15', overdue: false }
     ],
-    moneyOwed: 1200 // Money brand owes to GreenTruth (e.g., platform fees)
+    // moneyOwed removed from mock, will be fetched real
 });
 
 export default function BrandInvoices() {
     const { brandUser } = useBrandAuth();
-    const [invoices, setInvoices] = useState({ paid: [], unpaid: [], moneyOwed: 0 });
+    const [invoices, setInvoices] = useState({ paid: [], unpaid: [] });
+    const [moneyOwed, setMoneyOwed] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('unpaid');
 
     useEffect(() => {
-        setTimeout(() => {
-            setInvoices(getMockInvoices(brandUser?.brandId));
-            setLoading(false);
-        }, 300);
+        const fetchData = async () => {
+            if (!brandUser?.brandId) return;
+
+            // 1. Get AR Data (Mock)
+            const mockData = getMockInvoices(brandUser.brandId);
+            setInvoices({ paid: mockData.paid, unpaid: mockData.unpaid });
+
+            // 2. Get Real AP Data (Owed to GreenTruth)
+            try {
+                const gtInvoices = await getInvoices(brandUser.brandId);
+                const totalOutstanding = gtInvoices
+                    .filter(inv => inv.status !== 'paid')
+                    .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+
+                setMoneyOwed(totalOutstanding);
+            } catch (error) {
+                console.error("Failed to fetch GT invoices", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+        // setTimeout for effect? No, await is fine.
     }, [brandUser]);
 
     const handleMarkPaid = (invoiceId) => {
@@ -68,7 +90,7 @@ export default function BrandInvoices() {
                         <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                             <CheckCircle size={20} className="text-amber-700" />
                         </div>
-                        <span className="text-sm text-slate-500">Paid</span>
+                        <span className="text-sm text-slate-500">Paid (Receivable)</span>
                     </div>
                     <p className="text-2xl font-bold text-amber-700">${totalPaid.toLocaleString()}</p>
                 </div>
@@ -78,7 +100,7 @@ export default function BrandInvoices() {
                         <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
                             <Clock size={20} className="text-amber-600" />
                         </div>
-                        <span className="text-sm text-slate-500">Unpaid</span>
+                        <span className="text-sm text-slate-500">Unpaid (Receivable)</span>
                     </div>
                     <p className="text-2xl font-bold text-amber-600">${totalUnpaid.toLocaleString()}</p>
                 </div>
@@ -90,7 +112,7 @@ export default function BrandInvoices() {
                         </div>
                         <span className="text-sm text-slate-500">You Owe GreenTruth</span>
                     </div>
-                    <p className="text-2xl font-bold text-red-600">${invoices.moneyOwed.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-red-600">${moneyOwed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
             </div>
 
@@ -99,8 +121,8 @@ export default function BrandInvoices() {
                 <button
                     onClick={() => setActiveTab('unpaid')}
                     className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'unpaid'
-                            ? 'border-amber-500 text-amber-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        ? 'border-amber-500 text-amber-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     Unpaid ({invoices.unpaid.length})
@@ -108,8 +130,8 @@ export default function BrandInvoices() {
                 <button
                     onClick={() => setActiveTab('paid')}
                     className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'paid'
-                            ? 'border-amber-500 text-amber-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        ? 'border-amber-500 text-amber-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     Paid ({invoices.paid.length})
@@ -187,7 +209,7 @@ export default function BrandInvoices() {
             </div>
 
             {/* Money Owed Section */}
-            {invoices.moneyOwed > 0 && (
+            {moneyOwed > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-6">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
@@ -196,7 +218,7 @@ export default function BrandInvoices() {
                         <div className="flex-1">
                             <h3 className="font-bold text-red-800 mb-1">Outstanding Balance</h3>
                             <p className="text-sm text-red-600 mb-4">
-                                You currently owe GreenTruth ${invoices.moneyOwed.toLocaleString()} in platform fees.
+                                You currently owe GreenTruth ${moneyOwed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} in platform fees.
                                 Please remit payment to avoid service interruption.
                             </p>
                             <button className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">

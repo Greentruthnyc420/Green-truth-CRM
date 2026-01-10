@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signInWithPopup,
+    signInWithRedirect, // Added
+    getRedirectResult, // Added
     signOut,
     onAuthStateChanged,
     sendPasswordResetEmail,
@@ -26,23 +27,36 @@ export function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-
     // Domain Validation Helper
     const validateDomain = async (email, action) => {
-        // Bypass for known Admins
         if (ADMIN_EMAILS.includes(email.toLowerCase())) return true;
-
         // Strictly enforce @thegreentruthnyc.com for Sales Ambassadors/Staff
-        // Non-org emails are allowed but assumed to be Brands/Dispensaries (handled by role/claims)
-        // For now, we block @thegreentruthnyc.com if it's not a known admin or valid rep signup
-
-        const isOrgEmail = email.toLowerCase().endsWith('@thegreentruthnyc.com');
-
-        // If it's an org email, it MUST be valid (additional checks could go here)
-        // If it's NOT an org email, we allow it to proceed to Firebase Auth (for Brands/Dispensaries)
-
+        // const isOrgEmail = email.toLowerCase().endsWith('@thegreentruthnyc.com');
         return true;
     };
+
+    // Handle Redirect Result (for when Popup fails and we use Redirect instead)
+    useEffect(() => {
+        getRedirectResult(auth)
+            .then(async (result) => {
+                if (result) {
+                    const user = result.user;
+                    console.log("Google Redirect Sign-In Successful:", user.email);
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    const token = credential?.accessToken;
+                    await validateDomain(user.email, 'GOOGLE_REDIRECT_LOGIN');
+
+                    if (token) {
+                        sessionStorage.setItem('googleAccessToken', token);
+                    }
+                    user.accessToken = token;
+                    setCurrentUser(user);
+                }
+            })
+            .catch((error) => {
+                console.error("Redirect Login Error:", error);
+            });
+    }, []);
 
     async function signup(email, password) {
         await validateDomain(email, 'SIGNUP_ATTEMPT');
@@ -54,9 +68,17 @@ export function AuthProvider({ children }) {
         return signInWithEmailAndPassword(auth, email, password);
     }
 
+    // Configure Google Provider Scopes (Global Configuration)
+    // We add the scope once here to avoid accumulation or re-configuration issues.
+    // TEMPORARILY DISABLED: Testing if sensitive scope is causing desktop popup block
+    // googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+    // Ensure we force account selection to prevent auto-login loops with wrong accounts, 
+    // but ONLY DO THIS if it's not causing the popup-closed issue. 
+    // Re-enabling standard prompt just in case.
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+
     async function loginWithGoogle() {
         try {
-            googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
             const result = await signInWithPopup(auth, googleProvider);
             const credential = GoogleAuthProvider.credentialFromResult(result);
             const token = credential.accessToken;
@@ -73,8 +95,24 @@ export function AuthProvider({ children }) {
 
             return result;
         } catch (error) {
+            console.error("Google Sign-In Error (Popup):", error);
+            console.error("Error Code:", error.code);
+            console.error("Error Message:", error.message);
+
+            // Fallback to Redirect if Popup is blocked or closed
+            if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
+                console.warn("Popup failed, falling back to Redirect method...");
+                try {
+                    await signInWithRedirect(auth, googleProvider);
+                    // execution stops here as page redirects
+                    return;
+                } catch (redirectError) {
+                    console.error("Redirect Fallback failed:", redirectError);
+                }
+            }
+
             // Checks failed, ensure signed out
-            if (error.message.includes("Access Restricted")) {
+            if (error.message && error.message.includes("Access Restricted")) {
                 await signOut(auth);
             }
             throw error;
@@ -117,10 +155,13 @@ export function AuthProvider({ children }) {
         let mounted = true;
         const timeout = setTimeout(() => {
             if (mounted) {
-                console.warn("Auth check timed out, forcing load.");
+                // If we are still loading after 3 seconds, force load.
+                // But check if we are in a redirect operation first? 
+                // Creating a small delay helps avoid race conditions with RedirectResult.
+                console.warn("Auth check timeout safety trigger.");
                 setLoading(false);
             }
-        }, 2000);
+        }, 3000); // Increased to 3s to allow redirect resolution
 
         try {
             const unsubscribe = onAuthStateChanged(auth, async (user) => {

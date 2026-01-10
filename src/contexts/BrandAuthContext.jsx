@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -8,7 +8,6 @@ import {
     onAuthStateChanged,
     sendPasswordResetEmail
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 
 // Reserved System IDs
@@ -52,6 +51,8 @@ export function useBrandAuth() {
     return useContext(BrandAuthContext);
 }
 
+import { supabase } from '../services/supabaseClient';
+
 export function BrandAuthProvider({ children }) {
     const [brandUser, setBrandUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -62,35 +63,30 @@ export function BrandAuthProvider({ children }) {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // Check if this user is a brand user
-                    const docRef = doc(db, "brand_users", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        const mapping = docSnap.data();
+                    // Check if this user is a brand user (Supabase)
+                    const { data: mapping, error } = await supabase
+                        .from('brand_users')
+                        .select('*')
+                        .eq('uid', user.uid)
+                        .single();
+
+                    if (mapping) {
                         const brandInfo = BRAND_LICENSES[mapping.licenseNumber];
 
                         if (!brandInfo) {
                             console.warn("Brand license not found for user:", mapping.licenseNumber);
-                            // Don't crash, just log out or set null
                             setBrandUser(null);
                         } else {
-                            // Support for multi-brand: Check for allowedBrands in MULTI_BRAND_USERS config first, then Firestore
+                            // Support for multi-brand
                             let extraBrands = [];
-
-                            // Check hardcoded multi-brand users (takes precedence)
                             const multiBrandConfig = MULTI_BRAND_USERS[user.email?.toLowerCase()];
                             if (multiBrandConfig && Array.isArray(multiBrandConfig)) {
                                 extraBrands = multiBrandConfig.map(bid => {
                                     const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
                                     return key ? { ...BRAND_LICENSES[key], license: key } : null;
                                 }).filter(Boolean);
-                            }
-                            // Fallback to Firestore allowedBrands
-                            else if (mapping.allowedBrands && Array.isArray(mapping.allowedBrands)) {
-                                extraBrands = mapping.allowedBrands.map(bid => {
-                                    const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
-                                    return key ? { ...BRAND_LICENSES[key], license: key } : null;
-                                }).filter(Boolean);
+                            } else if (mapping.allowedBrands && Array.isArray(mapping.allowedBrands)) {
+                                extraBrands = mapping.allowedBrands.filter(Boolean); // Assuming migrated JSON structure matches
                             }
 
                             setBrandUser({
@@ -102,7 +98,6 @@ export function BrandAuthProvider({ children }) {
                             });
                         }
                     } else if (brandUser && !brandUser.isImpersonating) {
-                        // User logged in but no brand mapping found
                         setBrandUser(null);
                     }
                 } catch (err) {
@@ -137,17 +132,18 @@ export function BrandAuthProvider({ children }) {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 2. Create Mapping in Firestore
+            // 2. Create Mapping in Supabase
             const license = licenseNumber.toUpperCase().trim();
-            await setDoc(doc(db, "brand_users", user.uid), {
+            const { error } = await supabase.from('brand_users').insert([{
                 uid: user.uid,
                 email: email,
                 licenseNumber: license,
                 brandId: brandInfo.brandId,
-                createdAt: new Date().toISOString()
-            });
+                created_at: new Date().toISOString()
+            }]);
 
-            // State will be updated by onAuthStateChanged
+            if (error) throw error;
+
             return user;
         } catch (error) {
             console.error("Signup error:", error);
@@ -170,19 +166,17 @@ export function BrandAuthProvider({ children }) {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 2. Verification of mapping (optional as listener will catch it, but good for immediate feedback)
-            const docRef = doc(db, "brand_users", user.uid);
-            const docSnap = await getDoc(docRef);
+            // 2. Verification of mapping (Supabase)
+            const { data: mapping, error } = await supabase
+                .from('brand_users')
+                .select('*')
+                .eq('uid', user.uid)
+                .single();
 
-            if (!docSnap.exists()) {
-                // If it's a new login or mapping missing, we might need to handle it
-                // For now, if license was provided and valid, we could auto-create mapping if we want
-                // But normally signup handles this. If they login with different license, what happens?
-                // Let's enforce that the mapping must match the provided license for standard login.
+            if (!mapping) {
                 throw new Error('Account exists but not linked to this brand license. Please contact support.');
             }
 
-            const mapping = docSnap.data();
             if (mapping.licenseNumber.toUpperCase().trim() !== licenseNumber.toUpperCase().trim()) {
                 throw new Error("This account is linked to a different brand license.");
             }
@@ -200,16 +194,12 @@ export function BrandAuthProvider({ children }) {
 
     // Dev test login - bypasses license verification
     function devBrandLogin(brandId) {
-        // Find brand info by brandId
         const licenseKey = Object.keys(BRAND_LICENSES).find(key => BRAND_LICENSES[key].brandId === brandId);
-
         if (!licenseKey) {
             console.error('Unknown brand ID for dev login');
             return null;
         }
-
         const brandInfo = BRAND_LICENSES[licenseKey];
-
         const mockBrandUser = {
             ...brandInfo,
             licenseNumber: licenseKey,
@@ -217,7 +207,6 @@ export function BrandAuthProvider({ children }) {
             displayName: brandInfo.brandName,
             uid: `brand-${brandId}`
         };
-
         setBrandUser(mockBrandUser);
         return mockBrandUser;
     }
@@ -230,13 +219,15 @@ export function BrandAuthProvider({ children }) {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            // Check for existing mapping
-            const docRef = doc(db, "brand_users", user.uid);
-            const docSnap = await getDoc(docRef);
+            // Check for existing mapping (Supabase)
+            const { data: mapping } = await supabase
+                .from('brand_users')
+                .select('*')
+                .eq('uid', user.uid)
+                .single();
 
-            if (!docSnap.exists()) {
+            if (!mapping) {
                 if (!licenseNumber) {
-                    // Force them to provide a license if they haven't linked yet
                     await auth.signOut();
                     throw new Error("This Google account is not linked to a brand. Please sign in with your brand license first.");
                 }
@@ -244,14 +235,15 @@ export function BrandAuthProvider({ children }) {
                 const brandInfo = validateLicense(licenseNumber);
                 if (!brandInfo) throw new Error('Invalid license number.');
 
-                // Create the mapping
-                await setDoc(doc(db, "brand_users", user.uid), {
+                // Create the mapping (Supabase)
+                const { error } = await supabase.from('brand_users').insert([{
                     uid: user.uid,
                     email: user.email,
                     licenseNumber: licenseNumber.toUpperCase().trim(),
                     brandId: brandInfo.brandId,
-                    createdAt: new Date().toISOString()
-                });
+                    created_at: new Date().toISOString()
+                }]);
+                if (error) throw error;
             }
 
             return user;

@@ -1,12 +1,15 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { logout } = useAuth();
-    const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
+    // Defensive check for ADMIN_EMAILS to prevent white-screen crashes
+    const safeAdminEmails = Array.isArray(ADMIN_EMAILS) ? ADMIN_EMAILS : [];
+    const isAdmin = currentUser && currentUser.email && safeAdminEmails.includes(currentUser.email.toLowerCase());
+
     // Extract name from email (e.g., amber@thegreentruthnyc.com -> Amber)
     const userName = currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'User');
     const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
@@ -140,7 +143,9 @@ export default function Layout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
     const { currentUser } = useAuth();
 
-    const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
+    // Defensive check for ADMIN_EMAILS
+    const safeAdminEmails = Array.isArray(ADMIN_EMAILS) ? ADMIN_EMAILS : [];
+    const isAdmin = currentUser && currentUser.email && safeAdminEmails.includes(currentUser.email.toLowerCase());
 
     // Extract name from email (e.g., amber@thegreentruthnyc.com -> Amber)
     const userName = currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'User');
@@ -247,6 +252,7 @@ export default function Layout() {
                                     <>
                                         <MoreMenuItem to="/admin" icon={<ShieldCheck className="text-purple-500" />} label="Admin" onClick={() => setIsMoreMenuOpen(false)} />
                                         <MoreMenuItem to="/app/brand-oversight" icon={<Building2 className="text-pink-500" />} label="Oversight" onClick={() => setIsMoreMenuOpen(false)} />
+                                        <MoreMenuItem to="/admin/integrations" icon={<Settings className="text-slate-600" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
                                     </>
                                 )}
                             </div>

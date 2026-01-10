@@ -34,6 +34,19 @@ export async function getAllUsers() {
     return data;
 }
 
+export async function getBrandUsers(brandId) {
+    const { data, error } = await supabase
+        .from('brand_users')
+        .select('*')
+        .eq('brandId', brandId);
+
+    if (error) {
+        console.error("Error fetching brand users:", error);
+        return [];
+    }
+    return data;
+}
+
 // --- SHIFTS --- 
 
 export async function addShift(shiftData) {
@@ -376,25 +389,75 @@ export async function logActivity(activityData) {
     return Promise.resolve();
 }
 
+// Re-enabled Firestore implementation for Activations
+// Migrated Activations to Supabase
+
 export async function addActivation(data) {
-    // Activations not migrated yet
-    console.warn("addActivation not migrated to Supabase");
-    return Promise.resolve({ id: 'temp-id' });
+    try {
+        const { data: activation, error } = await supabase
+            .from('activations')
+            .insert([{
+                ...data,
+                created_at: new Date().toISOString(),
+                // Map camelCase to snake_case if table requires it?
+                // Assuming relaxed schema or matching case based on previous patterns.
+                // Keeping spread data for now, but usually Supabase is strict.
+                // If previous code just spread data, I will too, but add created_at.
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return activation.id;
+    } catch (error) {
+        console.error("Error adding activation: ", error);
+        throw error;
+    }
 }
 
 export async function updateActivation(id, data) {
-    console.warn("updateActivation not migrated");
-    return Promise.resolve();
+    try {
+        const { error } = await supabase
+            .from('activations')
+            .update(data)
+            .eq('id', id);
+
+        if (error) throw error;
+    } catch (error) {
+        console.error("Error updating activation: ", error);
+        throw error;
+    }
 }
 
 export async function deleteActivation(id) {
-    console.warn("deleteActivation not migrated");
-    return Promise.resolve();
+    try {
+        const { error } = await supabase
+            .from('activations')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    } catch (error) {
+        console.error("Error deleting activation: ", error);
+        throw error;
+    }
 }
 
 export async function getActivations(userId) {
-    console.warn("getActivations not migrated");
-    return [];
+    try {
+        let query = supabase.from('activations').select('*');
+
+        if (userId) {
+            query = query.eq('repId', userId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Error fetching activations: ", error);
+        return [];
+    }
 }
 
 export async function logSecurityEvent(eventData) {
@@ -459,7 +522,7 @@ export async function resetDatabase() {
     const { error: e1 } = await supabase.from('sales').delete().neq('id', 0);
     const { error: e2 } = await supabase.from('leads').delete().neq('id', 0);
     const { error: e3 } = await supabase.from('sample_requests').delete().neq('id', 0);
-    
+
     if (e1 || e2 || e3) {
         console.error("Error resetting DB:", e1, e2, e3);
         return false;

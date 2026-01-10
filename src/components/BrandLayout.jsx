@@ -1,11 +1,14 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BrandLayout() {
     const { brandUser, logoutBrand } = useBrandAuth();
     const navigate = useNavigate();
+
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
 
     const handleLogout = () => {
         logoutBrand();
@@ -179,12 +182,78 @@ export default function BrandLayout() {
                 </header>
 
                 {/* Mobile Navigation */}
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                    <MobileNavItem to="/brand" icon={<LayoutDashboard size={22} />} label="Dashboard" end />
-                    <MobileNavItem to="/brand/orders" icon={<ShoppingCart size={22} />} label="Orders" />
-                    <MobileNavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={22} />} label="Disp. Inv" />
-                    <MobileNavItem to="/brand/menu" icon={<Menu size={22} />} label="Menu" />
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+                    <MobileNavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
+                    <MobileNavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />
+                    <MobileNavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={20} />} label="Disp. Inv" />
+
+                    <button
+                        onClick={() => setIsMoreMenuOpen(true)}
+                        className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-emerald-700 transition-colors"
+                    >
+                        <Menu size={20} />
+                        <span className="text-[10px] font-medium">More</span>
+                    </button>
                 </nav>
+
+                {/* More Menu Slide-up / Overlay */}
+                <AnimatePresence>
+                    {isMoreMenuOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsMoreMenuOpen(false)}
+                                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] md:hidden"
+                            />
+                            <motion.div
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] z-[70] md:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                            >
+                                <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                                <div className="flex justify-between items-center mb-8">
+                                    <h2 className="text-xl font-bold text-slate-800">Brand Menu</h2>
+                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4 pb-8">
+                                    <MoreMenuItem to="/brand/new-lead" icon={<UserPlus className="text-emerald-500" />} label="New Lead" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <MoreMenuItem to="/brand/schedule" icon={<Calendar className="text-blue-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <MoreMenuItem to="/brand/map" icon={<Navigation className="text-orange-500" />} label="Store Map" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <MoreMenuItem to="/brand/menu" icon={<Menu className="text-indigo-500" />} label="Menu Editor" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <MoreMenuItem to="/brand/invoices/greentruth" icon={<ArrowUpRight className="text-emerald-600" />} label="GT Invoices" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <MoreMenuItem to="/brand/integrations" icon={<Settings className="text-purple-500" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
+                                </div>
+
+                                <div className="border-t border-slate-100 pt-6 mt-2 flex flex-col gap-3">
+                                    {isGhost && (
+                                        <button
+                                            onClick={() => { setIsMoreMenuOpen(false); handleExitGhostMode(); }}
+                                            className="w-full flex items-center justify-center gap-3 p-4 bg-amber-50 text-amber-700 font-bold rounded-2xl hover:bg-amber-100 transition-all border border-amber-100"
+                                        >
+                                            <span>👻</span>
+                                            Exit Ghost Mode
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => { setIsMoreMenuOpen(false); handleLogout(); }}
+                                        className="w-full flex items-center justify-center gap-3 p-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                    >
+                                        <LogOut size={20} />
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
 
                 {/* Page Content */}
                 <div className="p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto">
@@ -222,5 +291,21 @@ const MobileNavItem = ({ to, icon, label, end }) => (
     >
         {icon}
         <span className="text-[10px] font-medium">{label}</span>
+    </NavLink>
+);
+
+const MoreMenuItem = ({ to, icon, label, onClick }) => (
+    <NavLink
+        to={to}
+        onClick={onClick}
+        className={({ isActive }) =>
+            `flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${isActive
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                : 'bg-white border-slate-100 text-slate-600 active:bg-slate-50'
+            }`
+        }
+    >
+        {React.cloneElement(icon, { size: 24 })}
+        <span className="text-[11px] font-bold text-center leading-tight">{label}</span>
     </NavLink>
 );
