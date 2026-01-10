@@ -1,0 +1,12 @@
+{
+    "name": "GreenTruth Interface",
+    "ownerId": "tea-d5eq6ca4d50c73c9f5t0",
+    "repo": "https://github.com/Greentruthnyc420/Green-truth-CRM",
+    "type": "static_site",
+    "autoDeploy": "yes",
+    "branch": "main",
+    "serviceDetails": {
+        "buildCommand": "npm install && npm run build",
+        "publishPath": "dist"
+    }
+}

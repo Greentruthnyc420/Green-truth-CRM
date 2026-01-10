@@ -1,45 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllUsers, getAllShifts, getSales } from '../../../services/firestoreService';
-<<<<<<< HEAD
-import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff } from 'lucide-react';
+import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
-=======
-import { Users, Trophy, TrendingUp, Award, Briefcase } from 'lucide-react';
->>>>>>> origin/refactor-admin-team-page-12879250814436465303
 
 export default function AdminTeam() {
     const [salesAmbassadors, setSalesAmbassadors] = useState([]);
     const [brandPartners, setBrandPartners] = useState([]);
+    const [dispensaryPartners, setDispensaryPartners] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function loadTeamData() {
             setLoading(true);
             try {
-<<<<<<< HEAD
                 // Fetch all data for computation
                 const [users, shifts, sales, integrationsSnapshot] = await Promise.all([
-=======
-                const [users, shifts, sales] = await Promise.all([
->>>>>>> origin/refactor-admin-team-page-12879250814436465303
                     getAllUsers(),
                     getAllShifts(),
                     getSales(),
                     getDocs(collection(db, 'brand_integrations'))
                 ]);
 
-<<<<<<< HEAD
                 const integrationsData = {};
                 integrationsSnapshot.forEach(doc => {
                     integrationsData[doc.id] = doc.data();
                 });
-=======
-                const ambassadors = users.filter(u => u.role === 'rep');
-                const partners = users.filter(u => u.role !== 'rep');
->>>>>>> origin/refactor-admin-team-page-12879250814436465303
 
+                // --- 3-Way Split Logic ---
+                // 1. Sales Ambassadors: role === 'rep'
+                const ambassadors = users.filter(u => u.role === 'rep');
+
+                // 2. Brand Partners: role === 'brand' OR (role !== 'rep' AND email contains specific domains/users like Russ)
+                const brands = users.filter(u => {
+                    if (u.role === 'brand') return true;
+                    // Catch-all for non-reps that are NOT dispensaries
+                    if (u.role !== 'rep' && !u.role?.includes('dispensary') && u.role !== 'lead' && u.role !== 'sale') {
+                        // Explicitly include Russ/Admins here if needed
+                        return true;
+                    }
+                    return false;
+                });
+
+                // 3. Dispensary Partners: role === 'dispensary', 'lead', or 'sale'
+                // This captures clients who have logged in via the dispensary portal
+                const dispensaries = users.filter(u =>
+                    u.role === 'dispensary' || u.role === 'lead' || u.role === 'sale'
+                );
+
+
+                // Calculate stats for ambassadors ONLY
                 const ambassadorStats = ambassadors.map(user => {
                     const userShifts = shifts.filter(s => s.userId === user.id);
                     const userSales = sales.filter(s => s.userId === user.id);
@@ -66,7 +77,8 @@ export default function AdminTeam() {
                 const sortedAmbassadors = ambassadorStats.sort((a, b) => b.totalSalesAmount - a.totalSalesAmount);
 
                 setSalesAmbassadors(sortedAmbassadors);
-                setBrandPartners(partners);
+                setBrandPartners(brands);
+                setDispensaryPartners(dispensaries);
 
             } catch (error) {
                 console.error("Failed to load team data", error);
@@ -80,13 +92,13 @@ export default function AdminTeam() {
     const topPerformer = salesAmbassadors[0];
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-20">
             <header>
                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                     <Users className="text-brand-600" />
-                    Team Management
+                    Team & Partners
                 </h1>
-                <p className="text-slate-500">Manage ambassadors, brand partners, and view performance.</p>
+                <p className="text-slate-500">Manage ambassadors, brand partners, and dispensary clients.</p>
             </header>
 
             {loading ? (
@@ -95,6 +107,7 @@ export default function AdminTeam() {
                 </div>
             ) : (
                 <>
+                    {/* --- SECTION 1: SALES AMBASSADORS --- */}
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2">
                             <TrendingUp className="text-teal-500" />
@@ -122,89 +135,20 @@ export default function AdminTeam() {
 
                         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-700">All Ambassadors</h3>
-                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{salesAmbassadors.length} Members</span>
+                                <h3 className="font-bold text-slate-700">Ambassador Roster</h3>
+                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{salesAmbassadors.length} Active</span>
                             </div>
 
-<<<<<<< HEAD
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Ambassador</th>
-                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Monday.com Status</th>
-                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Total Sales</th>
-                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Hours Worked</th>
-                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Commission</th>
-                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {teamMembers.map((member, idx) => (
-                                        <tr key={member.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="py-4 px-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-xs">
-                                                        {(member.email?.[0] || 'U').toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-slate-800 text-sm">{member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}</p>
-                                                        <p className="text-xs text-slate-400">{member.email || 'No Email'}</p>
-                                                    </div>
-                                                    {idx < 3 && member.totalSalesAmount > 0 && (
-                                                        <span className="ml-2 text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200">
-                                                            #{idx + 1}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="py-4 px-6">
-                                                {member.integration.connected ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle size={16} className="text-emerald-500" />
-                                                        <div>
-                                                            <span className="font-bold text-sm text-emerald-600">Connected</span>
-                                                            <p className="text-xs text-slate-400">
-                                                                Last sync: {member.integration.lastSyncTimestamp ? member.integration.lastSyncTimestamp.toLocaleDateString() : 'N/A'}
-                                                                {member.integration.hasErrors && <AlertTriangle size={12} className="inline ml-1 text-red-500" />}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 text-slate-400">
-                                                        <PowerOff size={16} />
-                                                        <span className="text-sm font-medium">Not Connected</span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="py-4 px-6 text-right font-medium text-slate-700">
-                                                ${member.totalSalesAmount.toLocaleString()}
-                                            </td>
-                                            <td className="py-4 px-6 text-right text-slate-500">
-                                                {member.totalHours.toFixed(1)} hrs
-                                            </td>
-                                            <td className="py-4 px-6 text-right font-medium text-emerald-600">
-                                                ${member.totalCommission.toFixed(2)}
-                                            </td>
-                                            <td className="py-4 px-6 text-center">
-                                                <Link
-                                                    to={`/admin/team/${member.id}`}
-                                                    className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline"
-                                                >
-                                                    View Profile
-                                                </Link>
-                                            </td>
-=======
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-slate-50 border-b border-slate-100">
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Ambassador</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Total Sales</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Hours Worked</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Sales</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Hours</th>
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Commission</th>
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
->>>>>>> origin/refactor-admin-team-page-12879250814436465303
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
@@ -219,94 +163,135 @@ export default function AdminTeam() {
                                                             <p className="font-bold text-slate-800 text-sm">{member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}</p>
                                                             <p className="text-xs text-slate-400">{member.email || 'No Email'}</p>
                                                         </div>
-                                                        {idx < 3 && member.totalSalesAmount > 0 && (
-                                                            <span className="ml-2 text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200">
-                                                                #{idx + 1}
-                                                            </span>
-                                                        )}
                                                     </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    {member.integration.connected ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle size={16} className="text-emerald-500" />
+                                                            <span className="text-xs font-bold text-emerald-600">Active</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 text-slate-300">
+                                                            <PowerOff size={16} />
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="py-4 px-6 text-right font-medium text-slate-700">
                                                     ${member.totalSalesAmount.toLocaleString()}
                                                 </td>
                                                 <td className="py-4 px-6 text-right text-slate-500">
-                                                    {member.totalHours.toFixed(1)} hrs
+                                                    {member.totalHours.toFixed(1)}
                                                 </td>
                                                 <td className="py-4 px-6 text-right font-medium text-emerald-600">
                                                     ${member.totalCommission.toFixed(2)}
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
-                                                    <Link
-                                                        to={`/admin/team/${member.id}`}
-                                                        className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline"
-                                                    >
-                                                        View Profile
-                                                    </Link>
+                                                    <Link to={`/admin/team/${member.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-bold hover:underline">View</Link>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                                {salesAmbassadors.length === 0 && (
-                                    <p className="text-center text-slate-500 py-8">No sales ambassadors found.</p>
-                                )}
+                                {salesAmbassadors.length === 0 && <p className="text-center text-slate-500 py-8">No ambassadors yet.</p>}
                             </div>
                         </div>
                     </div>
 
+                    {/* --- SECTION 2: BRAND PARTNERS --- */}
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2">
-                           <Briefcase className="text-indigo-500" />
-                           Brand Partners
+                            <Briefcase className="text-indigo-500" />
+                            Brand Partners
                         </h2>
                         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-700">All Brand Partners</h3>
-                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{brandPartners.length} Members</span>
+                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-700">Partner Brands</h3>
+                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{brandPartners.length} Partners</span>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Partner</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Partner Entity</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Setup</th>
                                         </tr>
                                     </thead>
-                                     <tbody className="divide-y divide-slate-50">
+                                    <tbody className="divide-y divide-slate-50">
                                         {brandPartners.map(partner => (
                                             <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
                                                 <td className="py-4 px-6">
-                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-xs">
-                                                            {(partner.email?.[0] || 'U').toUpperCase()}
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                                                            {(partner.name?.[0] || partner.email?.[0] || 'B').toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-slate-800 text-sm">{partner.profileInfo ? `${partner.profileInfo.firstName} ${partner.profileInfo.lastName || ''}` : (partner.name || partner.email?.split('@')[0] || 'Unknown User')}</p>
-                                                            <p className="text-xs text-slate-400">{partner.email || 'No Email'}</p>
+                                                            <p className="font-bold text-slate-800 text-sm">{partner.name || 'Brand Partner'}</p>
+                                                            <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">Owner</span>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 px-6">
-                                                    <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
-                                                        {partner.role || 'Partner'}
-                                                    </span>
+                                                <td className="py-4 px-6 text-sm text-slate-500">
+                                                    {partner.email}
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
-                                                    <Link
-                                                        to={`/admin/team/${partner.id}`}
-                                                        className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline"
-                                                    >
-                                                        View Profile
-                                                    </Link>
+                                                    <Link to={`/admin/team/${partner.id}`} className="text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1.5 rounded-lg font-bold transition-colors">Manage</Link>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                                {brandPartners.length === 0 && (
-                                     <p className="text-center text-slate-500 py-8">No brand partners found.</p>
-                                )}
+                                {brandPartners.length === 0 && <p className="text-center text-slate-500 py-8">No brand partners found.</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- SECTION 3: DISPENSARY PARTNERS (NEW) --- */}
+                    <div className="space-y-6">
+                        <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2">
+                            <Store className="text-purple-500" />
+                            Dispensary Clients
+                        </h2>
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-700">Registered Dispensaries</h3>
+                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{dispensaryPartners.length} Clients</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-100">
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Dispensary</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Location</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {dispensaryPartners.map(partner => (
+                                            <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
+                                                            {(partner.name?.[0] || 'D').toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 text-sm">{partner.dispensaryName || partner.name || 'Unnamed Dispensary'}</p>
+                                                            <span className="text-[10px] text-slate-400">{partner.licenseNumber || 'No License'}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-slate-500">
+                                                    {partner.address || 'Unknown Location'}
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    <Link to={`/admin/team/${partner.id}`} className="text-xs bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-bold transition-colors">View Profile</Link>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {dispensaryPartners.length === 0 && <p className="text-center text-slate-500 py-8">No dispensary clients registered yet.</p>}
                             </div>
                         </div>
                     </div>

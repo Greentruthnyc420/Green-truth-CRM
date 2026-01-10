@@ -5,7 +5,7 @@ import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDo
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BrandLayout() {
-    const { brandUser, logoutBrand } = useBrandAuth();
+    const { brandUser, logoutBrand, switchBrand } = useBrandAuth();
     const navigate = useNavigate();
 
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
@@ -99,13 +99,51 @@ export default function BrandLayout() {
                 {/* Brand Context Header - Enhanced Legibility (Logo Removed per User Request) */}
                 <div className="p-6 bg-gradient-to-br from-emerald-600 to-emerald-700 border-b border-emerald-800 shrink-0">
                     <div className="flex flex-col gap-1">
-                        <h2 className="font-black text-white text-xl leading-tight" title={brandUser?.brandName}>
-                            {brandUser?.brandName || 'Brand Portal'}
-                        </h2>
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-                            <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-[0.1em]">Partner Dashboard</p>
-                        </div>
+                        {brandUser?.allowedBrands && brandUser.allowedBrands.length > 0 ? (
+                            <div className="relative">
+                                <label className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest mb-1 block">Context</label>
+                                <select
+                                    value={brandUser.brandId}
+                                    onChange={(e) => switchBrand(e.target.value)}
+                                    className="w-full bg-emerald-900/40 text-white font-bold text-sm rounded-lg border border-emerald-500/50 p-2 focus:ring-2 focus:ring-white/20 outline-none appearance-none cursor-pointer hover:bg-emerald-900/60 transition-colors"
+                                >
+                                    {/* Current Brand / Root Brand */}
+                                    <option value={brandUser.brandId} className="bg-slate-800 text-white">{brandUser.brandName}</option>
+
+                                    {/* Other Available Brands */}
+                                    {brandUser.allowedBrands
+                                        .filter(b => b.brandId !== brandUser.brandId) // Don't show current again
+                                        .map(b => (
+                                            <option key={b.brandId} value={b.brandId} className="bg-slate-800 text-white">
+                                                {b.brandName}
+                                            </option>
+                                        ))}
+
+                                    {/* If currently in sub-brand, offer switch back to root license (if distinct) */}
+                                    {/* This is handled by allowedBrands array in logic, but let's trust the array for now. Logic in AuthContext handles root fallback. */}
+                                </select>
+                                <div className="absolute right-3 bottom-3 pointer-events-none text-emerald-200">
+                                    <ArrowDownLeft size={12} className="rotate-[-45deg]" />
+                                </div>
+                            </div>
+                        ) : (
+                            <h2 className="font-black text-white text-xl leading-tight" title={brandUser?.brandName}>
+                                {brandUser?.brandName || 'Brand Portal'}
+                            </h2>
+                        )}
+
+                        {!brandUser?.allowedBrands && (
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                                <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-[0.1em]">Partner Dashboard</p>
+                            </div>
+                        )}
+                        {brandUser?.allowedBrands && (
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+                                <p className="text-orange-100 text-[10px] font-bold uppercase tracking-[0.1em]">Processor View</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

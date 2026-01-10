@@ -267,6 +267,8 @@ export default function BrandMenuEditor() {
             caseSize: 1,
             unit: 'unit',
             thc: '',
+            metrcTag: '',
+            riid: '',
             strainType: 'Hybrid',
             category: 'Flower',
             inStock: true
@@ -577,6 +579,34 @@ export default function BrandMenuEditor() {
                                                 </select>
                                             </div>
                                         </div>
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            <div>
+                                                <label className="text-xs text-slate-500 block mb-1">Metrc Tag (Package UID)</label>
+                                                <div className="relative">
+                                                    <Tag size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="1A40..."
+                                                        className="w-full pl-7 p-2 border border-slate-200 rounded-lg focus:border-amber-500 outline-none font-mono text-xs"
+                                                        value={newProduct.metrcTag || ''}
+                                                        onChange={(e) => setNewProduct(prev => ({ ...prev, metrcTag: e.target.value }))}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-slate-500 block mb-1">Retail Item ID (RIID)</label>
+                                                <div className="relative">
+                                                    <Hash size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="POS ID"
+                                                        className="w-full pl-7 p-2 border border-slate-200 rounded-lg focus:border-amber-500 outline-none font-mono text-xs"
+                                                        value={newProduct.riid || ''}
+                                                        onChange={(e) => setNewProduct(prev => ({ ...prev, riid: e.target.value }))}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div className="flex gap-2 pt-2">
                                             <button
                                                 onClick={handleSaveNew}
@@ -682,6 +712,26 @@ export default function BrandMenuEditor() {
                                                     </select>
                                                 </div>
                                             </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">Metrc Tag</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full p-2 border border-slate-200 rounded-lg focus:border-amber-500 outline-none font-mono text-xs"
+                                                        value={editingProduct.metrcTag || ''}
+                                                        onChange={(e) => setEditingProduct(prev => ({ ...prev, metrcTag: e.target.value }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-slate-500 block mb-1">RIID</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full p-2 border border-slate-200 rounded-lg focus:border-amber-500 outline-none font-mono text-xs"
+                                                        value={editingProduct.riid || ''}
+                                                        onChange={(e) => setEditingProduct(prev => ({ ...prev, riid: e.target.value }))}
+                                                    />
+                                                </div>
+                                            </div>
                                             <div className="flex gap-2 pt-2">
                                                 <button
                                                     onClick={handleSaveEdit}
@@ -765,7 +815,25 @@ export default function BrandMenuEditor() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-slate-500 mb-3 line-clamp-2">{product.description}</p>
+                                            <p className="text-sm text-slate-500 mb-2 line-clamp-2">{product.description}</p>
+
+                                            {/* Compliance IDs */}
+                                            {(product.metrcTag || product.riid) && (
+                                                <div className="flex flex-col gap-1 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                    {product.metrcTag && (
+                                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                                                            <Tag size={10} className="text-slate-400" />
+                                                            <span className="truncate" title={product.metrcTag}>{product.metrcTag}</span>
+                                                        </div>
+                                                    )}
+                                                    {product.riid && (
+                                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                                                            <Hash size={10} className="text-slate-400" />
+                                                            <span className="truncate" title={product.riid}>ID: {product.riid}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                                                 <span className="text-lg font-bold text-amber-600">${product.price.toFixed(2)}</span>
                                                 <span className="text-sm text-slate-500">{product.caseSize} per case</span>

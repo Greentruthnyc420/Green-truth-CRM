@@ -1,10 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, FileText, Download, Import, Upload, CheckCircle, Eye, RefreshCw } from 'lucide-react';
 import { useBrandAuth, AVAILABLE_BRANDS } from '../../../contexts/BrandAuthContext';
 import { createInvoice, getUnbilledActivations } from '../../../services/invoiceService';
@@ -35,18 +29,14 @@ const AdminInvoiceGenerator = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [lineItems, setLineItems] = useState([]); // Local state for builder
     const [notes, setNotes] = useState('');
+    const [dueDate, setDueDate] = useState('');
 
     // Auto-generate Due Date (Net 30)
     useEffect(() => {
         const today = new Date();
         const d = new Date(today);
         d.setDate(d.getDate() + 30);
-        // Set initial dueDate for the builder
-        setInvoiceData(prev => ({
-            ...prev,
-            date: today.toISOString().split('T')[0],
-            dueDate: d.toISOString().split('T')[0]
-        }));
+        setDueDate(d.toISOString().split('T')[0]);
     }, []);
 
     // Get brand list (exclude processors for now)
@@ -289,7 +279,7 @@ const AdminInvoiceGenerator = () => {
                                     <Plus size={16} /> Add Item
                                 </button>
                                 <button
-                                    onClick={handleImportActivations}
+                                    onClick={handleImportUnbilled}
                                     disabled={!selectedBrand || importLoading}
                                     className="px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
                                 >
@@ -528,3 +518,4 @@ const AdminInvoiceGenerator = () => {
         </div>
     );
 }
+export default AdminInvoiceGenerator;

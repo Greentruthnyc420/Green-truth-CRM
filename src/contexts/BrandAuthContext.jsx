@@ -255,6 +255,28 @@ export function BrandAuthProvider({ children }) {
         }
     }
 
+    // Switch context for multi-brand users (Processors)
+    function switchBrand(targetBrandId) {
+        if (!brandUser || !brandUser.allowedBrands) return;
+
+        const targetBrand = brandUser.allowedBrands.find(b => b.brandId === targetBrandId);
+        // Also allow switching back to the "Root" brand if it's not in the array (usually the license holder)
+        const isRoot = brandUser.licenseNumber && BRAND_LICENSES[brandUser.licenseNumber]?.brandId === targetBrandId;
+
+        if (targetBrand || isRoot) {
+            const newBrandInfo = targetBrand || BRAND_LICENSES[brandUser.licenseNumber];
+            setBrandUser(prev => ({
+                ...prev,
+                ...newBrandInfo,
+                // Keep the root license/email/uid same, just swap permission context
+                // But we might want to flag that we are "viewing as" someone else?
+                // For now, simple swap is enough as the UI uses brandId
+            }));
+        } else {
+            console.warn("Attempted to switch to unauthorized brand:", targetBrandId);
+        }
+    }
+
     // Admin Backdoor: Impersonate a brand
     function impersonateBrand(brandId, returnUrl = null) {
         // Verify Admin via AuthContext
@@ -271,6 +293,15 @@ export function BrandAuthProvider({ children }) {
 
         const brandInfo = BRAND_LICENSES[licenseKey];
 
+        // Processor Logic: If impersonating a processor, give them their sub-brands
+        let extraBrands = [];
+        if (brandInfo.isProcessor && brandId === 'flx-extracts') {
+            extraBrands = FLX_SUB_BRANDS.map(bid => {
+                const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
+                return key ? { ...BRAND_LICENSES[key], license: key } : null;
+            }).filter(Boolean);
+        }
+
         const ghostUser = {
             ...brandInfo,
             licenseNumber: licenseKey,
@@ -278,7 +309,8 @@ export function BrandAuthProvider({ children }) {
             displayName: `👻 ${brandInfo.brandName} (Admin)`,
             uid: `ghost-${brandId}`,
             isImpersonating: true,
-            returnUrl: returnUrl // Store the URL to return to
+            returnUrl: returnUrl, // Store the URL to return to
+            allowedBrands: extraBrands
         };
 
         setBrandUser(ghostUser);
@@ -320,6 +352,7 @@ export function BrandAuthProvider({ children }) {
         loginWithGoogle,
         devBrandLogin,
         impersonateBrand,
+        switchBrand,
         resetPassword,
         logoutBrand
     };
