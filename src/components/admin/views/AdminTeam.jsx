@@ -4,7 +4,9 @@ import { getAllUsers, getAllShifts, getSales } from '../../../services/firestore
 import { Users, Trophy, TrendingUp, Clock, Award } from 'lucide-react';
 
 export default function AdminTeam() {
-    const [teamMembers, setTeamMembers] = useState([]);
+    const [salesAmbassadors, setSalesAmbassadors] = useState([]);
+    const [brandPartners, setBrandPartners] = useState([]);
+    const [dispensaryPartners, setDispensaryPartners] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -17,9 +19,6 @@ export default function AdminTeam() {
                     getAllShifts(),
                     getSales()
                 ]);
-
-                // Filter for "Rep" roles (assuming default or explicit role)
-                // If role field isn't strict, we show all users for now.
 
                 const memberStats = users.map(user => {
                     const userShifts = shifts.filter(s => s.userId === user.id);
@@ -38,9 +37,17 @@ export default function AdminTeam() {
                     };
                 });
 
-                // Sort by Sales (Leaderboard style)
-                const sortedMembers = memberStats.sort((a, b) => b.totalSalesAmount - a.totalSalesAmount);
-                setTeamMembers(sortedMembers);
+                // Categorize users by role
+                const reps = memberStats.filter(user => user.role === 'rep');
+                const brands = memberStats.filter(user => user.role === 'brand');
+                const dispensaries = memberStats.filter(user => user.role === 'dispensary');
+
+                // Sort Sales Ambassadors by sales
+                const sortedReps = reps.sort((a, b) => b.totalSalesAmount - a.totalSalesAmount);
+
+                setSalesAmbassadors(sortedReps);
+                setBrandPartners(brands);
+                setDispensaryPartners(dispensaries);
 
             } catch (error) {
                 console.error("Failed to load team data", error);
@@ -51,8 +58,8 @@ export default function AdminTeam() {
         loadTeamData();
     }, []);
 
-    // Top Performer Logic
-    const topPerformer = teamMembers[0];
+    // Top Performer Logic (from Sales Ambassadors)
+    const topPerformer = salesAmbassadors[0];
 
     return (
         <div className="space-y-6">
@@ -91,13 +98,12 @@ export default function AdminTeam() {
                         </div>
                     )}
 
-                    {/* Team List Table */}
+                    {/* Sales Ambassadors Table */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                            <h2 className="font-bold text-slate-700">All Ambassadors</h2>
-                            <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{teamMembers.length} Members</span>
+                            <h2 className="font-bold text-slate-700">Sales Ambassadors</h2>
+                            <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{salesAmbassadors.length} Members</span>
                         </div>
-
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
@@ -110,7 +116,7 @@ export default function AdminTeam() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {teamMembers.map((member, idx) => (
+                                    {salesAmbassadors.map((member, idx) => (
                                         <tr key={member.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
@@ -128,22 +134,71 @@ export default function AdminTeam() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-6 text-right font-medium text-slate-700">
-                                                ${member.totalSalesAmount.toLocaleString()}
-                                            </td>
-                                            <td className="py-4 px-6 text-right text-slate-500">
-                                                {member.totalHours.toFixed(1)} hrs
-                                            </td>
-                                            <td className="py-4 px-6 text-right font-medium text-emerald-600">
-                                                ${member.totalCommission.toFixed(2)}
-                                            </td>
+                                            <td className="py-4 px-6 text-right font-medium text-slate-700">${member.totalSalesAmount.toLocaleString()}</td>
+                                            <td className="py-4 px-6 text-right text-slate-500">{member.totalHours.toFixed(1)} hrs</td>
+                                            <td className="py-4 px-6 text-right font-medium text-emerald-600">${member.totalCommission.toFixed(2)}</td>
                                             <td className="py-4 px-6 text-center">
-                                                <Link
-                                                    to={`/admin/team/${member.id}`}
-                                                    className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline"
-                                                >
-                                                    View Profile
-                                                </Link>
+                                                <Link to={`/admin/team/${member.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline">View Profile</Link>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Brand Partners Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                            <h2 className="font-bold text-slate-700">Brand Partners</h2>
+                            <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{brandPartners.length} Members</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Brand Name</th>
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Contact Email</th>
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {brandPartners.map(partner => (
+                                        <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="py-4 px-6 font-medium text-slate-800">{partner.profileInfo?.brandName || partner.name || 'N/A'}</td>
+                                            <td className="py-4 px-6 text-slate-500">{partner.email}</td>
+                                            <td className="py-4 px-6 text-center">
+                                                <Link to={`/admin/team/${partner.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline">View Profile</Link>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Dispensary Partners Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                            <h2 className="font-bold text-slate-700">Dispensary Partners</h2>
+                            <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{dispensaryPartners.length} Members</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Dispensary Name</th>
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Contact Email</th>
+                                        <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {dispensaryPartners.map(partner => (
+                                        <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="py-4 px-6 font-medium text-slate-800">{partner.profileInfo?.dispensaryName || partner.name || 'N/A'}</td>
+                                            <td className="py-4 px-6 text-slate-500">{partner.email}</td>
+                                            <td className="py-4 px-6 text-center">
+                                                <Link to={`/admin/team/${partner.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-medium hover:underline">View Profile</Link>
                                             </td>
                                         </tr>
                                     ))}
