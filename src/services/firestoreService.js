@@ -466,3 +466,57 @@ export async function resetDatabase() {
     }
     return true;
 }
+
+// --- LOGISTICS (DRIVERS & VEHICLES) ---
+
+// Drivers
+export async function getDrivers() {
+    const { data, error } = await supabase.from('drivers').select('*');
+    if (error) {
+        console.error("Supabase getDrivers failed", error);
+        return [];
+    }
+    return data;
+}
+
+export async function addDriver(driverData) {
+    const { data, error } = await supabase.from('drivers').insert([driverData]).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateDriver(driverId, updates) {
+    const { error } = await supabase.from('drivers').update(updates).eq('id', driverId);
+    return !error;
+}
+
+export async function deleteDriver(driverId) {
+    const { error } = await supabase.from('drivers').delete().eq('id', driverId);
+    return !error;
+}
+
+// Vehicles
+export async function getVehicles() {
+    const { data, error } = await supabase.from('vehicles').select('*');
+    if (error) {
+        console.error("Supabase getVehicles failed", error);
+        return [];
+    }
+    return data;
+}
+
+export async function addVehicle(vehicleData) {
+    const { data, error } = await supabase.from('vehicles').insert([vehicleData]).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateVehicle(vehicleId, updates) {
+    const { error } = await supabase.from('vehicles').update(updates).eq('id', vehicleId);
+    return !error;
+}
+
+export async function deleteVehicle(vehicleId) {
+    const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId);
+    return !error;
+}
