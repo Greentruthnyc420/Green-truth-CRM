@@ -20,6 +20,7 @@ import LeadMap from './pages/LeadMap';
 import Schedule from './pages/Schedule';
 // BrandOversight removed
 import PrivateRoute from './components/PrivateRoute';
+import LandingPage from './pages/LandingPage'; // Import the new LandingPage component
 import GatewayLanding from './pages/GatewayLanding';
 import { NotificationProvider } from './contexts/NotificationContext';
 
@@ -71,8 +72,11 @@ function App() {
     <NotificationProvider>
       <Routes>
 
+        {/* New Animated Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Gateway Landing Page */}
-        <Route path="/" element={<GatewayLanding />} />
+        <Route path="/gateway" element={<GatewayLanding />} />
 
         {/* Admin Portal (New) */}
         <Route path="/admin/login" element={<AdminLogin />} />
