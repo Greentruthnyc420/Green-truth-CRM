@@ -10,9 +10,66 @@ import {
 import { uploadBrandMenu } from '../../services/storageService';
 import { useNotification } from '../../contexts/NotificationContext';
 
+import { exportToDutchie, exportToBlaze, exportMetrcReady } from '../../utils/csvExporters';
+import Papa from 'papaparse';
+
 export default function BrandMenuEditor() {
     const { brandUser } = useBrandAuth();
     const { showNotification } = useNotification();
+
+    // Selected brand for menu editing (defaults to current brand)
+    const [selectedBrandId, setSelectedBrandId] = React.useState(null);
+    const [selectedBrandName, setSelectedBrandName] = React.useState('');
+
+    // Initialize selected brand when brandUser loads
+    React.useEffect(() => {
+        if (brandUser?.brandId && !selectedBrandId) {
+            setSelectedBrandId(brandUser.brandId);
+            setSelectedBrandName(brandUser.brandName);
+        }
+    }, [brandUser, selectedBrandId]);
+
+    // ... existing hooks ...
+
+    // ... existing handlers ...
+
+    const handleExport = (type) => {
+        if (!products.length) {
+            showNotification("No products to export", "info");
+            return;
+        }
+        if (type === 'dutchie') exportToDutchie(products, selectedBrandName);
+        if (type === 'blaze') exportToBlaze(products, selectedBrandName);
+        if (type === 'metrc') exportMetrcReady(products);
+    };
+
+    const handleImportCSV = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        Papa.parse(file, {
+            header: true,
+            complete: async (results) => {
+                const importedProducts = results.data.map((row, i) => ({
+                    id: `${selectedBrandId}-csv-${Date.now()}-${i}`,
+                    name: row.Name || row.name || 'Unknown Product',
+                    category: row.Category || row.category || 'Flower',
+                    price: parseFloat(row.Price || row.price || 0),
+                    thc: row.THC || row.thc || '0%',
+                    strainType: row.Strain || row.strainType || 'Hybrid',
+                    metrcTag: row.Metrc || row.metrcTag || '',
+                    riid: row.RIID || row.riid || '',
+                    image: row.Image || ''
+                })).filter(p => p.name && p.name !== 'Unknown Product');
+
+                setParsedProducts(importedProducts);
+                setShowReviewModal(true);
+            },
+            error: (err) => {
+                showNotification("Failed to parse CSV", "error");
+            }
+        });
+    };
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -51,9 +108,9 @@ export default function BrandMenuEditor() {
 
             // 1. Upload to Storage (Skip if scan_only)
             if (scanMode === 'both' || scanMode === 'upload_only') {
-                url = await uploadBrandMenu(file, brandUser.brandId);
+                url = await uploadBrandMenu(file, selectedBrandId);
                 // 2. Update Firestore Profile
-                await updateBrandMenuUrl(brandUser.brandId, url);
+                await updateBrandMenuUrl(selectedBrandId, url);
                 setUploadSuccess(true);
             }
 
@@ -67,7 +124,7 @@ export default function BrandMenuEditor() {
                     // Ensure IDs are unique
                     const stampedProducts = aiProducts.map((p, i) => ({
                         ...p,
-                        id: `${brandUser.brandId}-parsed-${Date.now()}-${i}`
+                        id: `${selectedBrandId}-parsed-${Date.now()}-${i}`
                     }));
                     setParsedProducts(stampedProducts);
                     setShowReviewModal(true);
@@ -199,27 +256,25 @@ export default function BrandMenuEditor() {
 
     useEffect(() => {
         async function loadProducts() {
-            if (!brandUser?.brandId) return;
+            if (!selectedBrandId) return;
 
+            setLoading(true);
             // Try fetching dynamic products first
-            const dynamicProducts = await getBrandProducts(brandUser.brandId);
+            const dynamicProducts = await getBrandProducts(selectedBrandId);
 
             if (dynamicProducts && dynamicProducts.length > 0) {
                 setProducts(dynamicProducts);
             } else {
                 // Fallback to static catalog if no dynamic data exists
-                const brandData = PRODUCT_CATALOG.find(b => b.id === brandUser.brandId);
+                const brandData = PRODUCT_CATALOG.find(b => b.id === selectedBrandId);
                 if (brandData) {
                     setProducts(brandData.products);
-                    // Optional: Auto-seed Firestore so future edits work on top of this?
-                    // Let's not auto-save on load to avoid unintended writes, 
-                    // but the first manual save will persist this list to Firestore.
                 }
             }
             setLoading(false);
         }
         loadProducts();
-    }, [brandUser]);
+    }, [selectedBrandId]); // Re-fetch when selected brand changes
 
     const handleEdit = (product) => {
         setEditingProduct({ ...product });
@@ -280,7 +335,7 @@ export default function BrandMenuEditor() {
             showNotification('Please fill in all required fields', 'warning');
             return;
         }
-        const updatedProducts = [...products, { ...newProduct, id: `${brandUser?.brandId}-${Date.now()}` }];
+        const updatedProducts = [...products, { ...newProduct, id: `${selectedBrandId}-${Date.now()}` }];
         setProducts(updatedProducts);
         setNewProduct(null);
         await saveToFirestore(updatedProducts);
@@ -288,7 +343,7 @@ export default function BrandMenuEditor() {
 
     const saveToFirestore = async (currentProducts) => {
         setSaveStatus('saving');
-        const success = await updateBrandProducts(brandUser.brandId, currentProducts);
+        const success = await updateBrandProducts(selectedBrandId, currentProducts);
         if (success) {
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus(null), 2000);
@@ -320,9 +375,42 @@ export default function BrandMenuEditor() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Menu Editor</h1>
-                    <p className="text-slate-500">Manage your product catalog. Changes sync to all sales reps.</p>
+                <div className="flex-1">
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">Menu Editor</h1>
+                            <p className="text-slate-500">Manage your product catalog. Changes sync to all sales reps.</p>
+                        </div>
+
+                        {/* Brand Selector for Processors */}
+                        {brandUser?.allowedBrands && brandUser.allowedBrands.length > 0 && (
+                            <div className="ml-4">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Editing Menu For</label>
+                                <select
+                                    value={selectedBrandId || ''}
+                                    onChange={(e) => {
+                                        const newBrandId = e.target.value;
+                                        const newBrand = [brandUser, ...brandUser.allowedBrands].find(b => (b.brandId || b.id) === newBrandId);
+                                        setSelectedBrandId(newBrandId);
+                                        setSelectedBrandName(newBrand?.brandName || newBrand?.name || '');
+                                    }}
+                                    className="min-w-[200px] bg-white border-2 border-amber-200 text-slate-800 font-bold text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none cursor-pointer hover:border-amber-300 transition-colors shadow-sm"
+                                >
+                                    {/* Current/Root Brand */}
+                                    <option value={brandUser.brandId}>{brandUser.brandName}</option>
+
+                                    {/* Sub-brands */}
+                                    {brandUser.allowedBrands
+                                        .filter(b => b.brandId !== brandUser.brandId)
+                                        .map(b => (
+                                            <option key={b.brandId} value={b.brandId}>
+                                                {b.brandName}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-3">
                     {saveStatus === 'saving' && (
@@ -337,6 +425,32 @@ export default function BrandMenuEditor() {
                             Saved!
                         </span>
                     )}
+                    {/* Import/Export Actions */}
+                    <label className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 cursor-pointer font-medium transition-colors shadow-sm">
+                        <Upload size={18} />
+                        Import CSV
+                        <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+                    </label>
+
+                    {/* Export Dropdown */}
+                    <div className="relative group">
+                        <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center gap-2">
+                            <Upload size={18} className="rotate-180" /> {/* Download Icon */}
+                            Export CSV
+                        </button>
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                            <button onClick={() => handleExport('dutchie')} className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-medium text-slate-700 border-b border-slate-100 flex items-center gap-2">
+                                <span>🇳🇱</span> Dutchie Format
+                            </button>
+                            <button onClick={() => handleExport('blaze')} className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-medium text-slate-700 border-b border-slate-100 flex items-center gap-2">
+                                <span>🔥</span> Blaze Format
+                            </button>
+                            <button onClick={() => handleExport('metrc')} className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-medium text-slate-700 flex items-center gap-2">
+                                <span>📦</span> Metrc Ready
+                            </button>
+                        </div>
+                    </div>
+
                     <button
                         onClick={handleAddNew}
                         className="px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors flex items-center gap-2"

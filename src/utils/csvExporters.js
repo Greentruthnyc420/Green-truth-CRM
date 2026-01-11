@@ -16,19 +16,18 @@ const downloadCSV = (csvString, filename) => {
 };
 
 // 1. Dutchie Export Format
-// Based on standard Dutchie inventory upload templates
 export const exportToDutchie = (products, brandName) => {
     const data = products.map(p => ({
         'Product Name': p.name,
-        'Category': p.category,
+        'Quantity': p.quantity || p.caseSize || 1,
+        'Batch ID': p.metrcTag || '',
+        'External ID': p.riid || p.id,
+        'Category': p.category || 'Flower',
         'Strain Type': p.strainType || 'Hybrid',
         'THC Content': p.thc || '',
-        'Description': p.description,
+        'Description': p.description || '',
         'Price': p.price,
-        'Quantity': p.inStock ? 100 : 0, // Placeholder quantity or derived
-        'Batch ID': p.metrcTag || '', // Use Metrc Tag as Batch ID if avail
-        'External ID': p.riid || p.id,
-        'Brand': brandName || ''
+        'Brand': brandName || p.brandName || ''
     }));
 
     const csv = Papa.unparse(data);
@@ -38,29 +37,73 @@ export const exportToDutchie = (products, brandName) => {
 // 2. Blaze Export Format
 export const exportToBlaze = (products, brandName) => {
     const data = products.map(p => ({
-        'name': p.name,
-        'brand': brandName || '',
-        'type': p.category,
-        'price': p.price,
-        'sku': p.riid || p.id,
-        'metrc_tag': p.metrcTag || '',
-        'description': p.description,
-        'thc': p.thc || '',
-        'weight_per_unit': p.weight || '1g' // Assumption
+        'Product Name': p.name,
+        'Brand': brandName || p.brandName || '',
+        'Category': p.category || 'Flower',
+        'SKU': p.riid || p.id,
+        'Quantity': p.quantity || p.caseSize || 1,
+        'Wholesale Cost': p.price,
+        'Metrc Tag': p.metrcTag || '',
+        'Batch Number': p.batchNumber || p.metrcTag || '',
+        'Active': 'Yes'
     }));
 
     const csv = Papa.unparse(data);
     downloadCSV(csv, `blaze_inventory_${Date.now()}.csv`);
 };
 
-// 3. Generic/Metrc Ready CSV
+// 3. Cova Export Format
+export const exportToCova = (products, brandName) => {
+    const data = products.map(p => ({
+        'Product Name': p.name,
+        'SKU': p.riid || p.id,
+        'Classification': p.category || 'Inhalable',
+        'Batch Tracking': 'TRUE',
+        'Batch Number': p.metrcTag || '',
+        'Quantity': p.quantity || p.caseSize || 1,
+        'Unit Cost': p.price,
+        'Selling Price': '',
+        'Supplier': brandName || p.brandName || ''
+    }));
+
+    const csv = Papa.unparse(data);
+    downloadCSV(csv, `cova_inventory_${Date.now()}.csv`);
+};
+
+// 4. BioTrack Export
+export const exportToBioTrack = (products) => {
+    const data = products.map(p => ({
+        'Barcode': p.metrcTag || p.riid || '',
+        'Inventory ID': p.riid || p.metrcTag || '',
+        'Product Name': p.name,
+        'Quantity': p.quantity || 1,
+        'Usable Weight': '0',
+        'External ID': p.riid || ''
+    }));
+    const csv = Papa.unparse(data);
+    downloadCSV(csv, `biotrack_import_${Date.now()}.csv`);
+};
+
+// 5. LeafLogix Export
+export const exportToLeafLogix = (products) => {
+    const data = products.map(p => ({
+        'SKU': p.riid || p.metrcTag || '',
+        'Quantity': p.quantity || 1,
+        'Cost': p.price,
+        'Product Name': p.name
+    }));
+    const csv = Papa.unparse(data);
+    downloadCSV(csv, `leaflogix_import_${Date.now()}.csv`);
+};
+
+// 6. Generic / Metrc Ready
 export const exportMetrcReady = (products) => {
     const data = products.map(p => ({
         'Item Name': p.name,
         'Category': p.category,
-        'Unit of Measure': p.unit || 'Each',
         'Package Tag': p.metrcTag || '',
-        'Quantity': p.caseSize || 1,
+        'Quantity': p.quantity || p.caseSize || 1,
+        'Unit of Measure': p.unit || 'Each',
         'Note': p.description
     }));
 

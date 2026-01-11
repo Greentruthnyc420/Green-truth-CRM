@@ -57,6 +57,8 @@ import BrandMap from './pages/brand/BrandMap';
 import BrandNewLead from './pages/brand/BrandNewLead';
 import BrandIntegrations from './pages/brand/BrandIntegrations';
 import BrandSyncHistory from './pages/brand/BrandSyncHistory';
+import BrandLogistics from './pages/brand/BrandLogistics';
+import BrandFulfillment from './pages/brand/BrandFulfillment';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
 // Dispensary Portal Imports
@@ -67,6 +69,11 @@ import DispensaryLayout from './components/DispensaryLayout';
 import DispensaryDashboard from './pages/dispensary/DispensaryDashboard';
 import DispensaryPrivateRoute from './components/DispensaryPrivateRoute';
 import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
+import DispensaryIntegrations from './pages/dispensary/DispensaryIntegrations';
+
+// Driver Portal Imports
+import DriverLogin from './pages/driver/DriverLogin';
+import DriverDashboard from './pages/driver/DriverDashboard';
 
 function App() {
   return (
@@ -137,6 +144,8 @@ function App() {
             <Route path="new-lead" element={<BrandNewLead />} />
             <Route path="integrations" element={<BrandIntegrations />} />
             <Route path="sync-history" element={<BrandSyncHistory />} />
+            <Route path="logistics" element={<BrandLogistics />} />
+            <Route path="fulfillment" element={<BrandFulfillment />} />
           </Route>
         </Route>
 
@@ -149,8 +158,14 @@ function App() {
           <Route path="/dispensary" element={<DispensaryLayout />}>
             <Route index element={<DispensaryDashboard />} />
             <Route path="marketplace" element={<DispensaryMarketplace />} />
+            <Route path="integrations" element={<DispensaryIntegrations />} />
           </Route>
         </Route>
+
+        {/* Driver Portal */}
+        <Route path="/driver/login" element={<DriverLogin />} />
+        <Route path="/driver/dashboard" element={<DriverDashboard />} />
+
       </Routes>
     </NotificationProvider>
   );

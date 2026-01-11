@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BrandLayout() {
@@ -158,6 +158,12 @@ export default function BrandLayout() {
                     <NavItem to="/brand/invoices/greentruth" icon={<ArrowUpRight size={20} />} label="GreenTruth Inv." />
                     <NavItem to="/brand/menu" icon={<Menu size={20} />} label="Menu Editor" />
                     <NavItem to="/brand/integrations" icon={<Settings size={20} />} label="Integrations" />
+                    {(brandUser?.isProcessor || brandUser?.allowedBrands?.length > 0) && (
+                        <>
+                            <NavItem to="/brand/logistics" icon={<Car size={20} />} label="Logistics" />
+                            <NavItem to="/brand/fulfillment" icon={<Package size={20} />} label="Fulfillment" />
+                        </>
+                    )}
                 </nav>
 
                 {/* User Section */}

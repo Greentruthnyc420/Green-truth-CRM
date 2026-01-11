@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Package, Shield, Sparkles, Store } from 'lucide-react';
+import { Users, Package, Shield, Sparkles, Store, Truck } from 'lucide-react';
 
 // Import main logo
 import logoMain from '../assets/images/logo-main.png';
@@ -42,7 +42,7 @@ export default function GatewayLanding() {
     const navigate = useNavigate();
     const [hoveredCard, setHoveredCard] = useState(null);
 
-    const portalCards = [
+    const mainPortals = [
         {
             id: 'rep',
             title: 'Sales Ambassadors',
@@ -71,16 +71,25 @@ export default function GatewayLanding() {
             glow: 'shadow-purple-500/50'
         },
         {
-            id: 'admin',
-            title: 'Admin',
-            description: 'Oversight & Analytics',
-            icon: Shield,
-            color: 'from-slate-600 to-slate-800',
-            path: '/admin/login',
-            glow: 'shadow-slate-500/50',
-            isSecondary: true
+            id: 'driver',
+            title: 'Driver Portal',
+            description: 'View routes & delivery assignments',
+            icon: Truck,
+            color: 'from-blue-500 to-cyan-600',
+            path: '/driver/login',
+            glow: 'shadow-blue-500/50'
         }
     ];
+
+    const adminPortal = {
+        id: 'admin',
+        title: 'Admin',
+        description: 'Oversight & Analytics',
+        icon: Shield,
+        color: 'from-slate-600 to-slate-800',
+        path: '/admin/login',
+        glow: 'shadow-slate-500/50'
+    };
 
     // Generate random floating particles
     const particles = Array.from({ length: 15 }).map((_, i) => ({
@@ -202,8 +211,9 @@ export default function GatewayLanding() {
                         Select Portal
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                        {portalCards.map((card, index) => (
+                    {/* Main Portal Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        {mainPortals.map((card, index) => (
                             <motion.button
                                 key={card.id}
                                 initial={{ opacity: 0, y: 20 }}
@@ -248,6 +258,52 @@ export default function GatewayLanding() {
                                 </div>
                             </motion.button>
                         ))}
+                    </div>
+
+                    {/* Admin Portal - Centered Below */}
+                    <div className="flex justify-center">
+                        <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1, duration: 0.5 }}
+                            onClick={() => navigate(adminPortal.path)}
+                            onMouseEnter={() => setHoveredCard(adminPortal.id)}
+                            onMouseLeave={() => setHoveredCard(null)}
+                            className="relative group perspective-1000 w-full max-w-xs"
+                        >
+                            {/* Glow Effect */}
+                            <motion.div
+                                className={`absolute -inset-0.5 bg-gradient-to-r ${adminPortal.color} rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                                animate={hoveredCard === adminPortal.id ? { scale: [1, 1.02, 1] } : {}}
+                                transition={{ duration: 2, repeat: Infinity }}
+                            />
+
+                            {/* Card Content */}
+                            <div className="relative bg-slate-900/95 backdrop-blur-xl border border-slate-800 group-hover:border-slate-600 rounded-2xl p-8 transition-all duration-300 h-full flex flex-col items-center text-center">
+                                <motion.div
+                                    className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${adminPortal.color} flex items-center justify-center mb-6 shadow-lg`}
+                                    whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
+                                    transition={{ duration: 0.5 }}
+                                >
+                                    <adminPortal.icon size={36} className="text-white" />
+                                </motion.div>
+
+                                <h3 className="text-2xl font-bold text-white mb-3">{adminPortal.title}</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed">{adminPortal.description}</p>
+
+                                {/* Particle Effect on Hover */}
+                                {hoveredCard === adminPortal.id && (
+                                    <motion.div
+                                        className="absolute top-4 right-4"
+                                        initial={{ opacity: 0, scale: 0 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0 }}
+                                    >
+                                        <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${adminPortal.color} shadow-[0_0_10px_currentColor]`} />
+                                    </motion.div>
+                                )}
+                            </div>
+                        </motion.button>
                     </div>
                 </motion.div>
 

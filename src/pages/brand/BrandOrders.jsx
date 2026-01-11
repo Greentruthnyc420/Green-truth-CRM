@@ -3,11 +3,12 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import {
     ShoppingCart, Check, X, Calendar, Truck,
     Clock, CheckCircle, XCircle, Package,
-    ChevronDown, Search, Filter
+    ChevronDown, Search, Filter, FileText
 } from 'lucide-react';
 
 import { getSales, updateSaleStatus, updateSale } from '../../services/firestoreService';
 import { getMondayIntegrationStatus, syncOrderToMonday } from '../../services/mondayService';
+import { generateManifestPDF } from '../../utils/manifestGenerator';
 import SampleRequests from '../../components/SampleRequests';
 import { useNotification } from '../../contexts/NotificationContext';
 
@@ -283,6 +284,20 @@ export default function BrandOrders() {
                                         >
                                             <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-4 h-4" />
                                             Sync
+                                        </button>
+                                    )}
+                                    {(order.status === 'accepted' || order.status === 'fulfilled') && (
+                                        <button
+                                            onClick={() => generateManifestPDF(order, {
+                                                shipper: { name: brandUser.brandName, address: 'See Facility Address', license: 'P-123' },
+                                                driver: { name: 'Assigned Driver', vehiclePlate: 'ABC-123' },
+                                                route: 'Standard Route'
+                                            })}
+                                            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors flex items-center gap-2"
+                                            title="Generate PDF Manifest"
+                                        >
+                                            <FileText size={16} />
+                                            Manifest
                                         </button>
                                     )}
                                 </div>

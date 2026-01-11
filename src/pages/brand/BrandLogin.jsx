@@ -57,6 +57,7 @@ export default function BrandLogin() {
     // Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [accountType, setAccountType] = useState('brand'); // 'brand' | 'processor'
 
     // Convert AVAILABLE_BRANDS object to array for brand selection
     const brandList = Object.entries(AVAILABLE_BRANDS).map(([brandId, info]) => ({
@@ -83,7 +84,7 @@ export default function BrandLogin() {
 
         try {
             if (authMode === 'signup') {
-                await signupBrand(email, password, licenseNumber);
+                await signupBrand(email, password, licenseNumber, accountType);
                 navigate(from, { replace: true });
             } else if (authMode === 'reset') {
                 const result = await resetPassword(email);
@@ -390,6 +391,32 @@ export default function BrandLogin() {
                                         />
                                     </div>
                                 </div>
+
+                                {/* Account Type Selector - Only for Signup */}
+                                {authMode === 'signup' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Account Type</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setAccountType('brand')}
+                                                className={`p-4 rounded-xl border-2 transition-all text-left ${accountType === 'brand' ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
+                                            >
+                                                <div className="font-bold text-sm text-slate-800 mb-1">Brand</div>
+                                                <div className="text-xs text-slate-500">Single brand management</div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setAccountType('processor')}
+                                                className={`p-4 rounded-xl border-2 transition-all text-left ${accountType === 'processor' ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
+                                            >
+                                                <div className="font-bold text-sm text-slate-800 mb-1">Processor</div>
+                                                <div className="text-xs text-slate-500">Manage multiple brands</div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
 
                                 {authMode !== 'reset' && (
                                     <div>

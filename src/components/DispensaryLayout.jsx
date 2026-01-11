@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, LogOut, Building2, Bell } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, LogOut, Building2, Bell, Plug } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function DispensaryLayout() {
@@ -23,6 +23,7 @@ export default function DispensaryLayout() {
                 <nav className="flex-1 p-4 space-y-1">
                     <DispensaryNavItem to="/dispensary" icon={<LayoutDashboard size={20} />} label="Dashboard" />
                     <DispensaryNavItem to="/dispensary/marketplace" icon={<ShoppingBag size={20} />} label="Marketplace" />
+                    <DispensaryNavItem to="/dispensary/integrations" icon={<Plug size={20} />} label="Integrations" />
 
                     {/* Divider */}
                     <div className="py-2">
@@ -63,6 +64,7 @@ export default function DispensaryLayout() {
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-2 py-2 flex justify-around items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <MobileNavItem to="/dispensary" icon={<LayoutDashboard size={22} />} label="Dashboard" />
                 <MobileNavItem to="/dispensary/marketplace" icon={<ShoppingBag size={22} />} label="Shop" />
+                <MobileNavItem to="/dispensary/integrations" icon={<Plug size={22} />} label="Integrations" />
 
                 <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-slate-400">
                     <LogOut size={22} />

@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../services/supabaseClient';
 
+import { exportToDutchie, exportToBlaze, exportToCova, exportToBioTrack, exportToLeafLogix, exportMetrcReady } from '../../utils/csvExporters';
+
 export default function DispensaryDashboard() {
     const { currentUser } = useAuth();
     const [profile, setProfile] = useState(null);
@@ -13,6 +15,33 @@ export default function DispensaryDashboard() {
     const [loading, setLoading] = useState(true);
     const [showSampleRequest, setShowSampleRequest] = useState(false);
     const navigate = useNavigate();
+
+    // Export Handlers
+    const handleExport = (order, format) => {
+        // Prepare items with correct data structure expected by exporters
+        const products = (order.items || []).map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            brandName: item.brandName || 'Unknown',
+            category: item.category || 'Flower', // Fallback
+            metrcTag: item.metrcTag || '',
+            riid: item.riid || item.id,
+            description: item.description || ''
+        }));
+
+        const brandName = order.brands ? Object.keys(order.brands).join(', ') : 'Mixed';
+
+        switch (format) {
+            case 'dutchie': exportToDutchie(products, brandName); break;
+            case 'blaze': exportToBlaze(products, brandName); break;
+            case 'cova': exportToCova(products, brandName); break;
+            case 'biotrack': exportToBioTrack(products); break;
+            case 'leaflogix': exportToLeafLogix(products); break;
+            case 'metrc': exportMetrcReady(products); break;
+            default: exportMetrcReady(products);
+        }
+    };
 
     useEffect(() => {
         async function load() {
@@ -119,7 +148,27 @@ export default function DispensaryDashboard() {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-slate-900">${(parseFloat(order.totalAmount || order.amount) || 0).toFixed(2)}</p>
-                                    <p className="text-xs text-slate-400">{order.items?.length || Object.values(order.brands || {}).reduce((sum, b) => sum + Object.keys(b).length, 0)} Items</p>
+                                    <p className="text-xs text-slate-400 mb-2">{order.items?.length || Object.values(order.brands || {}).reduce((sum, b) => sum + Object.keys(b).length, 0)} Items</p>
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <select
+                                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 font-bold outline-none border-none cursor-pointer"
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    handleExport(order, e.target.value);
+                                                    e.target.value = ''; // Reset
+                                                }
+                                            }}
+                                            defaultValue=""
+                                        >
+                                            <option value="" disabled>Export CSV...</option>
+                                            <option value="dutchie">For Dutchie</option>
+                                            <option value="blaze">For Blaze</option>
+                                            <option value="cova">For Cova</option>
+                                            <option value="biotrack">For BioTrack</option>
+                                            <option value="leaflogix">For LeafLogix</option>
+                                            <option value="metrc">Metrc / Generic</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         ))}

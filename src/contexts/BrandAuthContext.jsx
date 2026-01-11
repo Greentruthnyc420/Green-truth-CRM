@@ -9,6 +9,7 @@ import {
     sendPasswordResetEmail
 } from "firebase/auth";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
+import { supabase } from '../services/supabaseClient';
 
 // Reserved System IDs
 export const INTERNAL_BRAND_ID = 'greentruth';
@@ -16,7 +17,7 @@ export const INTERNAL_BRAND_ID = 'greentruth';
 // Available brands for signup - users select from dropdown and enter their REAL license
 // No fake license validation - license is stored as-is
 export const AVAILABLE_BRANDS = {
-    'honey-king': { brandId: 'honey-king', brandName: 'Honey King' },
+    'honey-king': { brandId: 'honey-king', brandName: 'Honey King', isProcessor: true },
     'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
     'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots' },
     'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers' },
@@ -43,15 +44,11 @@ const MULTI_BRAND_USERS = {
 // FLX Processor users get access to all FLX sub-brands
 const FLX_SUB_BRANDS = ['pines', 'smoothie-bar', 'waferz'];
 
-
-
 const BrandAuthContext = createContext();
 
 export function useBrandAuth() {
     return useContext(BrandAuthContext);
 }
-
-import { supabase } from '../services/supabaseClient';
 
 export function BrandAuthProvider({ children }) {
     const [brandUser, setBrandUser] = useState(null);
@@ -94,6 +91,8 @@ export function BrandAuthProvider({ children }) {
                                 email: user.email,
                                 uid: user.uid,
                                 licenseNumber: mapping.licenseNumber,
+                                // Set isProcessor based on account_type, with backward compatibility
+                                isProcessor: mapping.account_type === 'processor' || brandInfo.brandId === 'flx-extracts',
                                 allowedBrands: extraBrands.length > 0 ? extraBrands : [{ ...brandInfo, license: mapping.licenseNumber }]
                             });
                         }
@@ -120,7 +119,7 @@ export function BrandAuthProvider({ children }) {
     }
 
     // Signup with license verification
-    async function signupBrand(email, password, licenseNumber) {
+    async function signupBrand(email, password, licenseNumber, accountType = 'brand') {
         setLoading(true);
         try {
             const brandInfo = validateLicense(licenseNumber);
@@ -139,6 +138,7 @@ export function BrandAuthProvider({ children }) {
                 email: email,
                 licenseNumber: license,
                 brandId: brandInfo.brandId,
+                account_type: accountType, // Store account type
                 created_at: new Date().toISOString()
             }]);
 
@@ -194,6 +194,11 @@ export function BrandAuthProvider({ children }) {
 
     // Dev test login - bypasses license verification
     function devBrandLogin(brandId) {
+        if (!import.meta.env.DEV) {
+            console.warn("Dev login is disabled in production.");
+            return null;
+        }
+
         const licenseKey = Object.keys(BRAND_LICENSES).find(key => BRAND_LICENSES[key].brandId === brandId);
         if (!licenseKey) {
             console.error('Unknown brand ID for dev login');
