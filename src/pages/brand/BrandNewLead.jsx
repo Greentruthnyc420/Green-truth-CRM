@@ -341,7 +341,7 @@ export default function BrandNewLead() {
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-8 h-8" />
+                                <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="h-8 w-auto object-contain" />
                                 <label htmlFor="syncToMonday" className="block text-sm font-medium text-slate-700">Sync to Monday.com</label>
                             </div>
                             <button

@@ -293,11 +293,11 @@ export default function BrandDashboard() {
                 {/* Activation Costs (Bi-Weekly Pay) */}
                 <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-all">
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <img src="/logos/logo-main.png" alt="GreenTruth" className="w-16 h-16 object-contain grayscale opacity-20" />
+                        <BarChart3 size={64} className="text-blue-600" />
                     </div>
                     <div className="flex items-center justify-between mb-4 relative z-10">
                         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center p-2">
-                            <img src="/logos/logo-main.png" alt="GreenTruth" className="w-full h-full object-contain" />
+                            <BarChart3 size={24} className="text-blue-600" />
                         </div>
                         <div className="text-right">
                             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100 block mb-1">
@@ -322,7 +322,7 @@ export default function BrandDashboard() {
                 <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${mondayStatus.connected ? 'bg-green-100' : 'bg-gray-100'}`}>
-                            <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-6 h-6" />
+                            <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="h-5 w-auto object-contain" />
                         </div>
                         <Link to="/brand/integrations" className="text-xs font-bold text-emerald-600 hover:underline">
                             Configure

@@ -12,6 +12,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { logSecurityEvent } from "../services/firestoreService";
+import { sendAdminNotification, createUserRegistrationEmail } from '../services/adminNotifications';
 
 export const ADMIN_EMAILS = [
     'omar@thegreentruthnyc.com',
@@ -182,6 +183,23 @@ export function AuthProvider({ children }) {
                                 role: 'rep', // Default role
                                 created_at: new Date().toISOString()
                             });
+
+                            // Send admin notification
+                            try {
+                                const { html, text } = createUserRegistrationEmail({
+                                    userEmail: user.email,
+                                    role: 'Sales Representative',
+                                    timestamp: new Date().toLocaleString()
+                                });
+
+                                await sendAdminNotification({
+                                    subject: `👤 New Rep Registered: ${user.email}`,
+                                    html,
+                                    text
+                                });
+                            } catch (emailErr) {
+                                console.warn("New user email notification failed:", emailErr);
+                            }
                         } catch (err) {
                             console.warn("Failed to sync user profile to Supabase:", err);
                         }

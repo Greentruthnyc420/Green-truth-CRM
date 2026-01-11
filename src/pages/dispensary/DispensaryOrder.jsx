@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { addSale, getUserProfile, getLead } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
+import { sendAdminNotification, createOrderEmail } from '../../services/adminNotifications';
 
 export default function DispensaryOrder() {
     const [cart, setCart] = useState([]);
@@ -102,6 +103,31 @@ export default function DispensaryOrder() {
             }
 
             await addSale(salePayload);
+
+            // Send admin notification
+            try {
+                // Formatting product list for email
+                const productSummary = cart.map(item => `${item.name} (${item.quantity} units)`).join(', ');
+
+                // Since an order can contain multiple brands, we'll list the main brand or "Multi-Brand"
+                const brandNames = [...new Set(cart.map(item => item.brandName))].join(', ');
+
+                const { html, text } = createOrderEmail({
+                    dispensaryName: profile.dispensaryName,
+                    brandName: brandNames,
+                    products: productSummary,
+                    total: cartTotal,
+                    orderDate: new Date().toLocaleDateString()
+                });
+
+                await sendAdminNotification({
+                    subject: `🛒 New Order: ${profile.dispensaryName} ($${cartTotal.toFixed(2)})`,
+                    html,
+                    text
+                });
+            } catch (emailErr) {
+                console.warn("Order email notification failed:", emailErr);
+            }
 
             showNotification('Order placed successfully!', 'success');
             setCart([]);

@@ -282,7 +282,7 @@ export default function BrandOrders() {
                                             }}
                                             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center gap-2"
                                         >
-                                            <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-4 h-4" />
+                                            <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="h-4 w-auto object-contain" />
                                             Sync
                                         </button>
                                     )}
@@ -341,7 +341,7 @@ export default function BrandOrders() {
                             {mondayIntegration.connected && mondayIntegration.ordersBoardId && (
                                 <div className="flex items-center justify-between mt-4">
                                     <div className="flex items-center gap-3">
-                                        <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="w-6 h-6" />
+                                        <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
                                         <label htmlFor="syncToMonday" className="block text-sm font-medium text-slate-700">Sync to Monday.com</label>
                                     </div>
                                     <button

@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 import { supabase } from '../services/supabaseClient';
+import { sendAdminNotification, createUserRegistrationEmail } from '../services/adminNotifications';
 
 // Reserved System IDs
 export const INTERNAL_BRAND_ID = 'greentruth';
@@ -17,14 +18,14 @@ export const INTERNAL_BRAND_ID = 'greentruth';
 // Available brands for signup - users select from dropdown and enter their REAL license
 // No fake license validation - license is stored as-is
 export const AVAILABLE_BRANDS = {
-    'honey-king': { brandId: 'honey-king', brandName: 'Honey King', isProcessor: true },
+    'honey-king': { brandId: 'honey-king', brandName: 'Honey King', isProcessor: true, managedBrands: [] },
     'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
     'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots' },
     'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers' },
     'smoothie-bar': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
     'waferz': { brandId: 'waferz', brandName: 'Waferz NY' },
     'pines': { brandId: 'pines', brandName: 'Pines' },
-    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', isProcessor: true }
+    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', isProcessor: true, managedBrands: ['pines', 'smoothie-bar', 'waferz'] }
 };
 
 // Legacy support: Map old license numbers to brands (for existing users)
@@ -131,7 +132,18 @@ export function BrandAuthProvider({ children }) {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 2. Create Mapping in Supabase
+            // 2. Determine allowedBrands for processor accounts
+            let allowedBrands = null;
+            if (accountType === 'processor' && brandInfo.managedBrands && brandInfo.managedBrands.length > 0) {
+                // Auto-assign brands for known processors
+                allowedBrands = brandInfo.managedBrands.map(bid => {
+                    const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
+                    return key ? { ...BRAND_LICENSES[key], license: key } : null;
+                }).filter(Boolean);
+            }
+            // else: allowedBrands stays null - can be manually configured later in Supabase
+
+            // 3. Create Mapping in Supabase
             const license = licenseNumber.toUpperCase().trim();
             const { error } = await supabase.from('brand_users').insert([{
                 uid: user.uid,
@@ -139,10 +151,28 @@ export function BrandAuthProvider({ children }) {
                 licenseNumber: license,
                 brandId: brandInfo.brandId,
                 account_type: accountType, // Store account type
+                allowedBrands: allowedBrands, // Store auto-assigned brands (if any)
                 created_at: new Date().toISOString()
             }]);
 
             if (error) throw error;
+
+            // Send admin notification
+            try {
+                const { html, text } = createUserRegistrationEmail({
+                    userEmail: email,
+                    role: `Brand User (${brandInfo.brandName})`,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                await sendAdminNotification({
+                    subject: `👤 New Brand User: ${email}`,
+                    html,
+                    text
+                });
+            } catch (emailErr) {
+                console.warn("New brand user email notification failed:", emailErr);
+            }
 
             return user;
         } catch (error) {
@@ -249,6 +279,23 @@ export function BrandAuthProvider({ children }) {
                     created_at: new Date().toISOString()
                 }]);
                 if (error) throw error;
+
+                // Send admin notification
+                try {
+                    const { html, text } = createUserRegistrationEmail({
+                        userEmail: user.email,
+                        role: `Brand User (${brandInfo.brandName} - Google)`,
+                        timestamp: new Date().toLocaleString()
+                    });
+
+                    await sendAdminNotification({
+                        subject: `👤 New Brand User (Google): ${user.email}`,
+                        html,
+                        text
+                    });
+                } catch (emailErr) {
+                    console.warn("New brand user email notification failed:", emailErr);
+                }
             }
 
             return user;

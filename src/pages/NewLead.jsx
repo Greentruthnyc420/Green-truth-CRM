@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 import { awardLeadPoints } from '../services/pointsService';
+import { sendAdminNotification, createLeadEmail } from '../services/adminNotifications';
 
 
 export default function NewLead() {
@@ -195,6 +196,30 @@ export default function NewLead() {
                 await awardLeadPoints(currentUser?.uid || 'test-user-123', leadRef.id || 'unknown');
             } catch (pErr) {
                 console.warn("Points awarding failed, but lead was saved.", pErr);
+            }
+
+            // Send admin email notification
+            try {
+                const primaryContact = formData.contacts && formData.contacts[0];
+                const interestedBrands = (formData.samplesRequested || []).join(', ') || 'None';
+
+                const { html, text } = createLeadEmail({
+                    dispensaryName: formData.dispensaryName,
+                    contactPerson: primaryContact?.name,
+                    phone: primaryContact?.phone,
+                    email: primaryContact?.email,
+                    interestedBrands: interestedBrands,
+                    repName: currentUser?.displayName || currentUser?.email || 'Unknown Rep'
+                });
+
+                await sendAdminNotification({
+                    subject: `🎯 New Lead: ${formData.dispensaryName}`,
+                    html,
+                    text
+                });
+            } catch (emailErr) {
+                console.warn('Email notification failed:', emailErr);
+                // Don't block user experience if email fails
             }
 
             showNotification('Lead added successfully! 45-Day Exclusivity Started.', 'success');

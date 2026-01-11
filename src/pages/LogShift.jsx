@@ -5,6 +5,7 @@ import { addShift } from '../services/firestoreService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
+import { sendAdminNotification, createActivationEmail } from '../services/adminNotifications';
 
 
 export default function LogShift() {
@@ -124,6 +125,27 @@ export default function LogShift() {
             };
 
             await addShift(shiftData);
+
+            // Send admin email notification
+            try {
+                const { html, text } = createActivationEmail({
+                    dispensaryName: formData.dispensaryName,
+                    activationType: 'Field Activation', // LogShift is for activations
+                    date: new Date().toLocaleDateString(),
+                    repName: currentUser?.displayName || currentUser?.email || 'Unknown Rep',
+                    notes: `Brand: ${formData.brand} | Region: ${formData.region} | Miles: ${formData.miles || 0} | Tolls: $${formData.tollAmount || 0}`
+                });
+
+                await sendAdminNotification({
+                    subject: `🎯 New Activation: ${formData.dispensaryName} (${formData.brand})`,
+                    html,
+                    text
+                });
+            } catch (emailErr) {
+                console.warn('Email notification failed:', emailErr);
+                // Don't block user experience if email fails
+            }
+
             showNotification('Shift logged successfully!', 'success');
             navigate('/history');
         } catch (error) {

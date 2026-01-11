@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { awardOrderPoints } from '../services/pointsService';
 import confetti from 'canvas-confetti';
+import { sendAdminNotification, createSaleEmail } from '../services/adminNotifications';
 
 import { PRODUCT_CATALOG } from '../data/productCatalog';
 
@@ -247,6 +248,30 @@ export default function LogSale() {
                 }
             } catch (pErr) {
                 console.warn("Points awarding failed, but sale was logged.", pErr);
+            }
+
+            // Send admin email notification
+            try {
+                const productsString = flatItems.map(item =>
+                    `${item.name} (${item.quantity}x @ $${item.price})`
+                ).join(', ');
+
+                const { html, text } = createSaleEmail({
+                    dispensaryName: basicInfo.dispensaryName,
+                    revenue: totalAmount,
+                    repName: currentUser?.displayName || currentUser?.email || 'Unknown User',
+                    commission: commission,
+                    products: productsString
+                });
+
+                await sendAdminNotification({
+                    subject: `💰 New Sale: $${totalAmount.toFixed(2)} at ${basicInfo.dispensaryName}`,
+                    html,
+                    text
+                });
+            } catch (emailErr) {
+                console.warn('Email notification failed:', emailErr);
+                // Don't block the user experience if email fails
             }
 
             showNotification(`Sale logged! Commission: $${commission.toFixed(2)}`, 'success', 5000);
