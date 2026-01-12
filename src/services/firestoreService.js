@@ -477,11 +477,14 @@ export async function addActivation(data) {
     const { data: activation, error } = await supabase.from('activations').insert([{
         brand_id: data.brandId,
         dispensary_id: data.dispensaryId,
-        date_of_activation: data.dateOfActivation || new Date().toISOString().split('T')[0],
+        date_of_activation: data.dateOfActivation || (data.datePreferences ? data.datePreferences[0] : null), // Default to 1st pref if no date
         rep_id: data.repId,
         activation_type: data.activationType,
         photos: data.photos || [],
         notes: data.notes || '',
+        status: data.status || 'Scheduled', // Default to Scheduled if not provided
+        date_preferences: data.datePreferences || [],
+        requested_by: data.requestedBy || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     }]).select().single();
@@ -501,6 +504,8 @@ export async function updateActivation(id, data) {
     if (data.activationType) dbUpdates.activation_type = data.activationType;
     if (data.photos) dbUpdates.photos = data.photos;
     if (data.notes) dbUpdates.notes = data.notes;
+    if (data.status) dbUpdates.status = data.status;
+    if (data.datePreferences) dbUpdates.date_preferences = data.datePreferences;
 
     const { error } = await supabase.from('activations').update(dbUpdates).eq('activation_id', id);
     return !error;
@@ -680,10 +685,17 @@ export async function getActivations() {
         brandId: a.brand_id,
         dispensaryId: a.dispensary_id,
         dateOfActivation: a.date_of_activation,
+        // Helper: use dateOfActivation as 'date' for frontend compat
+        date: a.date_of_activation,
+        startTime: '12:00', // Default start time if missing
+        endTime: '16:00',   // Default end time if missing
         repId: a.rep_id,
         activationType: a.activation_type,
         photos: a.photos || [],
         notes: a.notes,
+        status: a.status || 'Scheduled',
+        datePreferences: a.date_preferences || [],
+        requestedBy: a.requested_by,
         createdAt: a.created_at,
         updated_at: a.updated_at
     }));

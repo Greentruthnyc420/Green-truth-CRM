@@ -199,6 +199,11 @@ export default function DispensaryMarketplace() {
                                 return (
                                     <div key={product.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full">
                                         <div>
+                                            {product.imageUrl && (
+                                                <div className="w-full h-40 mb-4 rounded-xl overflow-hidden bg-slate-50 border border-slate-50">
+                                                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">{product.brandName}</span>
                                                 {product.thc && <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{product.thc}</span>}

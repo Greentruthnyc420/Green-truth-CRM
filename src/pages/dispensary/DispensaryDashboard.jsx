@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../services/supabaseClient';
 
-import { exportToDutchie, exportToBlaze, exportToCova, exportToBioTrack, exportToLeafLogix, exportMetrcReady } from '../../utils/csvExporters';
+import { exportToDutchie, exportToBlaze, exportToCova, exportToBioTrack, exportToLeafLogix, exportMetrcReady, exportGeneric } from '../../utils/csvExporters';
 
 export default function DispensaryDashboard() {
     const { currentUser } = useAuth();
@@ -39,7 +39,8 @@ export default function DispensaryDashboard() {
             case 'biotrack': exportToBioTrack(products); break;
             case 'leaflogix': exportToLeafLogix(products); break;
             case 'metrc': exportMetrcReady(products); break;
-            default: exportMetrcReady(products);
+            case 'generic': exportGeneric(products, order.id); break;
+            default: exportGeneric(products, order.id);
         }
     };
 
@@ -161,12 +162,13 @@ export default function DispensaryDashboard() {
                                             defaultValue=""
                                         >
                                             <option value="" disabled>Export CSV...</option>
+                                            <option value="generic">Download CSV (Generic)</option>
                                             <option value="dutchie">For Dutchie</option>
                                             <option value="blaze">For Blaze</option>
                                             <option value="cova">For Cova</option>
                                             <option value="biotrack">For BioTrack</option>
                                             <option value="leaflogix">For LeafLogix</option>
-                                            <option value="metrc">Metrc / Generic</option>
+                                            <option value="metrc">Metrc Format</option>
                                         </select>
                                     </div>
                                 </div>

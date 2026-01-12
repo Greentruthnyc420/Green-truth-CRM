@@ -57,6 +57,7 @@ import BrandSchedule from './pages/brand/BrandSchedule';
 import BrandMap from './pages/brand/BrandMap';
 import BrandNewLead from './pages/brand/BrandNewLead';
 import BrandIntegrations from './pages/brand/BrandIntegrations';
+import MondayCallback from './pages/brand/MondayCallback';
 import BrandSyncHistory from './pages/brand/BrandSyncHistory';
 import BrandLogistics from './pages/brand/BrandLogistics';
 import BrandFulfillment from './pages/brand/BrandFulfillment';
@@ -71,6 +72,8 @@ import DispensaryDashboard from './pages/dispensary/DispensaryDashboard';
 import DispensaryPrivateRoute from './components/DispensaryPrivateRoute';
 import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
 import DispensaryIntegrations from './pages/dispensary/DispensaryIntegrations';
+import DispensaryMondayCallback from './pages/dispensary/MondayCallback';
+import DispensarySchedule from './pages/dispensary/DispensarySchedule';
 
 // Driver Portal Imports
 import DriverLogin from './pages/driver/DriverLogin';
@@ -138,6 +141,7 @@ function App() {
         <Route path="/brand/login" element={<BrandLogin />} />
 
         <Route element={<BrandPrivateRoute />}>
+          <Route path="/brand/integrations/monday/callback" element={<MondayCallback />} />
           <Route path="/brand" element={<BrandLayout />}>
             <Route index element={<BrandDashboard />} />
             <Route path="orders" element={<BrandOrders />} />
@@ -163,7 +167,9 @@ function App() {
           <Route path="/dispensary" element={<DispensaryLayout />}>
             <Route index element={<DispensaryDashboard />} />
             <Route path="marketplace" element={<DispensaryMarketplace />} />
+            <Route path="schedule" element={<DispensarySchedule />} />
             <Route path="integrations" element={<DispensaryIntegrations />} />
+            <Route path="integrations/monday/callback" element={<DispensaryMondayCallback />} />
           </Route>
         </Route>
 

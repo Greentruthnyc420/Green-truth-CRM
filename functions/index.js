@@ -767,3 +767,281 @@ exports.sendPartnershipInquiry = functions.https.onCall(async (data, context) =>
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
+
+// ============================================================
+// FUNCTION: Send Activation Request Notification (Email)
+// ============================================================
+const sendActivationRequestSchema = Joi.object({
+    requestData: Joi.object().required(),
+});
+
+exports.sendActivationRequestNotification = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+    const { error, value } = sendActivationRequestSchema.validate(data);
+    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { requestData } = value;
+
+    try {
+        // requestData includes: brandName, dispensaryName, dates (array), notes, requestedBy
+
+        const html = `
+            <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #10b981;">New Activation Request</h2>
+                <p><strong>${requestData.requestedBy}</strong> has requested a new activation.</p>
+                
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>Brand:</strong> ${requestData.brandName}</p>
+                    <p><strong>Dispensary:</strong> ${requestData.dispensaryName}</p>
+                    <p><strong>Requested Dates:</strong></p>
+                    <ul>
+                        ${requestData.dates.map(d => `<li>${d}</li>`).join('')}
+                    </ul>
+                    <p><strong>Notes:</strong> ${requestData.notes}</p>
+                </div>
+                
+                <p>Please review and schedule in the Admin Dashboard.</p>
+            </div>
+        `;
+
+        const ADMIN_EMAIL = 'notifications@thegreentruthnyc.com';
+        // In a real scenario, we'd also fetch the Brand's contact email if applicable
+
+        await transporter.sendMail({
+            from: `"Green Truth CRM" <${transporter.options.auth.user}>`,
+            to: ADMIN_EMAIL, // And potentially brand email
+            subject: `Activation Request: ${requestData.brandName} @ ${requestData.dispensaryName}`,
+            html: html
+        });
+
+        return { success: true };
+    } catch (error) {
+        functions.logger.error('sendActivationRequestNotification error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// ============================================================
+// OAUTH: Monday.com
+// ============================================================
+const { exchangeMondayToken } = require('./oauth');
+exports.exchangeMondayToken = exchangeMondayToken;
+
+// ============================================================
+// MONDAY.COM SYNC: SALES (ORDERS)
+// ============================================================
+const syncSaleToMondaySchema = Joi.object({
+    brandId: Joi.string().required(),
+    sale: Joi.object().required()
+});
+
+exports.syncSaleToMonday = functions.https.onCall(async (data, context) => {
+    // 1. Auth Check
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+    // 2. Validation
+    const { error, value } = syncSaleToMondaySchema.validate(data);
+    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { brandId, sale } = value;
+
+    try {
+        const settings = await getBrandMondayIntegration(brandId);
+        const { mondayApiToken, salesBoardId } = settings;
+
+        if (!mondayApiToken || !salesBoardId) {
+            throw new Error('Monday credentials or Sales Board ID not configured.');
+        }
+
+        // 3. Construct Query
+        // Columns: Date, People (Rep), Numbers (Amount), Status (Status), Long Text (Items)
+        const query = `
+            mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
+                create_item (
+                    board_id: $boardId,
+                    item_name: $itemName,
+                    column_values: $columnValues
+                ) {
+                    id
+                }
+            }
+        `;
+
+        // Format Items List
+        const itemsSummary = (sale.items || []).map(i => `${i.quantity}x ${i.name}`).join('\n');
+
+        const columnValues = JSON.stringify({
+            'date4': { date: (sale.date || new Date().toISOString()).split('T')[0] },
+            'numbers': sale.amount || 0,
+            'numbers_1': sale.commissionEarned || 0, // Commission
+            'status': { label: sale.status === 'completed' ? 'Done' : 'Working on it' },
+            'long_text': { text: itemsSummary }
+        });
+
+        const result = await mondayRequest(mondayApiToken, query, {
+            boardId: salesBoardId,
+            itemName: `Order: ${sale.dispensaryName || 'Unknown'}`,
+            columnValues: columnValues
+        });
+
+        // 4. Log Success
+        await logSyncEvent(brandId, 'syncSale', true, { saleId: sale.id, mondayItemId: result.data.create_item.id });
+
+        return { success: true, mondayItemId: result.data.create_item.id };
+
+    } catch (error) {
+        functions.logger.error('syncSaleToMonday error:', error);
+        await logSyncEvent(brandId, 'syncSale', false, { saleId: sale.id }, error.message);
+        return { success: false, error: error.message };
+    }
+});
+
+// ============================================================
+// MONDAY.COM SYNC: ACCOUNTS (LEADS)
+// ============================================================
+const syncAccountToMondaySchema = Joi.object({
+    brandId: Joi.string().required(),
+    lead: Joi.object().required()
+});
+
+exports.syncAccountToMonday = functions.https.onCall(async (data, context) => {
+    // 1. Auth Check
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+    // 2. Validation
+    const { error, value } = syncAccountToMondaySchema.validate(data);
+    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { brandId, lead } = value;
+
+    try {
+        const settings = await getBrandMondayIntegration(brandId);
+        const { mondayApiToken, accountsBoardId } = settings;
+
+        if (!mondayApiToken || !accountsBoardId) {
+            throw new Error('Monday credentials or Accounts Board ID not configured.');
+        }
+
+        const query = `
+            mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
+                create_item (
+                    board_id: $boardId,
+                    item_name: $itemName,
+                    column_values: $columnValues
+                ) {
+                    id
+                }
+            }
+        `;
+
+        const columnValues = JSON.stringify({
+            'status': { label: lead.leadStatus === 'active' ? 'Active' : 'Prospect' },
+            'text': lead.licenseNumber || '',
+            'location': {
+                lat: 0, lng: 0,
+                address: lead.address || 'Unknown'
+            },
+            'date': { date: (lead.lastSaleDate || new Date().toISOString()).split('T')[0] }
+        });
+
+        const result = await mondayRequest(mondayApiToken, query, {
+            boardId: accountsBoardId,
+            itemName: lead.dispensaryName || 'Unknown Dispensary',
+            columnValues: columnValues
+        });
+
+        await logSyncEvent(brandId, 'syncAccount', true, { leadId: lead.id, mondayItemId: result.data.create_item.id });
+
+        return { success: true, mondayItemId: result.data.create_item.id };
+
+    } catch (error) {
+        functions.logger.error('syncAccountToMonday error:', error);
+        await logSyncEvent(brandId, 'syncAccount', false, { leadId: lead.id }, error.message);
+        return { success: false, error: error.message };
+    }
+});
+
+// Schema for syncing a dispensary invoice
+const syncDispensaryInvoiceSchema = Joi.object({
+    invoice: Joi.object({
+        id: Joi.string().required(),
+        amount: Joi.number().required(),
+        dueDate: Joi.string().allow(null, '').optional(),
+        brandName: Joi.string().required(),
+        status: Joi.string().default('Unpaid')
+    }).required()
+});
+
+/**
+ * Get dispensary Monday settings
+ */
+exports.getDispensaryIntegration = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+    const doc = await db.collection('dispensary_integrations').doc(context.auth.uid).get();
+    if (!doc.exists) return { connected: false };
+
+    const d = doc.data();
+    return {
+        connected: !!d.mondayApiToken,
+        invoicesBoardId: d.invoicesBoardId,
+        lastSync: d.lastSync
+    };
+});
+
+/**
+ * Sync Dispensary Invoice to Monday
+ */
+exports.syncDispensaryInvoiceToMonday = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+    const { error, value } = syncDispensaryInvoiceSchema.validate(data);
+    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+
+    const { invoice } = value;
+    const uid = context.auth.uid;
+
+    try {
+        const doc = await db.collection('dispensary_integrations').doc(uid).get();
+        if (!doc.exists || !doc.data().mondayApiToken) {
+            throw new Error('Monday.com not connected.');
+        }
+
+        const { mondayApiToken: apiToken, invoicesBoardId } = doc.data();
+        if (!invoicesBoardId) throw new Error('Invoices Board ID not found. Try reconnecting Monday.');
+
+        const query = `
+            mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
+                create_item (
+                    board_id: $boardId,
+                    item_name: $itemName,
+                    column_values: $columnValues
+                ) {
+                    id
+                }
+            }
+        `;
+
+        const columnValues = JSON.stringify({
+            'numbers': invoice.amount,
+            'date': { date: invoice.dueDate || new Date().toISOString().split('T')[0] },
+            'text': invoice.brandName,
+            'status': { label: invoice.status }
+        });
+
+        const result = await mondayRequest(apiToken, query, {
+            boardId: Number(invoicesBoardId),
+            itemName: `Invoice from ${invoice.brandName}`,
+            columnValues: columnValues
+        });
+
+        // Optional: Update lastSync
+        await db.collection('dispensary_integrations').doc(uid).update({
+            lastSync: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        return { success: true, mondayItemId: result.data.create_item.id };
+
+    } catch (err) {
+        functions.logger.error('syncDispensaryInvoiceToMonday Error', err);
+        return { success: false, error: err.message };
+    }
+});

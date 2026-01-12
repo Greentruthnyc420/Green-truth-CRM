@@ -8,7 +8,7 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { awardLeadPoints } from '../../services/pointsService';
-import { getMondayIntegrationStatus, syncLeadToMonday } from '../../services/mondayService';
+import { getMondayIntegrationStatus, syncAccountToMonday } from '../../services/mondayService';
 
 export default function BrandNewLead() {
     const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function BrandNewLead() {
     const [licenseImage, setLicenseImage] = useState(null);
     const [licensePreview, setLicensePreview] = useState(null);
     const [analyzingLicense, setAnalyzingLicense] = useState(false);
-    const [mondayIntegration, setMondayIntegration] = useState({ connected: false, leadsBoardId: null });
+    const [mondayIntegration, setMondayIntegration] = useState({ connected: false, accountsBoardId: null });
     const [syncToMonday, setSyncToMonday] = useState(true);
 
     const [formData, setFormData] = useState({
@@ -139,9 +139,9 @@ export default function BrandNewLead() {
             }
 
             // Sync to Monday.com if enabled
-            if (syncToMonday && mondayIntegration.connected && mondayIntegration.leadsBoardId) {
+            if (syncToMonday && mondayIntegration.connected && mondayIntegration.accountsBoardId) {
                 const leadDataForSync = { ...formData, id: leadRef.id };
-                const syncResult = await syncLeadToMonday(brandUser.brandId, leadDataForSync, mondayIntegration.leadsBoardId);
+                const syncResult = await syncAccountToMonday(brandUser.brandId, leadDataForSync, mondayIntegration.accountsBoardId);
                 if (syncResult.success) {
                     showNotification('Lead synced to Monday.com successfully!', 'success');
                 } else {
@@ -337,7 +337,7 @@ export default function BrandNewLead() {
                     </div>
                 </div>
 
-                {mondayIntegration.connected && mondayIntegration.leadsBoardId && (
+                {mondayIntegration.connected && mondayIntegration.accountsBoardId && (
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">

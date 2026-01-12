@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Download, Upload, Plug, CheckCircle2, FileText, KeyRound, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
-import { toast } from 'sonner';
+import { startOfWeek, endOfWeek, format, addDays } from 'date-fns';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const SUPPORTED_SYSTEMS = [
     { id: 'distru', name: 'Distru', logo: '📦', description: 'Cannabis wholesale and distribution ERP', features: ['Wholesale Orders', 'Inventory Tracking', 'Route Optimization'], status: 'active', type: 'erp' },
@@ -14,11 +15,23 @@ const SUPPORTED_SYSTEMS = [
 
 const MondayIntegrationCard = () => {
     const { brand } = useBrandAuth();
+    const { showNotification } = useNotification();
     const [settings, setSettings] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [mondayToken, setMondayToken] = useState('');
     const [invoicesBoardId, setInvoicesBoardId] = useState('');
+    const [activationsBoardId, setActivationsBoardId] = useState('');
+    const [salesBoardId, setSalesBoardId] = useState('');
+    const [accountsBoardId, setAccountsBoardId] = useState('');
+
     const [isSaving, setIsSaving] = useState(false);
+    const [showManual, setShowManual] = useState(false);
+
+    const handleConnectMonday = () => {
+        const clientId = '66298c1211917dbe3787ec943e18f039';
+        const redirectUri = window.location.origin + '/brand/integrations/monday/callback';
+        window.location.href = `https://auth.monday.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    };
 
     const functions = getFunctions();
     const getMondaySettings = httpsCallable(functions, 'getMondaySettings');
@@ -29,10 +42,16 @@ const MondayIntegrationCard = () => {
         if (brand?.id) {
             setIsLoading(true);
             getMondaySettings({ brandId: brand.id })
-                .then((result) => setSettings(result.data))
+                .then((result) => {
+                    setSettings(result.data);
+                    setInvoicesBoardId(result.data.invoicesBoardId || '');
+                    setActivationsBoardId(result.data.activationsBoardId || '');
+                    setSalesBoardId(result.data.salesBoardId || '');
+                    setAccountsBoardId(result.data.accountsBoardId || '');
+                })
                 .catch((error) => {
                     console.error("Error fetching Monday settings:", error);
-                    toast.error("Failed to fetch integration settings.");
+                    showNotification("Failed to fetch integration settings.", 'error');
                 })
                 .finally(() => setIsLoading(false));
         }
@@ -40,17 +59,31 @@ const MondayIntegrationCard = () => {
 
     const handleSaveSettings = async () => {
         if (!invoicesBoardId) {
-            toast.error("Please enter your Invoices Board ID.");
+            showNotification("Please enter your Invoices Board ID.", 'error');
             return;
         }
         setIsSaving(true);
         try {
-            await saveMondaySettings({ brandId: brand.id, settings: { invoicesBoardId: invoicesBoardId } });
-            toast.success("Settings saved successfully!");
-            setSettings({ ...settings, invoicesBoardId: invoicesBoardId });
+            await saveMondaySettings({
+                brandId: brand.id,
+                settings: {
+                    invoicesBoardId,
+                    activationsBoardId,
+                    salesBoardId,
+                    accountsBoardId
+                }
+            });
+            showNotification("Settings saved successfully!", 'success');
+            setSettings({
+                ...settings,
+                invoicesBoardId,
+                activationsBoardId,
+                salesBoardId,
+                accountsBoardId
+            });
         } catch (error) {
             console.error("Error saving Monday settings:", error);
-            toast.error(`Failed to save settings: ${error.message}`);
+            showNotification(`Failed to save settings: ${error.message}`, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -58,7 +91,7 @@ const MondayIntegrationCard = () => {
 
     const handleSaveMondayToken = async () => {
         if (!mondayToken) {
-            toast.error("Please enter your Monday.com API Token.");
+            showNotification("Please enter your Monday.com API Token.", 'error');
             return;
         }
         setIsSaving(true);
@@ -67,7 +100,7 @@ const MondayIntegrationCard = () => {
             const testResult = await testMondayConnection({ apiToken: mondayToken });
 
             if (testResult.data.success) {
-                toast.success(`Connection successful! Connected as ${testResult.data.user.name}.`);
+                showNotification(`Connection successful! Connected as ${testResult.data.user.name}.`, 'success');
                 setSettings({ ...settings, connected: true });
                 setMondayToken('');
             } else {
@@ -75,7 +108,7 @@ const MondayIntegrationCard = () => {
             }
         } catch (error) {
             console.error("Error saving Monday token:", error);
-            toast.error(`Connection failed: ${error.message}`);
+            showNotification(`Connection failed: ${error.message}`, 'error');
             setSettings({ ...settings, connected: false });
         } finally {
             setIsSaving(false);
@@ -87,11 +120,11 @@ const MondayIntegrationCard = () => {
         try {
             // Set token to null to disconnect
             await saveMondaySettings({ brandId: brand.id, settings: { mondayApiToken: null } });
-            toast.success("Successfully disconnected from Monday.com.");
+            showNotification("Successfully disconnected from Monday.com.", 'success');
             setSettings({ ...settings, connected: false });
         } catch (error) {
             console.error("Error disconnecting Monday.com:", error);
-            toast.error("Failed to disconnect. Please try again.");
+            showNotification("Failed to disconnect. Please try again.", 'error');
         } finally {
             setIsSaving(false);
         }
@@ -126,67 +159,117 @@ const MondayIntegrationCard = () => {
                             onClick={handleDisconnect}
                             disabled={isSaving}
                             className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-red-600 disabled:bg-red-300">
-                                {isSaving ? 'Disconnecting...' : 'Disconnect'}
+                            {isSaving ? 'Disconnecting...' : 'Disconnect'}
                         </button>
                     </div>
                     <div className="mt-4">
-                        <h4 className="font-bold text-slate-800 mb-2">Invoices Board ID</h4>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={invoicesBoardId}
-                                onChange={(e) => setInvoicesBoardId(e.target.value)}
-                                placeholder="Enter your Invoices Board ID"
-                                className="flex-1 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
-                            />
-                            <button
-                                onClick={handleSaveSettings}
-                                disabled={isSaving}
-                                className="bg-amber-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-700 disabled:bg-amber-400 flex items-center justify-center gap-2"
-                            >
-                                {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : 'Save'}
-                            </button>
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Invoices Board</h4>
+                                <input
+                                    type="text"
+                                    value={invoicesBoardId}
+                                    onChange={(e) => setInvoicesBoardId(e.target.value)}
+                                    placeholder="Board ID"
+                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Activations Board</h4>
+                                <input
+                                    type="text"
+                                    value={activationsBoardId}
+                                    onChange={(e) => setActivationsBoardId(e.target.value)}
+                                    placeholder="Board ID"
+                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Sales (Orders) Board</h4>
+                                <input
+                                    type="text"
+                                    value={salesBoardId}
+                                    onChange={(e) => setSalesBoardId(e.target.value)}
+                                    placeholder="Board ID"
+                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Accounts (Leads) Board</h4>
+                                <input
+                                    type="text"
+                                    value={accountsBoardId}
+                                    onChange={(e) => setAccountsBoardId(e.target.value)}
+                                    placeholder="Board ID"
+                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                />
+                            </div>
+
+                            <div className="col-span-1 md:col-span-2 flex justify-end">
+                                <button
+                                    onClick={handleSaveSettings}
+                                    disabled={isSaving}
+                                    className="bg-amber-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-amber-700 disabled:bg-amber-400 flex items-center justify-center gap-2"
+                                >
+                                    {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : 'Save Configuration'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
 
             {!isLoading && !settings?.connected && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    {/* Instructions */}
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                        <h4 className="font-bold text-slate-800 mb-2">How to Connect Your Monday.com Account:</h4>
-                        <ol className="list-decimal list-inside space-y-2 text-sm text-slate-600">
-                            <li>Log in to Monday.com.</li>
-                            <li>Click your <strong>Profile Picture</strong> (bottom left) and select <strong>Developers</strong>.</li>
-                            <li>In the new tab, click <strong>My Access Tokens</strong> on the left menu.</li>
-                            <li>Click <strong>Show</strong>, then <strong>Copy</strong> your Personal API Token.</li>
-                            <li>Paste that token into the field below and click <strong>"Save Connection"</strong>.</li>
-                        </ol>
-                        <a href="https://monday.com/developers/v2/guides/authentication/api-keys" target="_blank" rel="noopener noreferrer" className="text-sm text-amber-600 hover:underline mt-3 inline-flex items-center gap-1">
-                            Read Monday.com Docs <ExternalLink size={14} />
-                        </a>
-                    </div>
-                    {/* Connection Form */}
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                        <h4 className="font-bold text-slate-800 mb-3">Enter API Token</h4>
-                         <div className="flex items-center gap-2">
-                            <KeyRound className="text-slate-400" size={18} />
-                            <input
-                                type="password"
-                                value={mondayToken}
-                                onChange={(e) => setMondayToken(e.target.value)}
-                                placeholder="paste-your-api-token-here"
-                                className="flex-1 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
-                            />
-                        </div>
+                <div className="space-y-6 mt-4">
+                    {/* OAuth Connection (Primary) */}
+                    <div className="bg-slate-50 rounded-lg p-6 border border-slate-200 text-center">
+                        <h4 className="font-bold text-slate-800 mb-2">Connect Your Account</h4>
+                        <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto">
+                            Securely connect your Monday.com account to sync invoices, activations, and orders automatically.
+                        </p>
                         <button
-                            onClick={handleSaveMondayToken}
-                            disabled={isSaving}
-                            className="w-full mt-3 bg-amber-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-700 disabled:bg-amber-400 flex items-center justify-center gap-2"
+                            onClick={handleConnectMonday}
+                            className="bg-[#0073ea] text-white px-6 py-3 rounded-full font-bold hover:bg-[#0060b9] transition-colors shadow-md flex items-center gap-2 mx-auto"
                         >
-                            {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : 'Save Connection'}
+                            <Plug size={20} />
+                            Connect with Monday.com
                         </button>
+                    </div>
+
+                    {/* Manual Fallback */}
+                    <div>
+                        <button
+                            onClick={() => setShowManual(!showManual)}
+                            className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 mx-auto"
+                        >
+                            {showManual ? 'Hide Advanced Settings' : 'Advanced: Connect Manually'}
+                        </button>
+
+                        {showManual && (
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 mt-3 animate-in fade-in slide-in-from-top-2">
+                                <h4 className="font-bold text-slate-800 mb-2 text-sm">Manual API Token</h4>
+                                <div className="flex items-center gap-2">
+                                    <KeyRound className="text-slate-400 flex-shrink-0" size={18} />
+                                    <input
+                                        type="password"
+                                        value={mondayToken}
+                                        onChange={(e) => setMondayToken(e.target.value)}
+                                        placeholder="Paste your Personal API Token here"
+                                        className="flex-1 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleSaveMondayToken}
+                                    disabled={isSaving}
+                                    className="w-full mt-3 bg-slate-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-slate-700 disabled:bg-slate-400 flex items-center justify-center gap-2 text-xs"
+                                >
+                                    {isSaving ? <><Loader2 className="animate-spin" size={14} /> Saving...</> : 'Save Manual Token'}
+                                </button>
+                                <a href="https://monday.com/developers/v2/guides/authentication/api-keys" target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-amber-600 hover:underline mt-2">
+                                    Where do I find my token?
+                                </a>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -355,7 +438,7 @@ export default function BrandIntegrations() {
                         </p>
 
                         <div className="space-y-4">
-                             {SUPPORTED_SYSTEMS.map((system) => (
+                            {SUPPORTED_SYSTEMS.map((system) => (
                                 <div key={system.id} className="border border-slate-200 rounded-xl p-4">
                                     <div className="flex items-center gap-3 mb-3">
                                         <span className="text-2xl">{system.logo}</span>
@@ -416,7 +499,7 @@ export default function BrandIntegrations() {
                         </p>
 
                         <div className="space-y-6">
-                           {SUPPORTED_SYSTEMS.map((system) => (
+                            {SUPPORTED_SYSTEMS.map((system) => (
                                 <div key={system.id} className="border border-slate-200 rounded-xl p-5">
                                     <div className="flex items-center gap-3 mb-4">
                                         <span className="text-2xl">{system.logo}</span>

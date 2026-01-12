@@ -11,6 +11,7 @@ import { getMondayIntegrationStatus, syncOrderToMonday } from '../../services/mo
 import { generateManifestPDF } from '../../utils/manifestGenerator';
 import SampleRequests from '../../components/SampleRequests';
 import { useNotification } from '../../contexts/NotificationContext';
+import BrandOrderUploadModal from './BrandOrderUploadModal';
 
 export default function BrandOrders() {
     const { brandUser } = useBrandAuth();
@@ -21,6 +22,7 @@ export default function BrandOrders() {
     const [search, setSearch] = useState('');
     const [deliveryModal, setDeliveryModal] = useState({ open: false, orderId: null, date: '', syncToMonday: true });
     const [mondayIntegration, setMondayIntegration] = useState({ connected: false, ordersBoardId: null });
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const { showNotification } = useNotification();
 
     useEffect(() => {
@@ -33,46 +35,46 @@ export default function BrandOrders() {
         fetchMondayStatus();
     }, [brandUser]);
 
-    useEffect(() => {
-        async function fetchOrders() {
-            if (!brandUser?.brandId) return;
+    const fetchOrders = async () => {
+        if (!brandUser?.brandId) return;
 
-            setLoading(true);
-            try {
-                const allSales = await getSales();
+        setLoading(true);
+        try {
+            const allSales = await getSales();
 
-                // Transform sales into orders format for the brand
-                const brandOrders = allSales.filter(sale =>
-                    sale.items?.some(item => item.brandId === brandUser.brandId)
-                ).map(sale => {
-                    const brandItems = sale.items.filter(item => item.brandId === brandUser.brandId);
-                    const total = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Transform sales into orders format for the brand
+            const brandOrders = allSales.filter(sale =>
+                sale.items?.some(item => item.brandId === brandUser.brandId)
+            ).map(sale => {
+                const brandItems = sale.items.filter(item => item.brandId === brandUser.brandId);
+                const total = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-                    return {
-                        id: sale.id || 'N/A',
-                        dispensary: sale.dispensaryName || 'Unknown',
-                        contact: sale.contactPerson || sale.userName || 'N/A',
-                        products: brandItems.map(item => ({
-                            name: item.name,
-                            quantity: item.quantity,
-                            price: item.price
-                        })),
-                        total: total,
-                        status: sale.status || 'pending',
-                        orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
-                        deliveryDate: sale.deliveryDate || null,
-                        representative: sale.representativeName || sale.userName || 'Unassigned'
-                    };
-                });
+                return {
+                    id: sale.id || 'N/A',
+                    dispensary: sale.dispensaryName || 'Unknown',
+                    contact: sale.contactPerson || sale.userName || 'N/A',
+                    products: brandItems.map(item => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.price
+                    })),
+                    total: total,
+                    status: sale.status || 'pending',
+                    orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
+                    deliveryDate: sale.deliveryDate || null,
+                    representative: sale.representativeName || sale.userName || 'Unassigned'
+                };
+            });
 
-                setOrders(brandOrders);
-            } catch (error) {
-                console.error("Failed to fetch brand orders", error);
-            } finally {
-                setLoading(false);
-            }
+            setOrders(brandOrders);
+        } catch (error) {
+            console.error("Failed to fetch brand orders", error);
+        } finally {
+            setLoading(false);
         }
+    };
 
+    useEffect(() => {
         fetchOrders();
     }, [brandUser]);
 
@@ -269,10 +271,10 @@ export default function BrandOrders() {
                                             Mark Fulfilled
                                         </button>
                                     )}
-                                    {!order.mondayItemId && mondayIntegration.connected && mondayIntegration.ordersBoardId && (
+                                    {!order.mondayItemId && mondayIntegration.connected && mondayIntegration.salesBoardId && (
                                         <button
                                             onClick={async () => {
-                                                const syncResult = await syncOrderToMonday(brandUser.brandId, order, mondayIntegration.ordersBoardId);
+                                                const syncResult = await syncOrderToMonday(brandUser.brandId, order, mondayIntegration.salesBoardId);
                                                 if (syncResult.success) {
                                                     showNotification('Order synced to Monday.com successfully!', 'success');
                                                     setOrders(prev => prev.map(o => o.id === order.id ? { ...o, mondayItemId: syncResult.mondayItemId } : o));
@@ -378,6 +380,14 @@ export default function BrandOrders() {
                     </div>
                 </div>
             )}
+
+            {/* CSV Import Modal */}
+            <BrandOrderUploadModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                brandId={brandUser?.brandId}
+                onOrderCreated={fetchOrders}
+            />
         </div>
-    );
+    )
 }

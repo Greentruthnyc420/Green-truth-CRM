@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Download, Upload, Plug, CheckCircle2, ExternalLink, FileText, Settings } from 'lucide-react';
+import { Download, Upload, Plug, CheckCircle2, ExternalLink, FileText, Settings, Loader2 } from 'lucide-react';
+import { getDispensaryMondayIntegrationStatus } from '../../services/mondayService';
 
 const SUPPORTED_POS = [
     {
@@ -54,6 +55,26 @@ const SUPPORTED_POS = [
 
 export default function DispensaryIntegrations() {
     const [activeTab, setActiveTab] = useState('overview');
+    const [mondayStatus, setMondayStatus] = useState({ connected: false, loading: true });
+
+    React.useEffect(() => {
+        const checkMonday = async () => {
+            const status = await getDispensaryMondayIntegrationStatus();
+            setMondayStatus({ ...status, loading: false });
+        };
+        checkMonday();
+    }, []);
+
+    const handleConnectMonday = () => {
+        const clientId = '66298c1211917dbe3787ec943e18f039'; // Monday App Client ID
+        const redirectUri = window.location.origin + '/dispensary/integrations/monday/callback';
+        // Scopes: boards:read, boards:write, users:read
+        // We need broad writes for creating boards/items
+        const scopes = 'boards:read boards:write users:read workspaces:read column_definitions:read';
+
+        const authUrl = `https://auth.monday.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+        window.location.href = authUrl;
+    };
 
     return (
         <div className="space-y-6">
@@ -75,8 +96,8 @@ export default function DispensaryIntegrations() {
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'overview'
-                            ? 'bg-purple-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-slate-50'
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     Overview
@@ -84,8 +105,8 @@ export default function DispensaryIntegrations() {
                 <button
                     onClick={() => setActiveTab('export')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'export'
-                            ? 'bg-purple-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-slate-50'
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     CSV Export
@@ -93,8 +114,8 @@ export default function DispensaryIntegrations() {
                 <button
                     onClick={() => setActiveTab('import')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'import'
-                            ? 'bg-purple-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-slate-50'
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     CSV Import
@@ -136,6 +157,54 @@ export default function DispensaryIntegrations() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+
+
+                    {/* Monday.com Integration Card */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <span className="text-2xl">📅</span> Monday.com Sync
+                            </h2>
+                            {mondayStatus.loading ? (
+                                <Loader2 className="animate-spin text-slate-400" size={20} />
+                            ) : mondayStatus.connected ? (
+                                <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+                                    <CheckCircle2 size={12} /> Connected
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-medium">
+                                    Not Connected
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-slate-600 mb-6">
+                            Connect your Monday.com account to automatically sync your invoices and orders.
+                            We will create a specific "Dispensary Invoices" board for you.
+                        </p>
+
+                        {!mondayStatus.connected ? (
+                            <button
+                                onClick={handleConnectMonday}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                            >
+                                <Plug size={18} />
+                                Connect Monday.com
+                            </button>
+                        ) : (
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                <h4 className="font-semibold text-slate-800 mb-2">Integration Active</h4>
+                                <ul className="text-sm text-slate-600 space-y-1">
+                                    <li>• Invoices Board: {mondayStatus.invoicesBoardId ? '✅ Linked' : '⚠️ Missing'}</li>
+                                    {mondayStatus.lastSync && (
+                                        <li className="text-xs text-slate-400 mt-2">
+                                            Last synced: {mondayStatus.lastSync.toDate ? new Date(mondayStatus.lastSync.toDate()).toLocaleString() : 'Just now'}
+                                        </li>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
                     </div>
 
                     {/* Quick Start Guide */}
@@ -195,183 +264,189 @@ export default function DispensaryIntegrations() {
                             </div>
                         </div>
                     </div>
+
                 </div>
-            )}
+            )
+            }
 
-            {activeTab === 'export' && (
-                <div className="space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <Download size={20} className="text-purple-600" />
-                            CSV Export Guide
-                        </h2>
-                        <p className="text-slate-600 mb-6">
-                            Export your confirmed orders as CSV files formatted for your specific POS system. Each export
-                            format is tailored to match your system's import requirements.
-                        </p>
+            {
+                activeTab === 'export' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Download size={20} className="text-purple-600" />
+                                CSV Export Guide
+                            </h2>
+                            <p className="text-slate-600 mb-6">
+                                Export your confirmed orders as CSV files formatted for your specific POS system. Each export
+                                format is tailored to match your system's import requirements.
+                            </p>
 
-                        <div className="space-y-4">
-                            {SUPPORTED_POS.map((pos) => (
-                                <div key={pos.id} className="border border-slate-200 rounded-xl p-4">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <span className="text-2xl">{pos.logo}</span>
-                                        <h3 className="font-bold text-slate-800">{pos.name}</h3>
+                            <div className="space-y-4">
+                                {SUPPORTED_POS.map((pos) => (
+                                    <div key={pos.id} className="border border-slate-200 rounded-xl p-4">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <span className="text-2xl">{pos.logo}</span>
+                                            <h3 className="font-bold text-slate-800">{pos.name}</h3>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
+                                            <p className="font-semibold text-slate-700">Export Format:</p>
+                                            <ul className="list-disc list-inside text-slate-600 space-y-1">
+                                                {pos.id === 'dutchie' && (
+                                                    <>
+                                                        <li>SKU, Product Name, Price, Quantity, Category</li>
+                                                        <li>Dutchie-compatible column headers</li>
+                                                    </>
+                                                )}
+                                                {pos.id === 'blaze' && (
+                                                    <>
+                                                        <li>Item ID, Description, Unit Price, Qty, Total</li>
+                                                        <li>Blaze POS standard format</li>
+                                                    </>
+                                                )}
+                                                {pos.id === 'cova' && (
+                                                    <>
+                                                        <li>Product ID, Name, Price, Quantity, Category</li>
+                                                        <li>Cova-compatible import structure</li>
+                                                    </>
+                                                )}
+                                                {pos.id === 'biotrack' && (
+                                                    <>
+                                                        <li>Manifest ID, Item Name, Quantity, Unit, RFID Tag</li>
+                                                        <li>BioTrack THC manifest format</li>
+                                                    </>
+                                                )}
+                                                {pos.id === 'leaflogix' && (
+                                                    <>
+                                                        <li>Product SKU, Name, Qty, Batch, Package ID</li>
+                                                        <li>LeafLogix inventory format</li>
+                                                    </>
+                                                )}
+                                                {pos.id === 'metrc' && (
+                                                    <>
+                                                        <li>Package Tag, Product Name, Quantity, Unit of Measure</li>
+                                                        <li>Metrc/Generic compliance format</li>
+                                                    </>
+                                                )}
+                                            </ul>
+                                        </div>
                                     </div>
-                                    <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
-                                        <p className="font-semibold text-slate-700">Export Format:</p>
-                                        <ul className="list-disc list-inside text-slate-600 space-y-1">
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {
+                activeTab === 'import' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Upload size={20} className="text-purple-600" />
+                                CSV Import Instructions
+                            </h2>
+                            <p className="text-slate-600 mb-6">
+                                Follow these system-specific instructions to import your downloaded CSV files into your POS
+                                system.
+                            </p>
+
+                            <div className="space-y-6">
+                                {SUPPORTED_POS.map((pos) => (
+                                    <div key={pos.id} className="border border-slate-200 rounded-xl p-5">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <span className="text-2xl">{pos.logo}</span>
+                                            <h3 className="font-bold text-slate-800 text-lg">{pos.name}</h3>
+                                        </div>
+                                        <div className="space-y-3 text-sm">
                                             {pos.id === 'dutchie' && (
                                                 <>
-                                                    <li>SKU, Product Name, Price, Quantity, Category</li>
-                                                    <li>Dutchie-compatible column headers</li>
+                                                    <p className="font-semibold text-slate-700">Import Steps:</p>
+                                                    <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                        <li>Log into your Dutchie admin panel</li>
+                                                        <li>Navigate to <strong>Inventory → Import Products</strong></li>
+                                                        <li>Upload the downloaded CSV file</li>
+                                                        <li>Map columns if prompted (usually auto-detected)</li>
+                                                        <li>Click "Import" to sync products to your store</li>
+                                                    </ol>
                                                 </>
                                             )}
                                             {pos.id === 'blaze' && (
                                                 <>
-                                                    <li>Item ID, Description, Unit Price, Qty, Total</li>
-                                                    <li>Blaze POS standard format</li>
+                                                    <p className="font-semibold text-slate-700">Import Steps:</p>
+                                                    <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                        <li>Access Blaze POS back office</li>
+                                                        <li>Go to <strong>Products → Bulk Import</strong></li>
+                                                        <li>Select "Import from CSV"</li>
+                                                        <li>Upload the file and confirm field mapping</li>
+                                                        <li>Review and complete import</li>
+                                                    </ol>
                                                 </>
                                             )}
                                             {pos.id === 'cova' && (
                                                 <>
-                                                    <li>Product ID, Name, Price, Quantity, Category</li>
-                                                    <li>Cova-compatible import structure</li>
+                                                    <p className="font-semibold text-slate-700">Import Steps:</p>
+                                                    <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                        <li>Open Cova admin dashboard</li>
+                                                        <li>Navigate to <strong>Inventory → Import</strong></li>
+                                                        <li>Choose "Product Import" option</li>
+                                                        <li>Upload CSV and verify column mapping</li>
+                                                        <li>Complete import process</li>
+                                                    </ol>
                                                 </>
                                             )}
                                             {pos.id === 'biotrack' && (
                                                 <>
-                                                    <li>Manifest ID, Item Name, Quantity, Unit, RFID Tag</li>
-                                                    <li>BioTrack THC manifest format</li>
+                                                    <p className="font-semibold text-slate-700">Import Steps:</p>
+                                                    <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                        <li>Log into BioTrack THC</li>
+                                                        <li>Go to <strong>Manifests → Import Manifest</strong></li>
+                                                        <li>Select the CSV file</li>
+                                                        <li>Verify RFID tags and quantities</li>
+                                                        <li>Submit to state tracking system</li>
+                                                    </ol>
                                                 </>
                                             )}
                                             {pos.id === 'leaflogix' && (
                                                 <>
-                                                    <li>Product SKU, Name, Qty, Batch, Package ID</li>
-                                                    <li>LeafLogix inventory format</li>
+                                                    <p className="font-semibold text-slate-700">Import Steps:</p>
+                                                    <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                        <li>Access LeafLogix dashboard</li>
+                                                        <li>Navigate to <strong>Inventory → Bulk Actions</strong></li>
+                                                        <li>Select "Import Inventory"</li>
+                                                        <li>Upload CSV and map fields</li>
+                                                        <li>Confirm and import inventory</li>
+                                                    </ol>
                                                 </>
                                             )}
                                             {pos.id === 'metrc' && (
                                                 <>
-                                                    <li>Package Tag, Product Name, Quantity, Unit of Measure</li>
-                                                    <li>Metrc/Generic compliance format</li>
+                                                    <p className="font-semibold text-slate-700">Import Steps:</p>
+                                                    <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                        <li>Log into your state Metrc portal</li>
+                                                        <li>Go to <strong>Packages → Create from Template</strong></li>
+                                                        <li>Upload the generic CSV format</li>
+                                                        <li>Verify package tags match state requirements</li>
+                                                        <li>Submit manifest for compliance tracking</li>
+                                                    </ol>
                                                 </>
                                             )}
-                                        </ul>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+
+                            {/* Support Notice */}
+                            <div className="mt-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                                <p className="text-sm text-purple-900">
+                                    <strong>Need Help?</strong> If you encounter issues importing CSV files, contact your POS
+                                    system's support team or reach out to Green Truth support for assistance.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {activeTab === 'import' && (
-                <div className="space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <Upload size={20} className="text-purple-600" />
-                            CSV Import Instructions
-                        </h2>
-                        <p className="text-slate-600 mb-6">
-                            Follow these system-specific instructions to import your downloaded CSV files into your POS
-                            system.
-                        </p>
-
-                        <div className="space-y-6">
-                            {SUPPORTED_POS.map((pos) => (
-                                <div key={pos.id} className="border border-slate-200 rounded-xl p-5">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <span className="text-2xl">{pos.logo}</span>
-                                        <h3 className="font-bold text-slate-800 text-lg">{pos.name}</h3>
-                                    </div>
-                                    <div className="space-y-3 text-sm">
-                                        {pos.id === 'dutchie' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import Steps:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Log into your Dutchie admin panel</li>
-                                                    <li>Navigate to <strong>Inventory → Import Products</strong></li>
-                                                    <li>Upload the downloaded CSV file</li>
-                                                    <li>Map columns if prompted (usually auto-detected)</li>
-                                                    <li>Click "Import" to sync products to your store</li>
-                                                </ol>
-                                            </>
-                                        )}
-                                        {pos.id === 'blaze' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import Steps:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Access Blaze POS back office</li>
-                                                    <li>Go to <strong>Products → Bulk Import</strong></li>
-                                                    <li>Select "Import from CSV"</li>
-                                                    <li>Upload the file and confirm field mapping</li>
-                                                    <li>Review and complete import</li>
-                                                </ol>
-                                            </>
-                                        )}
-                                        {pos.id === 'cova' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import Steps:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Open Cova admin dashboard</li>
-                                                    <li>Navigate to <strong>Inventory → Import</strong></li>
-                                                    <li>Choose "Product Import" option</li>
-                                                    <li>Upload CSV and verify column mapping</li>
-                                                    <li>Complete import process</li>
-                                                </ol>
-                                            </>
-                                        )}
-                                        {pos.id === 'biotrack' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import Steps:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Log into BioTrack THC</li>
-                                                    <li>Go to <strong>Manifests → Import Manifest</strong></li>
-                                                    <li>Select the CSV file</li>
-                                                    <li>Verify RFID tags and quantities</li>
-                                                    <li>Submit to state tracking system</li>
-                                                </ol>
-                                            </>
-                                        )}
-                                        {pos.id === 'leaflogix' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import Steps:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Access LeafLogix dashboard</li>
-                                                    <li>Navigate to <strong>Inventory → Bulk Actions</strong></li>
-                                                    <li>Select "Import Inventory"</li>
-                                                    <li>Upload CSV and map fields</li>
-                                                    <li>Confirm and import inventory</li>
-                                                </ol>
-                                            </>
-                                        )}
-                                        {pos.id === 'metrc' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import Steps:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Log into your state Metrc portal</li>
-                                                    <li>Go to <strong>Packages → Create from Template</strong></li>
-                                                    <li>Upload the generic CSV format</li>
-                                                    <li>Verify package tags match state requirements</li>
-                                                    <li>Submit manifest for compliance tracking</li>
-                                                </ol>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Support Notice */}
-                        <div className="mt-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
-                            <p className="text-sm text-purple-900">
-                                <strong>Need Help?</strong> If you encounter issues importing CSV files, contact your POS
-                                system's support team or reach out to Green Truth support for assistance.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

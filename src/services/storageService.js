@@ -76,3 +76,30 @@ export async function uploadInvoiceAttachment(file) {
         return URL.createObjectURL(file);
     }
 }
+
+export async function uploadProductImage(file, brandId) {
+    if (!brandId) return URL.createObjectURL(file);
+
+    try {
+        const timestamp = Date.now();
+        const extension = file.name.split('.').pop();
+        const path = `${brandId}/products/${timestamp}.${extension}`;
+
+        const { data, error } = await supabase
+            .storage
+            .from('product-images')
+            .upload(path, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase
+            .storage
+            .from('product-images')
+            .getPublicUrl(path);
+
+        return publicUrl;
+    } catch (e) {
+        console.error("Product image upload failed:", e);
+        return URL.createObjectURL(file); // Fallback
+    }
+}

@@ -30,6 +30,9 @@ export default function BrandOversight() {
 
             try {
                 for (const [licenseKey, brand] of Object.entries(BRAND_LICENSES)) {
+                    // Skip internal Green Truth brand from oversight
+                    if (brand.brandId === 'greentruth') continue;
+
                     const brandMetric = await calculateBrandMetrics(brand.brandId, brand.brandName);
                     metrics[brand.brandId] = {
                         ...brand,
@@ -243,7 +246,7 @@ export default function BrandOversight() {
                                                 <span className="font-semibold text-slate-800">{formatCurrency(brand.revenue)}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-slate-600">GreenTruth Commission (5%):</span>
+                                                <span className="text-slate-600">Commission (5%):</span>
                                                 <span className="font-semibold text-amber-700">-{formatCurrency(brand.commissionOwed)}</span>
                                             </div>
                                             <div className="flex justify-between">

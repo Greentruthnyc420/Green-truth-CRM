@@ -5,9 +5,9 @@ import { getBrandProducts, updateBrandProducts, updateBrandMenuUrl } from '../..
 import { parseMenuDocument } from '../../services/geminiService';
 import {
     Package, Plus, Edit2, Trash2, Save, X,
-    DollarSign, Hash, AlertCircle, Check, Upload, Tag, ToggleLeft, ToggleRight, Sparkles, RefreshCw, Eye
+    DollarSign, Hash, AlertCircle, Check, Upload, Tag, ToggleLeft, ToggleRight, Sparkles, RefreshCw, Eye, Store
 } from 'lucide-react';
-import { uploadBrandMenu } from '../../services/storageService';
+import { uploadBrandMenu, uploadProductImage } from '../../services/storageService';
 import { useNotification } from '../../contexts/NotificationContext';
 
 import { exportToDutchie, exportToBlaze, exportMetrcReady } from '../../utils/csvExporters';
@@ -88,6 +88,29 @@ export default function BrandMenuEditor() {
 
     // Upload Options State
     const [scanMode, setScanMode] = useState('both'); // 'both', 'upload_only', 'scan_only'
+    const [imageUploading, setImageUploading] = useState(false);
+
+    const handleProductImageUpload = async (file, targetStateSetter) => {
+        if (!file || !selectedBrandId) return;
+
+        // Limits
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification("Image must be under 5MB", "warning");
+            return;
+        }
+
+        setImageUploading(true);
+        try {
+            const url = await uploadProductImage(file, selectedBrandId);
+            targetStateSetter(prev => ({ ...prev, imageUrl: url }));
+            showNotification("Image uploaded!", "success");
+        } catch (error) {
+            console.error(error);
+            showNotification("Failed to upload image", "error");
+        } finally {
+            setImageUploading(false);
+        }
+    };
 
     const handleMenuUpload = async (e) => {
         const file = e.target.files[0];
@@ -607,6 +630,30 @@ export default function BrandMenuEditor() {
                                 <div className="bg-amber-50 border-2 border-amber-300 border-dashed rounded-xl p-4 shadow-sm">
                                     <h3 className="text-sm font-bold text-amber-700 mb-3 uppercase tracking-wider">New Product</h3>
                                     <div className="space-y-3">
+                                        <div className="w-full mb-3">
+                                            <label className="text-xs text-slate-500 block mb-1">Product Image (Optional)</label>
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative w-16 h-16 bg-white border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden group">
+                                                    {newProduct.imageUrl ? (
+                                                        <img src={newProduct.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <Store size={20} className="text-slate-300" />
+                                                    )}
+                                                    {imageUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div></div>}
+                                                </div>
+                                                <label className="cursor-pointer px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                                                    <Upload size={14} className="inline mr-1" /> Upload
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => handleProductImageUpload(e.target.files[0], setNewProduct)}
+                                                        disabled={imageUploading}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+
                                         <input
                                             type="text"
                                             placeholder="Product name *"
@@ -746,6 +793,30 @@ export default function BrandMenuEditor() {
                                     {editingProduct?.id === product.id ? (
                                         // Edit Mode
                                         <div className="space-y-3">
+                                            <div className="w-full">
+                                                <label className="text-xs text-slate-500 block mb-1">Product Image</label>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative w-16 h-16 bg-white border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden">
+                                                        {editingProduct.imageUrl ? (
+                                                            <img src={editingProduct.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Store size={20} className="text-slate-300" />
+                                                        )}
+                                                        {imageUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div></div>}
+                                                    </div>
+                                                    <label className="cursor-pointer px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                                                        Change
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleProductImageUpload(e.target.files[0], setEditingProduct)}
+                                                            disabled={imageUploading}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+
                                             <input
                                                 type="text"
                                                 className="w-full p-2 border border-slate-200 rounded-lg focus:border-amber-500 outline-none font-medium"

@@ -52,44 +52,62 @@ export async function saveMondaySettings(brandId, settings) {
     }
 }
 
-/**
- * Sync a lead to Monday.com
- * @param {string} brandId - The brand's ID
- * @param {object} lead - The lead object to sync
- * @param {string} boardId - The Monday.com board ID
- * @returns {Promise<{success: boolean, mondayItemId?: string, error?: string}>}
- */
-export async function syncLeadToMonday(brandId, lead, boardId) {
+export async function syncAccountToMonday(brandId, lead) {
     try {
-        const syncLead = httpsCallable(functions, 'syncLeadToMonday');
-        const result = await syncLead({ brandId, lead, boardId });
+        const syncAccount = httpsCallable(functions, 'syncAccountToMonday');
+        const result = await syncAccount({ brandId, lead });
         return result.data;
     } catch (error) {
-        console.error('syncLeadToMonday error:', error);
+        console.error('syncAccountToMonday error:', error);
         return {
             success: false,
             error: error.message || 'Failed to sync lead'
         };
     }
 }
+// Legacy support: alias syncLeadToMonday to syncAccountToMonday if needed, or keeping it separate.
+// For now, replacing syncLeadToMonday with syncAccountToMonday as per new plan.
+export const syncLeadToMonday = syncAccountToMonday;
 
 /**
- * Sync an order to Monday.com
+ * Sync an order/sale to Monday.com
  * @param {string} brandId - The brand's ID
- * @param {object} order - The order object to sync
+ * @param {object} sale - The sale object to sync
  * @param {string} boardId - The Monday.com board ID
  * @returns {Promise<{success: boolean, mondayItemId?: string, error?: string}>}
  */
-export async function syncOrderToMonday(brandId, order, boardId) {
+export async function syncSaleToMonday(brandId, sale) {
     try {
-        const syncOrder = httpsCallable(functions, 'syncOrderToMonday');
-        const result = await syncOrder({ brandId, order, boardId });
+        const syncSale = httpsCallable(functions, 'syncSaleToMonday');
+        const result = await syncSale({ brandId, sale });
         return result.data;
     } catch (error) {
-        console.error('syncOrderToMonday error:', error);
+        console.error('syncSaleToMonday error:', error);
         return {
             success: false,
-            error: error.message || 'Failed to sync order'
+            error: error.message || 'Failed to sync sale'
+        };
+    }
+}
+// Alias for backward compatibility if needed, but prefer syncSaleToMonday
+export const syncOrderToMonday = syncSaleToMonday;
+
+/**
+ * Sync an activation to Monday.com
+ * @param {string} brandId - The brand's ID
+ * @param {object} activation - The activation object
+ * @returns {Promise<{success: boolean, mondayItemId?: string, error?: string}>}
+ */
+export async function syncActivationToMonday(brandId, activation) {
+    try {
+        const syncAct = httpsCallable(functions, 'syncActivationToMonday');
+        const result = await syncAct({ brandId, activation });
+        return result.data;
+    } catch (error) {
+        console.error('syncActivationToMonday error:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to sync activation'
         };
     }
 }
@@ -148,6 +166,33 @@ export async function triggerFullSync(brandId) {
         return result.data;
     } catch (error) {
         console.error('triggerFullSync error:', error);
+        return { success: false, error: error.message };
+    }
+}
+/**
+ * Get Dispensary Monday Integration Status
+ */
+export async function getDispensaryMondayIntegrationStatus() {
+    try {
+        const getStatus = httpsCallable(functions, 'getDispensaryIntegration');
+        const result = await getStatus();
+        return result.data;
+    } catch (error) {
+        console.error('getDispensaryMondayIntegrationStatus error:', error);
+        return { connected: false };
+    }
+}
+
+/**
+ * Sync Dispensary Invoice
+ */
+export async function syncDispensaryInvoiceToMonday(invoice) {
+    try {
+        const syncFn = httpsCallable(functions, 'syncDispensaryInvoiceToMonday');
+        const result = await syncFn({ invoice });
+        return result.data;
+    } catch (error) {
+        console.error('syncDispensaryInvoiceToMonday error:', error);
         return { success: false, error: error.message };
     }
 }

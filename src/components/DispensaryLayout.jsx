@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, LogOut, Building2, Bell, Plug } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, LogOut, Building2, Bell, Plug, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function DispensaryLayout() {
@@ -22,6 +22,7 @@ export default function DispensaryLayout() {
 
                 <nav className="flex-1 p-4 space-y-1">
                     <DispensaryNavItem to="/dispensary" icon={<LayoutDashboard size={20} />} label="Dashboard" />
+                    <DispensaryNavItem to="/dispensary/schedule" icon={<Calendar size={20} />} label="Schedule" />
                     <DispensaryNavItem to="/dispensary/marketplace" icon={<ShoppingBag size={20} />} label="Marketplace" />
                     <DispensaryNavItem to="/dispensary/integrations" icon={<Plug size={20} />} label="Integrations" />
 

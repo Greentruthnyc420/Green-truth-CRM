@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getActivations, getAllBrandProfiles } from '../services/firestoreService';
+import { getActivations, getAllBrandProfiles, updateActivation } from '../services/firestoreService';
 import CalendarView from '../components/CalendarView';
-import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, Plus } from 'lucide-react';
+import ActivationFormModal from '../components/ActivationFormModal';
 
 const Schedule = () => {
     const { currentUser } = useAuth();
@@ -11,6 +12,7 @@ const Schedule = () => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [filterBrand, setFilterBrand] = useState('all');
     const [brands, setBrands] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const isAdmin = currentUser && ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'].includes(currentUser.email?.toLowerCase());
 
@@ -42,8 +44,10 @@ const Schedule = () => {
                 try {
                     // Construct Date objects. Support both 'date + startTime' str and ISO strings if mixed.
                     // activationData in addActivation uses: date (YYYY-MM-DD), startTime (HH:MM), endTime (HH:MM).
-                    const start = new Date(`${a.date}T${a.startTime}:00`);
-                    const end = new Date(`${a.date}T${a.endTime}:00`);
+                    // For Requested events, date might be null or first preference
+                    const dateStr = a.date || (a.datePreferences?.[0]) || new Date().toISOString().split('T')[0];
+                    const start = new Date(`${dateStr}T${a.startTime || '12:00'}:00`);
+                    const end = new Date(`${dateStr}T${a.endTime || '16:00'}:00`);
 
                     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                         console.warn(`Invalid date/time for activation ${a.id}:`, a.date, a.startTime);
@@ -52,13 +56,15 @@ const Schedule = () => {
 
                     return {
                         id: a.id,
-                        title: `${a.brandName} @ ${a.storeName}`,
+                        title: `${a.status === 'Requested' ? '❓' : ''} ${a.brandName} @ ${a.storeName}`,
                         start,
                         end,
                         resource: {
                             ...a,
-                            status: a.status // 'scheduled', 'completed', etc.
-                        }
+                            status: a.status || 'Scheduled'
+                        },
+                        // Custom style for Requested events
+                        style: a.status === 'Requested' ? { backgroundColor: '#fef3c7', borderColor: '#d97706', color: '#92400e' } : {}
                     };
                 } catch (e) {
                     console.error("Error parsing activation date:", e);
@@ -72,6 +78,23 @@ const Schedule = () => {
             console.error("Failed to load schedule", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleConfirmDate = async (activationId, confirmedDate) => {
+        if (!confirm(`Confirm activation for ${confirmedDate}?`)) return;
+
+        try {
+            await updateActivation(activationId, {
+                dateOfActivation: confirmedDate,
+                status: 'Scheduled'
+            });
+            alert("Activation confirmed!");
+            setSelectedEvent(null);
+            loadData();
+        } catch (error) {
+            console.error("Failed to confirm activation:", error);
+            alert("Error confirming activation");
         }
     };
 
@@ -98,21 +121,31 @@ const Schedule = () => {
                     </p>
                 </div>
 
-                {isAdmin && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-slate-700">Filter by Brand:</span>
-                        <select
-                            value={filterBrand}
-                            onChange={(e) => setFilterBrand(e.target.value)}
-                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                        >
-                            <option value="all">All Brands</option>
-                            {brands.map(b => (
-                                <option key={b.id} value={b.id}>{b.name || b.id}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                    >
+                        <Plus size={18} />
+                        Schedule Activation
+                    </button>
+
+                    {isAdmin && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-700">Filter by Brand:</span>
+                            <select
+                                value={filterBrand}
+                                onChange={(e) => setFilterBrand(e.target.value)}
+                                className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                            >
+                                <option value="all">All Brands</option>
+                                {brands.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name || b.id}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {loading ? (
@@ -147,6 +180,46 @@ const Schedule = () => {
                         </div>
 
                         <div className="p-6 space-y-4">
+                            {/* Status Banner */}
+                            {(selectedEvent.resource.status === 'Requested' || selectedEvent.resource.status === 'Pending') && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-amber-100 rounded-full text-amber-600">
+                                            <CalendarIcon size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-amber-900">Activation Requested</h4>
+                                            <p className="text-sm text-amber-700 mt-1">
+                                                Requested by: <span className="font-semibold">{selectedEvent.resource.requestedBy || 'Dispensary/Brand'}</span>
+                                            </p>
+
+                                            {selectedEvent.resource.datePreferences && selectedEvent.resource.datePreferences.length > 0 && (
+                                                <div className="mt-3">
+                                                    <p className="text-xs font-bold text-amber-800 uppercase mb-2">Preferred Dates:</p>
+                                                    <div className="space-y-2">
+                                                        {selectedEvent.resource.datePreferences.map((date, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border border-amber-100">
+                                                                <span className="text-sm font-medium text-slate-700">
+                                                                    {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
+                                                                </span>
+                                                                {isAdmin && (
+                                                                    <button
+                                                                        onClick={() => handleConfirmDate(selectedEvent.id, date)}
+                                                                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded transition-colors"
+                                                                    >
+                                                                        Confirm This Date
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-400 uppercase">Brand</label>
@@ -159,7 +232,7 @@ const Schedule = () => {
                                     <label className="text-xs font-bold text-slate-400 uppercase">Representative</label>
                                     <div className="flex items-center gap-2 text-slate-800 font-medium">
                                         <User size={16} className="text-brand-500" />
-                                        {selectedEvent.resource.repName}
+                                        {selectedEvent.resource.repName || 'Unassigned'}
                                     </div>
                                 </div>
                             </div>
@@ -175,16 +248,18 @@ const Schedule = () => {
                                 )}
                             </div>
 
-                            <div className="space-y-1 pt-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase">Time</label>
-                                <div className="flex items-center gap-2 text-slate-800 font-medium">
-                                    <Clock size={16} className="text-brand-500" />
-                                    {formatTime(selectedEvent.resource.startTime)} - {formatTime(selectedEvent.resource.endTime)}
+                            {selectedEvent.resource.status !== 'Requested' && (
+                                <div className="space-y-1 pt-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase">Time</label>
+                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                        <Clock size={16} className="text-brand-500" />
+                                        {formatTime(selectedEvent.resource.startTime)} - {formatTime(selectedEvent.resource.endTime)}
+                                    </div>
+                                    <p className="text-sm text-slate-500 pl-6">
+                                        {new Date(selectedEvent.resource.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </p>
                                 </div>
-                                <p className="text-sm text-slate-500 pl-6">
-                                    {new Date(selectedEvent.resource.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                </p>
-                            </div>
+                            )}
 
                             {selectedEvent.resource.notes && (
                                 <div className="bg-slate-50 p-4 rounded-lg mt-4 text-sm text-slate-600 italic">
@@ -204,6 +279,13 @@ const Schedule = () => {
                     </div>
                 </div>
             )}
+
+            {/* Schedule Activation Modal */}
+            <ActivationFormModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={loadData}
+            />
         </div>
     );
 };

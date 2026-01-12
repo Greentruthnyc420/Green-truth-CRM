@@ -110,3 +110,20 @@ export const exportMetrcReady = (products) => {
     const csv = Papa.unparse(data);
     downloadCSV(csv, `metrc_ready_${Date.now()}.csv`);
 };
+
+// 7. Universal / Simple CSV Export
+export const exportGeneric = (products, orderId) => {
+    const data = products.map(p => ({
+        'Product Name': p.name,
+        'Brand': p.brandName || '',
+        'Category': p.category || '',
+        'Quantity': p.quantity || 1,
+        'Unit Price': p.price || 0,
+        'Total': (p.quantity || 1) * (p.price || 0),
+        'SKU': p.riid || p.id || '',
+        'Description': p.description || ''
+    }));
+
+    const csv = Papa.unparse(data);
+    downloadCSV(csv, `order_${orderId || 'export'}_${Date.now()}.csv`);
+};
