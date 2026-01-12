@@ -43,7 +43,7 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
 
         timeStart: initialData.timeStart || '12:00',
         timeEnd: initialData.timeEnd || '16:00',
-        activationType: initialData.activationType || 'Demo',
+        activationType: initialData.activationType || 'Activation',
         repId: initialData.repId || (currentUser?.uid || ''),
         notes: initialData.notes || ''
     });
@@ -268,9 +268,7 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                                     value={formData.activationType}
                                     onChange={e => setFormData({ ...formData, activationType: e.target.value })}
                                 >
-                                    <option value="Demo">Demo</option>
-                                    <option value="Pop-up">Pop-up</option>
-                                    <option value="Budtender Appreciation">Budtender Appreciation</option>
+                                    <option value="Activation">Activation</option>
                                     <option value="Sample Drop">Sample Drop</option>
                                 </select>
                             </div>

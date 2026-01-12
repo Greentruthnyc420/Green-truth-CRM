@@ -43,43 +43,66 @@ export default function NewActivationModal({ isOpen, onClose, onSave, leads }) {
                 ...allSales.map(s => s.userId || s.repId)
             ]);
 
-            // 3. Combine and filter
+            // 3. Brand owner emails to exclude (known brand owners)
+            const brandOwnerEmails = [
+                'russ@greenbridgenyc.com',
+                'russ@thegreentruthnyc.com',
+                'russgreenbridge@gmail.com',
+                // Add other known brand owner emails here
+            ];
+
+            // 4. Combine and filter - use Map to deduplicate by ID
             const repsMap = new Map();
 
-            // Add users from collection
+            // Add users from collection (excluding brand owners)
             users.forEach(u => {
                 const id = u.id || u.uid;
+                const email = u.email || u.profileInfo?.email || '';
+
+                // Skip brand owners
+                if (brandOwnerEmails.some(ownerEmail => email.toLowerCase().includes(ownerEmail.toLowerCase()))) {
+                    return;
+                }
+
                 repsMap.set(id, {
                     id: id,
                     name: (u.firstName && u.lastName) ? `${u.firstName} ${u.lastName}` :
                         (u.profileInfo?.firstName && u.profileInfo?.lastName) ? `${u.profileInfo.firstName} ${u.profileInfo.lastName}` :
                             u.name || u.displayName || id,
-                    email: u.email || u.profileInfo?.email || 'No Email'
+                    email: email || 'No Email'
                 });
             });
 
-            // Add missing active IDs
+            // Add missing active IDs (excluding brand owners)
             for (const uid of activeIds) {
                 if (uid && !repsMap.has(uid)) {
                     const profile = await getUserProfile(uid);
                     if (profile) {
+                        const email = profile.email || profile.profileInfo?.email || '';
+
+                        // Skip brand owners
+                        if (brandOwnerEmails.some(ownerEmail => email.toLowerCase().includes(ownerEmail.toLowerCase()))) {
+                            continue;
+                        }
+
                         repsMap.set(uid, {
                             id: uid,
                             name: (profile.firstName && profile.lastName) ? `${profile.firstName} ${profile.lastName}` :
                                 (profile.profileInfo?.firstName && profile.profileInfo?.lastName) ? `${profile.profileInfo.firstName} ${profile.profileInfo.lastName}` :
                                     profile.name || profile.displayName || uid,
-                            email: profile.email || profile.profileInfo?.email || 'No Email'
+                            email: email || 'No Email'
                         });
                     }
                 }
             }
 
-            // 4. Ensure current user (Admin) is in the list as they also do activations
-            if (currentUser) {
-                const id = currentUser.uid;
-                if (!repsMap.has(id)) {
-                    repsMap.set(id, {
-                        id: id,
+            // 5. Ensure current user (Admin) is in the list - Map will prevent duplicates
+            if (currentUser && currentUser.uid) {
+                const currentEmail = currentUser.email || '';
+                // Only add if not a brand owner
+                if (!brandOwnerEmails.some(ownerEmail => currentEmail.toLowerCase().includes(ownerEmail.toLowerCase()))) {
+                    repsMap.set(currentUser.uid, {
+                        id: currentUser.uid,
                         name: currentUser.displayName || 'Omar (Admin)',
                         email: currentUser.email
                     });
