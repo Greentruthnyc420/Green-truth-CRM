@@ -474,13 +474,36 @@ export async function addActivationRequest(data) {
 }
 
 export async function addActivation(data) {
-    console.warn("addActivation not migrated");
-    return Promise.resolve({ id: 'temp' });
+    const { data: activation, error } = await supabase.from('activations').insert([{
+        brand_id: data.brandId,
+        dispensary_id: data.dispensaryId,
+        date_of_activation: data.dateOfActivation || new Date().toISOString().split('T')[0],
+        rep_id: data.repId,
+        activation_type: data.activationType,
+        photos: data.photos || [],
+        notes: data.notes || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    }]).select().single();
+
+    if (error) throw error;
+    return { id: activation.activation_id };
 }
 
 export async function updateActivation(id, data) {
-    console.warn("updateActivation not migrated");
-    return Promise.resolve();
+    const dbUpdates = {
+        updated_at: new Date().toISOString()
+    };
+    if (data.brandId) dbUpdates.brand_id = data.brandId;
+    if (data.dispensaryId) dbUpdates.dispensary_id = data.dispensaryId;
+    if (data.dateOfActivation) dbUpdates.date_of_activation = data.dateOfActivation;
+    if (data.repId) dbUpdates.rep_id = data.repId;
+    if (data.activationType) dbUpdates.activation_type = data.activationType;
+    if (data.photos) dbUpdates.photos = data.photos;
+    if (data.notes) dbUpdates.notes = data.notes;
+
+    const { error } = await supabase.from('activations').update(dbUpdates).eq('activation_id', id);
+    return !error;
 }
 
 export async function updateSaleStatus(saleId, status) {
@@ -509,16 +532,46 @@ export async function deleteSale(id) {
 }
 
 export async function resetDatabase() {
-    console.warn("⚠️ DELETING ALL DATA...");
-    // Delete all rows where ID is distinct from 0 (effectively all rows)
-    const { error: e1 } = await supabase.from('sales').delete().neq('id', 0);
-    const { error: e2 } = await supabase.from('leads').delete().neq('id', 0);
-    const { error: e3 } = await supabase.from('sample_requests').delete().neq('id', 0);
+    console.warn("⚠️ DELETING ALL TEST DATA...");
 
-    if (e1 || e2 || e3) {
-        console.error("Error resetting DB:", e1, e2, e3);
+    // List of transactional tables to clear
+    const tables = [
+        'sales',
+        'leads',
+        'sample_requests',
+        'shifts',
+        'activations',
+        'activity_logs',
+        'security_logs',
+        'drivers',
+        'vehicles'
+    ];
+
+    const results = await Promise.all(
+        tables.map(async (tableName) => {
+            // neq('id', -1) is a common trick to delete all rows when id is an integer.
+            // For UUIDs, we can use neq('id', '00000000-0000-0000-0000-000000000000')
+            // Or better yet, just a filter that is always true like .gt('created_at', '1970-01-01')
+            const { error } = await supabase
+                .from(tableName)
+                .delete()
+                .filter('created_at', 'gt', '1970-01-01');
+
+            if (error) {
+                console.error(`Error clearing table ${tableName}:`, error);
+                return { table: tableName, success: false, error };
+            }
+            return { table: tableName, success: true };
+        })
+    );
+
+    const failed = results.filter(r => !r.success);
+    if (failed.length > 0) {
+        console.error("Database reset failed for some tables:", failed);
         return false;
     }
+
+    console.log("✅ Database reset complete. All test data cleared.");
     return true;
 }
 
@@ -622,7 +675,18 @@ export async function getActivations() {
         console.error("Error fetching activations:", error);
         return [];
     }
-    return data || [];
+    return (data || []).map(a => ({
+        id: a.activation_id,
+        brandId: a.brand_id,
+        dispensaryId: a.dispensary_id,
+        dateOfActivation: a.date_of_activation,
+        repId: a.rep_id,
+        activationType: a.activation_type,
+        photos: a.photos || [],
+        notes: a.notes,
+        createdAt: a.created_at,
+        updated_at: a.updated_at
+    }));
 }
 
 // --- BRAND MANAGEMENT ---

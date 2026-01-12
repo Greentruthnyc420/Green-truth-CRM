@@ -1,32 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Package, Shield, Sparkles, Store, Truck } from 'lucide-react';
+import { Users, Package, Shield, Sparkles, Store, Truck, ArrowLeft } from 'lucide-react';
 
-// Import main logo
-import logoMain from '../assets/images/logo-main.png';
-// Import partner logos
-import partner1 from '../assets/images/partner-1.png';
-import partner2 from '../assets/images/partner-2.png';
-import partner3 from '../assets/images/partner-3.jpg';
-import partner4 from '../assets/images/partner-4.png';
-import partner5 from '../assets/images/partner-5.png';
-import partner6 from '../assets/images/partner-6.png';
-import partner7 from '../assets/images/partner-7.png';
-import waferz from '../assets/images/waferz.png';
-import smoothieBar from '../assets/images/smoothie-bar.png';
-import flxExtracts from '../assets/images/flx-extracts.png';
+// Main logo constant
+const logoMain = '/logos/logo-main.png';
 
 const partnerLogos = [
-    { src: partner5, name: 'Honey King' },
-    { src: partner2, name: 'Space Poppers' },
-    { src: partner4, name: 'Budcracker Blvd' }, // Placeholder licenses for brands (Wanders removed)
-    { src: partner3, name: 'Canna Dots' },
-    { src: waferz, name: 'Waferz' },
-    { src: partner6, name: 'Honey King Lion' },
-    { src: smoothieBar, name: 'Smoothie Bar' },
-    { src: flxExtracts, name: 'FLX Extracts' },
-    { src: partner7, name: 'Budcracker NYC' },
+    { src: '/logos/partner-5.png', name: 'Honey King' },
+    { src: '/logos/partner-2.png', name: 'Space Poppers' },
+    { src: '/logos/partner-4.png', name: 'Budcracker Blvd' },
+    { src: '/logos/partner-3.jpg', name: 'Canna Dots' },
+    { src: '/logos/waferz.png', name: 'Waferz' },
+    { src: '/logos/partner-6.png', name: 'Honey King Lion' },
+    { src: '/logos/smoothie-bar.png', name: 'Smoothie Bar' },
+    { src: '/logos/flx-extracts.png', name: 'FLX Extracts' },
+    { src: '/logos/partner-7.png', name: 'Budcracker NYC' },
 ];
 
 // SVG Component for a simplified Cannabis Leaf
@@ -155,6 +144,22 @@ export default function GatewayLanding() {
             </div>
 
             <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-12">
+                {/* Back to Home Button */}
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.2, duration: 0.5 }}
+                    className="absolute top-8 left-8"
+                >
+                    <button
+                        onClick={() => navigate('/')}
+                        className="flex items-center gap-2 text-slate-400 hover:text-emerald-400 transition-colors duration-300 group"
+                    >
+                        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                        <span className="text-sm font-medium tracking-wide uppercase">Back to Home</span>
+                    </button>
+                </motion.div>
+
                 {/* Hero Section - Logo */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.8, y: -30 }}
@@ -343,7 +348,7 @@ export default function GatewayLanding() {
             </div>
 
             {/* Custom CSS for infinite scroll */}
-            <style jsx>{`
+            <style>{`
                 @keyframes scroll-infinite {
                     0% { transform: translateX(0); }
                     100% { transform: translateX(calc(-33.333% - (20px * (2/3)))); }

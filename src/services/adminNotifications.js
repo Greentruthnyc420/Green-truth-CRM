@@ -324,3 +324,71 @@ Green Truth NYC CRM
 
     return { html, text };
 }
+/**
+ * Email template for partnership inquiries from landing page
+ */
+export function createPartnershipEmail({ companyName, contactName, email, phone, businessType, message }) {
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #059669 0%, #064e3b 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0; font-size: 28px;">🤝 New Partnership Inquiry!</h1>
+                <p style="margin-top: 10px; opacity: 0.9;">A potential partner wants to work with Green Truth.</p>
+            </div>
+            <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none;">
+                <h2 style="color: #1f2937; margin-top: 0; border-bottom: 2px solid #10b981; padding-bottom: 10px; display: inline-block;">Company Details</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <tr style="background: white;">
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280; width: 40%;">Company Name:</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937; font-weight: bold;">${companyName}</td>
+                    </tr>
+                    <tr style="background: #f3f4f6;">
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Business Type:</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #059669; font-weight: bold;">${businessType}</td>
+                    </tr>
+                    <tr style="background: white;">
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Contact Name:</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937;">${contactName}</td>
+                    </tr>
+                    <tr style="background: #f3f4f6;">
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Email Address:</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937;"><a href="mailto:${email}" style="color: #10b981; text-decoration: none;">${email}</a></td>
+                    </tr>
+                    <tr style="background: white;">
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #6b7280;">Phone Number:</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937;">${phone || 'Not provided'}</td>
+                    </tr>
+                </table>
+
+                <h2 style="color: #1f2937; margin-top: 30px; border-bottom: 2px solid #10b981; padding-bottom: 10px; display: inline-block;">Message</h2>
+                <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 10px; color: #4b5563; font-style: italic; line-height: 1.6;">
+                    "${message || 'No additional message provided.'}"
+                </div>
+
+                <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                        This inquiry was submitted via the <strong>Green Truth NYC</strong> Landing Page.
+                        <br>© ${new Date().getFullYear()} Green Truth NYC CRM
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const text = `
+New Partnership Inquiry!
+
+Company: ${companyName}
+Type: ${businessType}
+Contact: ${contactName}
+Email: ${email}
+Phone: ${phone || 'N/A'}
+
+Message:
+${message || 'N/A'}
+
+---
+Green Truth NYC CRM
+    `.trim();
+
+    return { html, text };
+}

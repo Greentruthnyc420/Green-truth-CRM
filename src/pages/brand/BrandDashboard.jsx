@@ -322,7 +322,7 @@ export default function BrandDashboard() {
                 <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${mondayStatus.connected ? 'bg-green-100' : 'bg-gray-100'}`}>
-                            <img src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png" alt="Monday.com Logo" className="h-5 w-auto object-contain" />
+                            <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
                         </div>
                         <Link to="/brand/integrations" className="text-xs font-bold text-emerald-600 hover:underline">
                             Configure

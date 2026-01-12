@@ -5,30 +5,17 @@ import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCi
 import { motion } from 'framer-motion';
 // BrandLoginGate removed
 
-// Import logos (matching Gateway imports)
-// Wanders removed - partner1 import deleted
-import partner2 from '../../assets/images/partner-2.png'; // Space Poppers
-import partner3 from '../../assets/images/partner-3.jpg'; // Canna Dots
-import partner4 from '../../assets/images/partner-4.png'; // Budcracker
-import partner5 from '../../assets/images/partner-5.png'; // Honey King
-import partner6 from '../../assets/images/partner-6.png'; // Honey King Lion 
-import partner7 from '../../assets/images/partner-7.png'; // Budcracker NYC
-import waferz from '../../assets/images/waferz.png';
-import smoothieBar from '../../assets/images/smoothie-bar.png';
-import flxExtracts from '../../assets/images/flx-extracts.png';
-
-import pinesLogo from '../../assets/images/pines.png';
-
-// Map brand IDs to logos
+// Map brand IDs to absolute logo paths (matching Gateway)
 const BRAND_LOGOS = {
-    'honey-king': partner5,
-    'bud-cracker': partner4,
-    'canna-dots': partner3,
-    'space-poppers': partner2,
-    'smoothie-bar': smoothieBar,
-    'waferz': waferz,
-    'pines': pinesLogo,
-    'flx-extracts': flxExtracts,
+    'honey-king': '/logos/partner-5.png',
+    'bud-cracker': '/logos/partner-4.png',
+    'canna-dots': '/logos/partner-3.jpg',
+    'space-poppers': '/logos/partner-2.png',
+    'smoothie-bar': '/logos/smoothie-bar.png',
+    'waferz': '/logos/waferz.png',
+    'pines': '/logos/pines.png',
+    'flx-extracts': '/logos/flx-extracts.png',
+    'budcracker-nyc': '/logos/partner-7.png'
 };
 
 export default function BrandLogin() {

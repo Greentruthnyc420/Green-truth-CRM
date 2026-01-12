@@ -93,6 +93,7 @@ function App() {
         <Route element={<AdminPrivateRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<NewAdminDashboard />} />
+            <Route path="dashboard" element={<NewAdminDashboard />} />
             <Route path="workflow" element={<AdminWorkflow />} />
             <Route path="financials" element={<AdminFinancials />} />
             <Route path="invoices" element={<AdminInvoiceGenerator />} />

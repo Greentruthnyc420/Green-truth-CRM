@@ -176,29 +176,40 @@ export function AuthProvider({ children }) {
 
                         // Auto-create Supabase profile if it doesn't exist
                         try {
-                            const { createUserProfile } = await import('../services/firestoreService');
-                            await createUserProfile(user.uid, {
-                                email: user.email,
-                                name: user.displayName || user.email?.split('@')[0],
-                                role: 'rep', // Default role
-                                created_at: new Date().toISOString()
-                            });
+                            const { supabase } = await import('../services/supabaseClient');
+                            const { data: profile, error: profileError } = await supabase
+                                .from('users')
+                                .select('role')
+                                .eq('id', user.uid)
+                                .single();
 
-                            // Send admin notification
-                            try {
-                                const { html, text } = createUserRegistrationEmail({
-                                    userEmail: user.email,
-                                    role: 'Sales Representative',
-                                    timestamp: new Date().toLocaleString()
+                            // Only create if missing (PGRST116 = no rows returned)
+                            if (!profile && profileError?.code === 'PGRST116') {
+                                // Only create if missing
+                                const { createUserProfile } = await import('../services/firestoreService');
+                                await createUserProfile(user.uid, {
+                                    email: user.email,
+                                    name: user.displayName || user.email?.split('@')[0],
+                                    role: 'rep', // Default role for NEW users
+                                    created_at: new Date().toISOString()
                                 });
 
-                                await sendAdminNotification({
-                                    subject: `👤 New Rep Registered: ${user.email}`,
-                                    html,
-                                    text
-                                });
-                            } catch (emailErr) {
-                                console.warn("New user email notification failed:", emailErr);
+                                // Send admin notification for NEW registration
+                                try {
+                                    const { html, text } = createUserRegistrationEmail({
+                                        userEmail: user.email,
+                                        role: 'Sales Representative',
+                                        timestamp: new Date().toLocaleString()
+                                    });
+
+                                    await sendAdminNotification({
+                                        subject: `👤 New Rep Registered: ${user.email}`,
+                                        html,
+                                        text
+                                    });
+                                } catch (emailErr) {
+                                    console.warn("New user email notification failed:", emailErr);
+                                }
                             }
                         } catch (err) {
                             console.warn("Failed to sync user profile to Supabase:", err);

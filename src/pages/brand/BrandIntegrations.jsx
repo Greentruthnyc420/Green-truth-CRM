@@ -12,6 +12,15 @@ const SUPPORTED_SYSTEMS = [
         type: 'erp'
     },
     {
+        id: 'monday',
+        name: 'Monday.com',
+        logo: '📅',
+        description: 'Work OS for order tracking and project management',
+        features: ['Order Sync', 'Automated Workflows', 'Status Tracking'],
+        status: 'active',
+        type: 'pm'
+    },
+    {
         id: 'metrc',
         name: 'Metrc',
         logo: '📊',
@@ -72,8 +81,8 @@ export default function BrandIntegrations() {
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'overview'
-                            ? 'bg-amber-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-slate-50'
+                        ? 'bg-amber-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     Overview
@@ -81,8 +90,8 @@ export default function BrandIntegrations() {
                 <button
                     onClick={() => setActiveTab('export')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'export'
-                            ? 'bg-amber-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-slate-50'
+                        ? 'bg-amber-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     CSV Export
@@ -90,8 +99,8 @@ export default function BrandIntegrations() {
                 <button
                     onClick={() => setActiveTab('import')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'import'
-                            ? 'bg-amber-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-slate-50'
+                        ? 'bg-amber-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     CSV Import
@@ -217,7 +226,13 @@ export default function BrandIntegrations() {
                                     <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
                                         <p className="font-semibold text-slate-700">Export Format:</p>
                                         <ul className="list-disc list-inside text-slate-600 space-y-1">
-                                            {system.id === 'dist ru' && (
+                                            {system.id === 'monday' && (
+                                                <>
+                                                    <li>Item Name, Status, Date, Customer Columns</li>
+                                                    <li>Compatible with Monday.com import wizard</li>
+                                                </>
+                                            )}
+                                            {system.id === 'distru' && (
                                                 <>
                                                     <li>Product SKU, Name, Wholesale Price, Quantity, Category</li>
                                                     <li>Distru ERP purchase order format</li>
@@ -276,6 +291,18 @@ export default function BrandIntegrations() {
                                         <h3 className="font-bold text-slate-800 text-lg">{system.name}</h3>
                                     </div>
                                     <div className="space-y-3 text-sm">
+                                        {system.id === 'monday' && (
+                                            <>
+                                                <p className="font-semibold text-slate-700">Import to Green Truth:</p>
+                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
+                                                    <li>Export board view to Excel/CSV</li>
+                                                    <li>Go to Fulfillment dashboard</li>
+                                                    <li>Upload CSV via Import Manifest</li>
+                                                    <li>Map "Name" to Product and "Status" to Order Status</li>
+                                                    <li>Syncs updates back to board if configured</li>
+                                                </ol>
+                                            </>
+                                        )}
                                         {system.id === 'distru' && (
                                             <>
                                                 <p className="font-semibold text-slate-700">Import to Green Truth:</p>

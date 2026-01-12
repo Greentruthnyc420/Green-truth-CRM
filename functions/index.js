@@ -614,3 +614,65 @@ exports.sendInvoiceEmail = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
+
+// ============================================================
+// FUNCTION: Send Partnership Inquiry Email
+// ============================================================
+const sendPartnershipEmailSchema = Joi.object({
+    formData: Joi.object().required(),
+});
+
+exports.sendPartnershipInquiry = functions.https.onCall(async (data, context) => {
+    const { error, value } = sendPartnershipEmailSchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    }
+    const { formData } = value;
+
+    try {
+        const html = `
+            <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h1 style="color: #10b981; margin-bottom: 20px;">New Partnership Inquiry</h1>
+                
+                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <p><strong>Company:</strong> ${formData.companyName}</p>
+                    <p><strong>Contact:</strong> ${formData.contactName}</p>
+                    <p><strong>Email:</strong> ${formData.email}</p>
+                    <p><strong>Phone:</strong> ${formData.phone}</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #64748b; font-size: 12px; text-transform: uppercase;">Message:</h3>
+                    <p style="white-space: pre-wrap;">${formData.message}</p>
+                </div>
+
+                <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px;">
+                    <p>This inquiry was sent from the Green Truth Landing Page.</p>
+                </div>
+            </div>
+        `;
+
+        const ADMIN_EMAIL = 'notifications@thegreentruthnyc.com';
+
+        if (!transporter.options.auth.user || !transporter.options.auth.pass) {
+            functions.logger.info('Partnership Email mock log:', formData);
+            return {
+                success: true,
+                mock: true,
+                message: 'No SMTP credentials configured.'
+            };
+        }
+
+        await transporter.sendMail({
+            from: `"Green Truth CRM" <${transporter.options.auth.user}>`,
+            to: ADMIN_EMAIL,
+            subject: `Partnership Inquiry: ${formData.companyName}`,
+            html: html
+        });
+
+        return { success: true };
+    } catch (error) {
+        functions.logger.error('sendPartnershipInquiry error:', error);
+        throw new functions.https.HttpsError('internal', error.message);
+    }
+});
