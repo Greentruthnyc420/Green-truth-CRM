@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@amitdeshmukh/google-jules-mcp": "^0.1.6",
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^9.39.2",
     "@playwright/test": "^1.57.0",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

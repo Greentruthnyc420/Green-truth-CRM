@@ -87,10 +87,10 @@ async function mondayRequest(apiToken, query, variables = {}) {
 }
 
 /**
- * Helper: Get brand's Monday.com API token from Firestore
+ * Helper: Get brand's Monday.com integration settings from Firestore
  * @param {string} brandId - The brand's ID
  */
-async function getBrandMondayToken(brandId) {
+async function getBrandMondayIntegration(brandId) {
     const docRef = db.collection('brand_integrations').doc(brandId);
     const doc = await docRef.get();
 
@@ -103,7 +103,12 @@ async function getBrandMondayToken(brandId) {
         throw new Error('Monday.com API token not configured');
     }
 
-    return data.mondayApiToken;
+    return {
+        apiToken: data.mondayApiToken,
+        invoicesBoardId: data.invoicesBoardId,
+        leadsBoardId: data.leadsBoardId,
+        ordersBoardId: data.ordersBoardId,
+    };
 }
 
 /**
@@ -195,7 +200,6 @@ exports.mondayWebhook = webhooks.mondayWebhook;
 const syncInvoiceToMondaySchema = Joi.object({
     brandId: Joi.string().required(),
     invoice: Joi.object().required(),
-    boardId: Joi.string().required(),
 });
 
 exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
@@ -207,10 +211,14 @@ exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
     if (error) {
         throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
-    const { brandId, invoice, boardId } = value;
+    const { brandId, invoice } = value;
 
     try {
-        const apiToken = await getBrandMondayToken(brandId);
+        const { apiToken, invoicesBoardId } = await getBrandMondayIntegration(brandId);
+
+        if (!invoicesBoardId) {
+            throw new Error('Invoices Board ID not configured in settings.');
+        }
 
         const query = `
             mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
@@ -231,7 +239,7 @@ exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
         });
 
         const result = await mondayRequest(apiToken, query, {
-            boardId: boardId,
+            boardId: invoicesBoardId,
             itemName: `Invoice: ${invoice.dispensaryName || 'Unknown'}`,
             columnValues: columnValues
         });
@@ -305,7 +313,6 @@ exports.getMondaySettings = functions.https.onCall(async (data, context) => {
 const syncLeadToMondaySchema = Joi.object({
     brandId: Joi.string().required(),
     lead: Joi.object().required(),
-    boardId: Joi.string().required(),
 });
 
 exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
@@ -318,10 +325,14 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
     if (error) {
         throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
-    const { brandId, lead, boardId } = value;
+    const { brandId, lead } = value;
 
     try {
-        const apiToken = await getBrandMondayToken(brandId);
+        const { apiToken, leadsBoardId } = await getBrandMondayIntegration(brandId);
+
+        if (!leadsBoardId) {
+            throw new Error('Leads Board ID not configured in settings.');
+        }
 
         // Create item in Monday.com board
         const query = `
@@ -381,7 +392,6 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
 const syncOrderToMondaySchema = Joi.object({
     brandId: Joi.string().required(),
     order: Joi.object().required(),
-    boardId: Joi.string().required(),
 });
 
 exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
@@ -394,10 +404,14 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
     if (error) {
         throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
     }
-    const { brandId, order, boardId } = value;
+    const { brandId, order } = value;
 
     try {
-        const apiToken = await getBrandMondayToken(brandId);
+        const { apiToken, ordersBoardId } = await getBrandMondayIntegration(brandId);
+
+        if (!ordersBoardId) {
+            throw new Error('Orders Board ID not configured in settings.');
+        }
 
         const query = `
             mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {

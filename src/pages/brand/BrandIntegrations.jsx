@@ -1,62 +1,199 @@
-import React, { useState } from 'react';
-import { Download, Upload, Plug, CheckCircle2, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Upload, Plug, CheckCircle2, FileText, KeyRound, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useBrandAuth } from '../../contexts/BrandAuthContext';
+import { toast } from 'sonner';
 
 const SUPPORTED_SYSTEMS = [
-    {
-        id: 'distru',
-        name: 'Distru',
-        logo: '📦',
-        description: 'Cannabis wholesale and distribution ERP',
-        features: ['Wholesale Orders', 'Inventory Tracking', 'Route Optimization'],
-        status: 'active',
-        type: 'erp'
-    },
-    {
-        id: 'monday',
-        name: 'Monday.com',
-        logo: '📅',
-        description: 'Work OS for order tracking and project management',
-        features: ['Order Sync', 'Automated Workflows', 'Status Tracking'],
-        status: 'active',
-        type: 'pm'
-    },
-    {
-        id: 'metrc',
-        name: 'Metrc',
-        logo: '📊',
-        description: 'State-mandated seed-to-sale tracking',
-        features: ['State Compliance', 'Manifest Generation', 'Package Tracking'],
-        status: 'active',
-        type: 'compliance'
-    },
-    {
-        id: 'biotrack',
-        name: 'BioTrack THC',
-        logo: '🧬',
-        description: 'Seed-to-sale tracking and compliance software',
-        features: ['Manifest Creation', 'RFID Tags', 'Transfer Tracking'],
-        status: 'active',
-        type: 'compliance'
-    },
-    {
-        id: 'leaflogix',
-        name: 'LeafLogix',
-        logo: '🍃',
-        description: 'Cannabis compliance and business management',
-        features: ['Inventory Management', 'Batch Tracking', 'Wholesale Orders'],
-        status: 'active',
-        type: 'compliance'
-    },
-    {
-        id: 'generic',
-        name: 'Generic CSV',
-        logo: '📄',
-        description: 'Universal spreadsheet format for manual processing',
-        features: ['Custom Formatting', 'Excel Compatible', 'Easy Sharing'],
-        status: 'active',
-        type: 'generic'
-    }
+    { id: 'distru', name: 'Distru', logo: '📦', description: 'Cannabis wholesale and distribution ERP', features: ['Wholesale Orders', 'Inventory Tracking', 'Route Optimization'], status: 'active', type: 'erp' },
+    { id: 'metrc', name: 'Metrc', logo: '📊', description: 'State-mandated seed-to-sale tracking', features: ['State Compliance', 'Manifest Generation', 'Package Tracking'], status: 'active', type: 'compliance' },
+    { id: 'biotrack', name: 'BioTrack THC', logo: '🧬', description: 'Seed-to-sale tracking and compliance software', features: ['Manifest Creation', 'RFID Tags', 'Transfer Tracking'], status: 'active', type: 'compliance' },
+    { id: 'leaflogix', name: 'LeafLogix', logo: '🍃', description: 'Cannabis compliance and business management', features: ['Inventory Management', 'Batch Tracking', 'Wholesale Orders'], status: 'active', type: 'compliance' },
+    { id: 'generic', name: 'Generic CSV', logo: '📄', description: 'Universal spreadsheet format for manual processing', features: ['Custom Formatting', 'Excel Compatible', 'Easy Sharing'], status: 'active', type: 'generic' }
 ];
+
+const MondayIntegrationCard = () => {
+    const { brand } = useBrandAuth();
+    const [settings, setSettings] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [mondayToken, setMondayToken] = useState('');
+    const [invoicesBoardId, setInvoicesBoardId] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const functions = getFunctions();
+    const getMondaySettings = httpsCallable(functions, 'getMondaySettings');
+    const saveMondaySettings = httpsCallable(functions, 'saveMondaySettings');
+    const testMondayConnection = httpsCallable(functions, 'testMondayConnection');
+
+    useEffect(() => {
+        if (brand?.id) {
+            setIsLoading(true);
+            getMondaySettings({ brandId: brand.id })
+                .then((result) => setSettings(result.data))
+                .catch((error) => {
+                    console.error("Error fetching Monday settings:", error);
+                    toast.error("Failed to fetch integration settings.");
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [brand, getMondaySettings]);
+
+    const handleSaveSettings = async () => {
+        if (!invoicesBoardId) {
+            toast.error("Please enter your Invoices Board ID.");
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await saveMondaySettings({ brandId: brand.id, settings: { invoicesBoardId: invoicesBoardId } });
+            toast.success("Settings saved successfully!");
+            setSettings({ ...settings, invoicesBoardId: invoicesBoardId });
+        } catch (error) {
+            console.error("Error saving Monday settings:", error);
+            toast.error(`Failed to save settings: ${error.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSaveMondayToken = async () => {
+        if (!mondayToken) {
+            toast.error("Please enter your Monday.com API Token.");
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await saveMondaySettings({ brandId: brand.id, settings: { mondayApiToken: mondayToken } });
+            const testResult = await testMondayConnection({ apiToken: mondayToken });
+
+            if (testResult.data.success) {
+                toast.success(`Connection successful! Connected as ${testResult.data.user.name}.`);
+                setSettings({ ...settings, connected: true });
+                setMondayToken('');
+            } else {
+                throw new Error(testResult.data.error || "Connection test failed.");
+            }
+        } catch (error) {
+            console.error("Error saving Monday token:", error);
+            toast.error(`Connection failed: ${error.message}`);
+            setSettings({ ...settings, connected: false });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDisconnect = async () => {
+        setIsSaving(true);
+        try {
+            // Set token to null to disconnect
+            await saveMondaySettings({ brandId: brand.id, settings: { mondayApiToken: null } });
+            toast.success("Successfully disconnected from Monday.com.");
+            setSettings({ ...settings, connected: false });
+        } catch (error) {
+            console.error("Error disconnecting Monday.com:", error);
+            toast.error("Failed to disconnect. Please try again.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 col-span-1 md:col-span-2 lg:col-span-3">
+            <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">📅</span>
+                <div>
+                    <h3 className="font-bold text-slate-800 text-lg">Monday.com Integration</h3>
+                    <p className="text-sm text-slate-600">Work OS for order tracking and project management</p>
+                </div>
+            </div>
+
+            {isLoading && (
+                <div className="flex items-center gap-2 text-slate-500">
+                    <Loader2 className="animate-spin" size={16} />
+                    <span>Loading connection status...</span>
+                </div>
+            )}
+
+            {!isLoading && settings?.connected && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-md">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 size={20} className="text-green-600" />
+                            <p className="font-semibold text-green-800">Your account is connected to Monday.com</p>
+                        </div>
+                        <button
+                            onClick={handleDisconnect}
+                            disabled={isSaving}
+                            className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-red-600 disabled:bg-red-300">
+                                {isSaving ? 'Disconnecting...' : 'Disconnect'}
+                        </button>
+                    </div>
+                    <div className="mt-4">
+                        <h4 className="font-bold text-slate-800 mb-2">Invoices Board ID</h4>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={invoicesBoardId}
+                                onChange={(e) => setInvoicesBoardId(e.target.value)}
+                                placeholder="Enter your Invoices Board ID"
+                                className="flex-1 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
+                            />
+                            <button
+                                onClick={handleSaveSettings}
+                                disabled={isSaving}
+                                className="bg-amber-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-700 disabled:bg-amber-400 flex items-center justify-center gap-2"
+                            >
+                                {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!isLoading && !settings?.connected && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    {/* Instructions */}
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <h4 className="font-bold text-slate-800 mb-2">How to Connect Your Monday.com Account:</h4>
+                        <ol className="list-decimal list-inside space-y-2 text-sm text-slate-600">
+                            <li>Log in to Monday.com.</li>
+                            <li>Click your <strong>Profile Picture</strong> (bottom left) and select <strong>Developers</strong>.</li>
+                            <li>In the new tab, click <strong>My Access Tokens</strong> on the left menu.</li>
+                            <li>Click <strong>Show</strong>, then <strong>Copy</strong> your Personal API Token.</li>
+                            <li>Paste that token into the field below and click <strong>"Save Connection"</strong>.</li>
+                        </ol>
+                        <a href="https://monday.com/developers/v2/guides/authentication/api-keys" target="_blank" rel="noopener noreferrer" className="text-sm text-amber-600 hover:underline mt-3 inline-flex items-center gap-1">
+                            Read Monday.com Docs <ExternalLink size={14} />
+                        </a>
+                    </div>
+                    {/* Connection Form */}
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <h4 className="font-bold text-slate-800 mb-3">Enter API Token</h4>
+                         <div className="flex items-center gap-2">
+                            <KeyRound className="text-slate-400" size={18} />
+                            <input
+                                type="password"
+                                value={mondayToken}
+                                onChange={(e) => setMondayToken(e.target.value)}
+                                placeholder="paste-your-api-token-here"
+                                className="flex-1 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
+                            />
+                        </div>
+                        <button
+                            onClick={handleSaveMondayToken}
+                            disabled={isSaving}
+                            className="w-full mt-3 bg-amber-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-700 disabled:bg-amber-400 flex items-center justify-center gap-2"
+                        >
+                            {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : 'Save Connection'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 export default function BrandIntegrations() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -114,6 +251,7 @@ export default function BrandIntegrations() {
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">Supported Systems & Formats</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <MondayIntegrationCard />
                             {SUPPORTED_SYSTEMS.map((system) => (
                                 <div
                                     key={system.id}
@@ -217,7 +355,7 @@ export default function BrandIntegrations() {
                         </p>
 
                         <div className="space-y-4">
-                            {SUPPORTED_SYSTEMS.map((system) => (
+                             {SUPPORTED_SYSTEMS.map((system) => (
                                 <div key={system.id} className="border border-slate-200 rounded-xl p-4">
                                     <div className="flex items-center gap-3 mb-3">
                                         <span className="text-2xl">{system.logo}</span>
@@ -226,12 +364,6 @@ export default function BrandIntegrations() {
                                     <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
                                         <p className="font-semibold text-slate-700">Export Format:</p>
                                         <ul className="list-disc list-inside text-slate-600 space-y-1">
-                                            {system.id === 'monday' && (
-                                                <>
-                                                    <li>Item Name, Status, Date, Customer Columns</li>
-                                                    <li>Compatible with Monday.com import wizard</li>
-                                                </>
-                                            )}
                                             {system.id === 'distru' && (
                                                 <>
                                                     <li>Product SKU, Name, Wholesale Price, Quantity, Category</li>
@@ -284,25 +416,13 @@ export default function BrandIntegrations() {
                         </p>
 
                         <div className="space-y-6">
-                            {SUPPORTED_SYSTEMS.map((system) => (
+                           {SUPPORTED_SYSTEMS.map((system) => (
                                 <div key={system.id} className="border border-slate-200 rounded-xl p-5">
                                     <div className="flex items-center gap-3 mb-4">
                                         <span className="text-2xl">{system.logo}</span>
                                         <h3 className="font-bold text-slate-800 text-lg">{system.name}</h3>
                                     </div>
                                     <div className="space-y-3 text-sm">
-                                        {system.id === 'monday' && (
-                                            <>
-                                                <p className="font-semibold text-slate-700">Import to Green Truth:</p>
-                                                <ol className="list-decimal list-inside text-slate-600 space-y-2 ml-2">
-                                                    <li>Export board view to Excel/CSV</li>
-                                                    <li>Go to Fulfillment dashboard</li>
-                                                    <li>Upload CSV via Import Manifest</li>
-                                                    <li>Map "Name" to Product and "Status" to Order Status</li>
-                                                    <li>Syncs updates back to board if configured</li>
-                                                </ol>
-                                            </>
-                                        )}
                                         {system.id === 'distru' && (
                                             <>
                                                 <p className="font-semibold text-slate-700">Import to Green Truth:</p>

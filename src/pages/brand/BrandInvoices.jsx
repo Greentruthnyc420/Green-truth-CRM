@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getInvoices } from '../../services/invoiceService';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { toast } from 'sonner';
 import {
     FileText, DollarSign, Check, AlertTriangle,
-    Clock, CheckCircle, Download, Eye
+    Clock, CheckCircle, Download, Eye, UploadCloud, Loader2
 } from 'lucide-react';
 
 // Mock invoices data (Keep Account Receivable mocks for now)
-const getMockInvoices = (brandId) => ({
+const getMockInvoices = () => ({
     paid: [
         { id: 'INV-001', orderId: 'ORD-002', dispensary: 'Canna Corner', amount: 576, paidDate: '2026-01-03', dueDate: '2026-01-15' },
         { id: 'INV-002', orderId: 'ORD-003', dispensary: 'High Times BK', amount: 300, paidDate: '2026-01-01', dueDate: '2026-01-10' }
@@ -25,6 +27,37 @@ export default function BrandInvoices() {
     const [moneyOwed, setMoneyOwed] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('unpaid');
+    const [syncingInvoiceId, setSyncingInvoiceId] = useState(null);
+
+    const functions = getFunctions();
+    const syncInvoiceToMonday = httpsCallable(functions, 'syncInvoiceToMonday');
+
+    const handleSyncToMonday = async (invoice) => {
+        setSyncingInvoiceId(invoice.id);
+        try {
+            const result = await syncInvoiceToMonday({
+                brandId: brandUser.brandId,
+                invoice: {
+                    id: invoice.id,
+                    amount: invoice.amount,
+                    status: activeTab === 'paid' ? 'Paid' : 'Unpaid',
+                    dueDate: invoice.dueDate,
+                    dispensaryName: invoice.dispensary,
+                }
+            });
+
+            if (result.data.success) {
+                toast.success(`Invoice ${invoice.id} synced to Monday.com!`);
+            } else {
+                throw new Error(result.data.error || 'Sync failed');
+            }
+        } catch (error) {
+            console.error("Error syncing invoice to Monday.com:", error);
+            toast.error(`Sync failed: ${error.message}`);
+        } finally {
+            setSyncingInvoiceId(null);
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -199,6 +232,16 @@ export default function BrandInvoices() {
                                         </button>
                                         <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                                             <Download size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleSyncToMonday(invoice)}
+                                            disabled={syncingInvoiceId === invoice.id}
+                                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            {syncingInvoiceId === invoice.id ? (
+                                                <Loader2 size={16} className="animate-spin" />
+                                            ) : (
+                                                <UploadCloud size={16} />
+                                            )}
                                         </button>
                                     </div>
                                 </td>
