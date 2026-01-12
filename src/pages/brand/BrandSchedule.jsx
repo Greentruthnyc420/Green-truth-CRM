@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getActivations } from '../../services/firestoreService';
 import CalendarView from '../../components/CalendarView';
-import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, UploadCloud, Loader2 } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { toast } from 'sonner';
 
 const BrandSchedule = () => {
     const { brandUser } = useBrandAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [syncingEventId, setSyncingEventId] = useState(null);
 
-    useEffect(() => {
-        loadData();
-    }, [brandUser]);
+    const functions = getFunctions();
+    const syncActivationToMonday = httpsCallable(functions, 'syncActivationToMonday');
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         if (!brandUser?.brandId) {
             setLoading(false);
             return;
@@ -61,10 +63,41 @@ const BrandSchedule = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [brandUser]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleEventClick = (event) => {
         setSelectedEvent(event);
+    };
+
+    const handleSyncToMonday = async (event) => {
+        setSyncingEventId(event.id);
+        try {
+            const result = await syncActivationToMonday({
+                brandId: brandUser.brandId,
+                activation: {
+                    id: event.id,
+                    date: event.resource.date,
+                    storeName: event.resource.storeName,
+                    address: event.resource.address,
+                    type: event.resource.type,
+                }
+            });
+
+            if (result.data.success) {
+                toast.success(`Activation @ ${event.resource.storeName} synced to Monday.com!`);
+            } else {
+                throw new Error(result.data.error || 'Sync failed');
+            }
+        } catch (error) {
+            console.error("Error syncing activation to Monday.com:", error);
+            toast.error(`Sync failed: ${error.message}`);
+        } finally {
+            setSyncingEventId(null);
+        }
     };
 
     // Helper for 24h to 12h time
@@ -72,7 +105,6 @@ const BrandSchedule = () => {
         if (!timeStr) return '';
         const [hours, minutes] = timeStr.split(':');
         const h = parseInt(hours, 10);
-        const m = parseInt(minutes, 10);
         const ampm = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
         return `${h12}:${minutes.padStart(2, '0')} ${ampm}`;
@@ -170,7 +202,19 @@ const BrandSchedule = () => {
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                            <button
+                                onClick={() => handleSyncToMonday(selectedEvent)}
+                                disabled={syncingEventId === selectedEvent.id}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-blue-300"
+                            >
+                                {syncingEventId === selectedEvent.id ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <UploadCloud size={16} />
+                                )}
+                                Sync to Monday
+                            </button>
                             <button
                                 onClick={() => setSelectedEvent(null)}
                                 className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
