@@ -1,14 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getActivations } from '../../services/firestoreService';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { toast } from 'sonner';
 import CalendarView from '../../components/CalendarView';
-import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, UploadCloud, Loader2 } from 'lucide-react';
 
 const BrandSchedule = () => {
     const { brandUser } = useBrandAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [syncingEventId, setSyncingEventId] = useState(null);
+
+    const functions = getFunctions();
+    const syncActivationToMonday = httpsCallable(functions, 'syncActivationToMonday');
+
+    const handleSyncToMonday = async (event) => {
+        if (!event?.resource) return;
+        const activation = event.resource;
+
+        setSyncingEventId(activation.id);
+        try {
+            const result = await syncActivationToMonday({
+                brandId: brandUser.brandId,
+                activation: {
+                    id: activation.id,
+                    storeName: activation.storeName,
+                    date: activation.date,
+                    type: activation.type, // 'Sampling' or 'Pop-up'
+                }
+            });
+
+            if (result.data.success) {
+                toast.success(`Activation synced to Monday.com!`);
+            } else {
+                throw new Error(result.data.error || 'Sync failed');
+            }
+        } catch (error) {
+            console.error("Error syncing activation to Monday.com:", error);
+            toast.error(`Sync failed: ${error.message}`);
+        } finally {
+            setSyncingEventId(null);
+        }
+    };
 
     useEffect(() => {
         loadData();
@@ -115,12 +150,26 @@ const BrandSchedule = () => {
                                     {selectedEvent.resource.status}
                                 </p>
                             </div>
-                            <button
-                                onClick={() => setSelectedEvent(null)}
-                                className="p-2 hover:bg-white/50 rounded-full transition-colors text-slate-500 hover:text-slate-800"
-                            >
-                                <X size={20} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleSyncToMonday(selectedEvent)}
+                                    disabled={syncingEventId === selectedEvent.resource.id}
+                                    className="p-2 hover:bg-white/50 rounded-full transition-colors text-slate-500 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Sync to Monday.com"
+                                >
+                                    {syncingEventId === selectedEvent.resource.id ? (
+                                        <Loader2 size={20} className="animate-spin" />
+                                    ) : (
+                                        <UploadCloud size={20} />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setSelectedEvent(null)}
+                                    className="p-2 hover:bg-white/50 rounded-full transition-colors text-slate-500 hover:text-slate-800"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="p-6 space-y-4">

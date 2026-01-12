@@ -108,6 +108,7 @@ async function getBrandMondayIntegration(brandId) {
         invoicesBoardId: data.invoicesBoardId,
         leadsBoardId: data.leadsBoardId,
         ordersBoardId: data.ordersBoardId,
+        activationsBoardId: data.activationsBoardId,
     };
 }
 
@@ -455,6 +456,82 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
     } catch (error) {
         functions.logger.error('syncOrderToMonday error:', error);
         await logSyncEvent(brandId, 'syncOrder', false, { orderId: order.id }, error.message);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+// ============================================================
+// FUNCTION: Sync Activation to Monday.com
+// ============================================================
+const syncActivationToMondaySchema = Joi.object({
+    brandId: Joi.string().required(),
+    activation: Joi.object().required(),
+});
+
+exports.syncActivationToMonday = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    }
+
+    // Validate input
+    const { error, value } = syncActivationToMondaySchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    }
+    const { brandId, activation } = value;
+
+    try {
+        const { apiToken, activationsBoardId } = await getBrandMondayIntegration(brandId);
+
+        if (!activationsBoardId) {
+            throw new Error('Activations Board ID not configured in settings.');
+        }
+
+        const query = `
+            mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
+                create_item (
+                    board_id: $boardId,
+                    item_name: $itemName,
+                    column_values: $columnValues
+                ) {
+                    id
+                }
+            }
+        `;
+
+        // Map activation fields to Monday.com columns
+        const columnValues = JSON.stringify({
+            'date': { date: activation.date || new Date().toISOString().split('T')[0] },
+            'text': activation.storeName || 'Unknown Location',
+            'status': { label: activation.type === 'Sampling' ? 'Sampling' : 'Pop-up' }
+        });
+
+        const result = await mondayRequest(apiToken, query, {
+            boardId: activationsBoardId,
+            itemName: `Activation @ ${activation.storeName || 'Unknown Store'}`,
+            columnValues: columnValues
+        });
+
+        // Update Firestore with Monday.com item ID
+        if (activation.id) {
+            await db.collection('activations').doc(activation.id).update({
+                mondayItemId: result.data.create_item.id,
+                mondaySyncedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        await logSyncEvent(brandId, 'syncActivation', true, { activationId: activation.id, mondayItemId: result.data.create_item.id });
+
+        return {
+            success: true,
+            mondayItemId: result.data.create_item.id
+        };
+    } catch (error) {
+        functions.logger.error('syncActivationToMonday error:', error);
+        await logSyncEvent(brandId, 'syncActivation', false, { activationId: activation.id }, error.message);
         return {
             success: false,
             error: error.message
