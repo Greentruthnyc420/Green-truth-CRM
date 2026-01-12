@@ -197,7 +197,7 @@ export default function BrandLogin() {
                                 >
                                     <div className="h-32 w-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                         <img
-                                            src={BRAND_LOGOS[brand.brandId] || partner6}
+                                            src={BRAND_LOGOS[brand.brandId] || '/logos/partner-6.png'}
                                             alt={brand.brandName}
                                             className="h-full w-full object-contain filter drop-shadow-lg"
                                         />
@@ -253,7 +253,7 @@ export default function BrandLogin() {
                             <div className="mb-6 flex justify-center">
                                 <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center p-3">
                                     <img
-                                        src={BRAND_LOGOS[selectedBrand.brandId] || partner6}
+                                        src={BRAND_LOGOS[selectedBrand.brandId] || '/logos/partner-6.png'}
                                         alt={selectedBrand.brandName}
                                         className="w-full h-full object-contain"
                                     />
@@ -329,7 +329,7 @@ export default function BrandLogin() {
                             <div className="relative z-10 flex flex-col items-center">
                                 <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm border border-white/10 p-4">
                                     <img
-                                        src={BRAND_LOGOS[selectedBrand.brandId] || partner6}
+                                        src={BRAND_LOGOS[selectedBrand.brandId] || '/logos/partner-6.png'}
                                         alt={selectedBrand.brandName}
                                         className="max-w-full max-h-full object-contain"
                                     />

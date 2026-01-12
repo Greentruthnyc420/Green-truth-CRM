@@ -169,13 +169,13 @@ export function AuthProvider({ children }) {
             const unsubscribe = onAuthStateChanged(auth, async (user) => {
                 if (mounted) {
                     if (user) {
-                        const token = sessionStorage.getItem('googleAccessToken');
-                        if (token) {
-                            user.accessToken = token;
-                        }
-
-                        // Auto-create Supabase profile if it doesn't exist
                         try {
+                            const token = sessionStorage.getItem('googleAccessToken');
+                            if (token) {
+                                user.accessToken = token;
+                            }
+
+                            // Auto-create Supabase profile if it doesn't exist
                             const { supabase } = await import('../services/supabaseClient');
                             const { data: profile, error: profileError } = await supabase
                                 .from('users')
@@ -185,16 +185,15 @@ export function AuthProvider({ children }) {
 
                             // Only create if missing (PGRST116 = no rows returned)
                             if (!profile && profileError?.code === 'PGRST116') {
-                                // Only create if missing
                                 const { createUserProfile } = await import('../services/firestoreService');
                                 await createUserProfile(user.uid, {
                                     email: user.email,
                                     name: user.displayName || user.email?.split('@')[0],
-                                    role: 'rep', // Default role for NEW users
+                                    role: 'rep',
                                     created_at: new Date().toISOString()
                                 });
 
-                                // Send admin notification for NEW registration
+                                // Send admin notification
                                 try {
                                     const { html, text } = createUserRegistrationEmail({
                                         userEmail: user.email,
@@ -211,8 +210,8 @@ export function AuthProvider({ children }) {
                                     console.warn("New user email notification failed:", emailErr);
                                 }
                             }
-                        } catch (err) {
-                            console.warn("Failed to sync user profile to Supabase:", err);
+                        } catch (innerErr) {
+                            console.warn("Profile sync or token handling failed:", innerErr);
                         }
                     }
                     setCurrentUser(user);
@@ -222,13 +221,13 @@ export function AuthProvider({ children }) {
             });
             return () => {
                 mounted = false;
-                clearTimeout(timeout);
                 unsubscribe();
+                clearTimeout(timeout);
             };
         } catch (error) {
-            console.warn("Firebase Auth listener failed (likely missing keys).", error);
+            console.error("Auth listener setup failed:", error);
             if (mounted) {
-                setTimeout(() => setLoading(false), 0);
+                setLoading(false);
                 clearTimeout(timeout);
             }
         }
