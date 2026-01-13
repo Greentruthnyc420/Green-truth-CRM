@@ -22,6 +22,17 @@ export default function DispensaryMarketplace() {
     const { showNotification } = useNotification();
     const navigate = useNavigate();
 
+    // Track selected order type (unit or case) for each product card
+    const [productSelection, setProductSelection] = useState({});
+
+    const getSelectedType = (productId) => productSelection[productId] || 'case';
+    const toggleOrderType = (productId) => {
+        setProductSelection(prev => ({
+            ...prev,
+            [productId]: prev[productId] === 'unit' ? 'case' : 'unit'
+        }));
+    };
+
     // Load User Profile for Attribution
     useEffect(() => {
         async function loadProfile() {
@@ -85,11 +96,15 @@ export default function DispensaryMarketplace() {
                 if (!productsByBrand[item.brandId]) {
                     productsByBrand[item.brandId] = {};
                 }
-                productsByBrand[item.brandId][item.id] = {
+                const itemPrice = item.orderType === 'case'
+                    ? item.price * (item.caseSize || 1)
+                    : item.price;
+                productsByBrand[item.brandId][item.cartItemId] = {
                     name: item.name,
                     quantity: item.quantity,
-                    price: item.price,
-                    total: item.price * item.quantity
+                    price: itemPrice,
+                    orderType: item.orderType,
+                    total: itemPrice * item.quantity
                 };
             });
 
@@ -137,8 +152,8 @@ export default function DispensaryMarketplace() {
         }
     };
 
-    const getQuantity = (id) => {
-        const item = cart.find(i => i.id === id);
+    const getQuantity = (productId, type) => {
+        const item = cart.find(i => i.id === productId && i.orderType === type);
         return item ? item.quantity : 0;
     };
 
@@ -195,7 +210,11 @@ export default function DispensaryMarketplace() {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                             {filteredProducts.map(product => {
-                                const qty = getQuantity(product.id);
+                                const selectedType = getSelectedType(product.id);
+                                const qty = getQuantity(product.id, selectedType);
+                                const casePrice = product.price * (product.caseSize || 1);
+                                const displayPrice = selectedType === 'case' ? casePrice : product.price;
+
                                 return (
                                     <div key={product.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full">
                                         <div>
@@ -210,24 +229,44 @@ export default function DispensaryMarketplace() {
                                             </div>
                                             <h3 className="font-bold text-slate-800 text-lg leading-tight mb-1 group-hover:text-emerald-700 transition-colors">{product.name}</h3>
                                             <p className="text-sm text-slate-400 font-medium mb-4 line-clamp-2" title={product.description}>{product.description}</p>
+
+                                            {/* Order Type Toggle */}
+                                            <div className="flex bg-slate-100 p-1 rounded-xl w-fit mb-4">
+                                                <button
+                                                    onClick={() => setProductSelection(prev => ({ ...prev, [product.id]: 'case' }))}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${selectedType === 'case' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                >
+                                                    Case
+                                                </button>
+                                                <button
+                                                    onClick={() => setProductSelection(prev => ({ ...prev, [product.id]: 'unit' }))}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${selectedType === 'unit' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                >
+                                                    Unit
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
                                             <div>
-                                                <p className="text-xl font-black text-slate-900">${(product.price * (product.caseSize || 1)).toFixed(2)}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase">PER CASE ({product.caseSize || 1} units)</p>
-                                                <p className="text-[9px] text-slate-300">${product.price.toFixed(2)}/unit</p>
+                                                <p className="text-xl font-black text-slate-900">${displayPrice.toFixed(2)}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                                    PER {selectedType === 'case' ? `CASE (${product.caseSize || 1} units)` : 'UNIT'}
+                                                </p>
+                                                {selectedType === 'case' && (
+                                                    <p className="text-[9px] text-slate-300">${product.price.toFixed(2)}/unit</p>
+                                                )}
                                             </div>
 
                                             {qty > 0 ? (
                                                 <div className="flex items-center gap-2 bg-slate-900 text-white p-1.5 rounded-xl shadow-lg shadow-slate-200">
-                                                    <button onClick={() => removeFromCart(product.id)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><Minus size={16} /></button>
+                                                    <button onClick={() => removeFromCart(`${product.id}-${selectedType}`)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><Minus size={16} /></button>
                                                     <span className="font-bold text-sm min-w-[20px] text-center">{qty}</span>
-                                                    <button onClick={() => addToCart(product)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><Plus size={16} /></button>
+                                                    <button onClick={() => addToCart(product, selectedType)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><Plus size={16} /></button>
                                                 </div>
                                             ) : (
                                                 <button
-                                                    onClick={() => addToCart(product)}
+                                                    onClick={() => addToCart(product, selectedType)}
                                                     className="bg-slate-100 text-slate-900 p-3 rounded-xl hover:bg-slate-900 hover:text-white transition-all active:scale-95"
                                                 >
                                                     <Plus size={20} />
@@ -257,19 +296,26 @@ export default function DispensaryMarketplace() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
-                                            <div className="flex-1 min-w-0 mr-2">
-                                                <p className="text-sm font-bold text-slate-800 truncate">{item.name}</p>
-                                                <p className="text-[10px] text-slate-500">${(item.price * (item.caseSize || 1)).toFixed(2)}/case • {item.brandName}</p>
+                                    {cart.map(item => {
+                                        const itemPrice = item.orderType === 'case'
+                                            ? item.price * (item.caseSize || 1)
+                                            : item.price;
+                                        return (
+                                            <div key={item.cartItemId} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                                                <div className="flex-1 min-w-0 mr-2">
+                                                    <p className="text-sm font-bold text-slate-800 truncate">{item.name}</p>
+                                                    <p className="text-[10px] text-slate-500">
+                                                        ${itemPrice.toFixed(2)}/{item.orderType} • {item.brandName}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-slate-100">
+                                                    <button onClick={() => removeFromCart(item.cartItemId)} className="p-1 hover:text-red-500"><Minus size={14} /></button>
+                                                    <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                                                    <button onClick={() => addToCart(item, item.orderType)} className="p-1 hover:text-emerald-600"><Plus size={14} /></button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-slate-100">
-                                                <button onClick={() => removeFromCart(item.id)} className="p-1 hover:text-red-500"><Minus size={14} /></button>
-                                                <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                                                <button onClick={() => addToCart(item)} className="p-1 hover:text-emerald-600"><Plus size={14} /></button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

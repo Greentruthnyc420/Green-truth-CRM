@@ -24,33 +24,41 @@ export function CartProvider({ children }) {
         localStorage.setItem('dispensary_cart', JSON.stringify(cart));
     }, [cart]);
 
-    const addToCart = (product) => {
+    const addToCart = (product, orderType = 'case') => {
         setCart(prevCart => {
-            const existingItem = prevCart.find(item => item.id === product.id);
+            const cartItemId = `${product.id}-${orderType}`;
+            const existingItem = prevCart.find(item => item.cartItemId === cartItemId);
+
             if (existingItem) {
                 return prevCart.map(item =>
-                    item.id === product.id
+                    item.cartItemId === cartItemId
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
                 );
             }
-            return [...prevCart, { ...product, quantity: 1 }];
+
+            return [...prevCart, {
+                ...product,
+                cartItemId,
+                orderType,
+                quantity: 1
+            }];
         });
         setIsCartOpen(true);
     };
 
-    const removeFromCart = (productId) => {
-        setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    const removeFromCart = (cartItemId) => {
+        setCart(prevCart => prevCart.filter(item => item.cartItemId !== cartItemId));
     };
 
-    const updateQuantity = (productId, quantity) => {
+    const updateQuantity = (cartItemId, quantity) => {
         if (quantity < 1) {
-            removeFromCart(productId);
+            removeFromCart(cartItemId);
             return;
         }
         setCart(prevCart =>
             prevCart.map(item =>
-                item.id === productId
+                item.cartItemId === cartItemId
                     ? { ...item, quantity: quantity }
                     : item
             )
@@ -61,7 +69,12 @@ export function CartProvider({ children }) {
         setCart([]);
     };
 
-    const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const cartTotal = cart.reduce((total, item) => {
+        const itemPrice = item.orderType === 'case'
+            ? item.price * (item.caseSize || 1)
+            : item.price;
+        return total + (itemPrice * item.quantity);
+    }, 0);
     const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
     const value = {
