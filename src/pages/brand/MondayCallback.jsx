@@ -37,7 +37,7 @@ export default function MondayCallback() {
                 });
 
                 showNotification('Monday.com successfully connected!', 'success');
-                navigate('/brand/integrations');
+                navigate('/brand/integrations', { replace: true });
             } catch (error) {
                 console.error('OAuth Callback Error:', error);
 
@@ -58,7 +58,7 @@ export default function MondayCallback() {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen">
                 <p className="text-red-500 font-medium">Connection Failed</p>
-                <button onClick={() => navigate('/brand/integrations')} className="mt-4 text-brand-600 underline">
+                <button onClick={() => navigate('/brand/integrations', { replace: true })} className="mt-4 text-brand-600 underline">
                     Return to Integrations
                 </button>
             </div>

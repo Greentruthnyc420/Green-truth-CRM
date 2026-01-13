@@ -14,7 +14,7 @@ const SUPPORTED_SYSTEMS = [
 ];
 
 const MondayIntegrationCard = () => {
-    const { brand } = useBrandAuth();
+    const { brandUser } = useBrandAuth();
     const { showNotification } = useNotification();
     const [settings, setSettings] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -39,9 +39,9 @@ const MondayIntegrationCard = () => {
     const testMondayConnection = httpsCallable(functions, 'testMondayConnection');
 
     useEffect(() => {
-        if (brand?.id) {
+        if (brandUser?.brandId) {
             setIsLoading(true);
-            getMondaySettings({ brandId: brand.id })
+            getMondaySettings({ brandId: brandUser.brandId })
                 .then((result) => {
                     setSettings(result.data);
                     setInvoicesBoardId(result.data.invoicesBoardId || '');
@@ -51,11 +51,16 @@ const MondayIntegrationCard = () => {
                 })
                 .catch((error) => {
                     console.error("Error fetching Monday settings:", error);
-                    showNotification("Failed to fetch integration settings.", 'error');
+                    // Only show notification if it's not a permission/internal error which might happen on load
+                    if (error.code !== 'internal' && error.code !== 'permission-denied') {
+                        showNotification("Failed to retrieve integration status.", 'error');
+                    }
                 })
                 .finally(() => setIsLoading(false));
+        } else {
+            setIsLoading(false);
         }
-    }, [brand, getMondaySettings]);
+    }, [brandUser, getMondaySettings]);
 
     const handleSaveSettings = async () => {
         if (!invoicesBoardId) {
@@ -65,7 +70,7 @@ const MondayIntegrationCard = () => {
         setIsSaving(true);
         try {
             await saveMondaySettings({
-                brandId: brand.id,
+                brandId: brandUser.brandId,
                 settings: {
                     invoicesBoardId,
                     activationsBoardId,
@@ -96,7 +101,7 @@ const MondayIntegrationCard = () => {
         }
         setIsSaving(true);
         try {
-            await saveMondaySettings({ brandId: brand.id, settings: { mondayApiToken: mondayToken } });
+            await saveMondaySettings({ brandId: brandUser.brandId, settings: { mondayApiToken: mondayToken } });
             const testResult = await testMondayConnection({ apiToken: mondayToken });
 
             if (testResult.data.success) {
@@ -119,7 +124,7 @@ const MondayIntegrationCard = () => {
         setIsSaving(true);
         try {
             // Set token to null to disconnect
-            await saveMondaySettings({ brandId: brand.id, settings: { mondayApiToken: null } });
+            await saveMondaySettings({ brandId: brandUser.brandId, settings: { mondayApiToken: null } });
             showNotification("Successfully disconnected from Monday.com.", 'success');
             setSettings({ ...settings, connected: false });
         } catch (error) {
@@ -279,7 +284,31 @@ const MondayIntegrationCard = () => {
 
 
 export default function BrandIntegrations() {
+    const { brandUser } = useBrandAuth();
     const [activeTab, setActiveTab] = useState('overview');
+
+    if (!brandUser) {
+        return (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Plug size={32} className="text-slate-400" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Integration Management</h2>
+                <p className="text-slate-600 max-w-md mx-auto mb-6">
+                    To manage integrations for a specific brand, please access their portal through the <strong>Global Dashboard</strong> using the "Access Brand" feature.
+                </p>
+                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200 inline-block text-left">
+                    <h4 className="font-bold text-amber-900 text-sm mb-1 flex items-center gap-2">
+                        <AlertTriangle size={14} /> Admin Notice
+                    </h4>
+                    <p className="text-xs text-amber-800">
+                        Global integrations are managed in the <strong>Platform Settings</strong>.
+                        This page is for brand-specific connections only.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

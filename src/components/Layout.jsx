@@ -1,11 +1,12 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { logout } = useAuth();
+    const navigate = useNavigate();
     // Defensive check for ADMIN_EMAILS to prevent white-screen crashes
     const safeAdminEmails = Array.isArray(ADMIN_EMAILS) ? ADMIN_EMAILS : [];
     const isAdmin = currentUser && currentUser.email && safeAdminEmails.includes(currentUser.email.toLowerCase());
@@ -19,7 +20,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
             await logout();
             // The AuthContext will likely handle the redirect to login, 
             // but we can ensure navigation happens if needed.
-            window.location.href = '/login';
+            navigate('/login');
         } catch (error) {
             console.error("Failed to log out", error);
         }
@@ -142,6 +143,7 @@ const MobileNavItem = ({ to, icon, label }) => (
 export default function Layout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
     const { currentUser } = useAuth();
+    const navigate = useNavigate();
 
     // Defensive check for ADMIN_EMAILS
     const safeAdminEmails = Array.isArray(ADMIN_EMAILS) ? ADMIN_EMAILS : [];
@@ -157,7 +159,7 @@ export default function Layout() {
     const handleLogout = async () => {
         try {
             await logout();
-            window.location.href = '/login';
+            navigate('/login');
         } catch (error) {
             console.error("Failed to log out", error);
         }
