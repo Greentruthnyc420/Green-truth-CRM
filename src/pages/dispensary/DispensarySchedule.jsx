@@ -20,7 +20,10 @@ export default function DispensarySchedule() {
     }, [currentUser]);
 
     const loadActivations = async () => {
-        if (!currentUser?.uid) return;
+        if (!currentUser?.uid) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const [allActivations, brandProfiles] = await Promise.all([
