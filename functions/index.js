@@ -564,6 +564,45 @@ exports.trimSyncLogs = functions.pubsub.schedule('every 24 hours').onRun(async (
 });
 
 // ============================================================
+// HELPER: Verify Admin Role
+// ============================================================
+async function ensureAdmin(context) {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    // Check for admin custom claim
+    if (context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'The function must be called by an administrator.');
+    }
+}
+
+// ============================================================
+// FUNCTION: Get Admin Monday.com Integration Settings
+// ============================================================
+exports.getAdminMondaySettings = functions.https.onCall(async (data, context) => {
+    await ensureAdmin(context);
+
+    try {
+        const docRef = db.collection('admin_integrations').doc('monday');
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return { connected: false };
+        }
+
+        const settings = doc.data();
+        return {
+            connected: !!settings.mondayApiToken,
+            lastSync: settings.lastSync || null,
+            invoicesBoardId: settings.invoicesBoardId || null,
+        };
+    } catch (error) {
+        functions.logger.error('getAdminMondaySettings error:', error);
+        throw new functions.https.HttpsError('internal', 'Could not retrieve Monday.com settings');
+    }
+});
+
+// ============================================================
 // FUNCTION: Save Monday.com Integration Settings
 // ============================================================
 const saveMondaySettingsSchema = Joi.object({
@@ -599,6 +638,38 @@ exports.saveMondaySettings = functions.https.onCall(async (data, context) => {
             success: false,
             error: error.message
         };
+    }
+});
+
+// ============================================================
+// FUNCTION: Save Admin Monday.com Integration Settings
+// ============================================================
+const saveAdminMondaySettingsSchema = Joi.object({
+    settings: Joi.object().required(),
+});
+
+exports.saveAdminMondaySettings = functions.https.onCall(async (data, context) => {
+    await ensureAdmin(context);
+
+    const { error, value } = saveAdminMondaySettingsSchema.validate(data);
+    if (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    }
+    const { settings } = value;
+
+    try {
+        const docRef = db.collection('admin_integrations').doc('monday');
+
+        await docRef.set({
+            ...settings,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedBy: context.auth.uid
+        }, { merge: true });
+
+        return { success: true };
+    } catch (error) {
+        functions.logger.error('saveAdminMondaySettings error:', error);
+        throw new functions.https.HttpsError('internal', 'Could not save admin Monday.com settings.');
     }
 });
 
