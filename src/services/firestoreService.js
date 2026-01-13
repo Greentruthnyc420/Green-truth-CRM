@@ -52,7 +52,19 @@ export async function getBrandUsers(brandId) {
 
 export async function addShift(shiftData) {
     const { data, error } = await supabase.from('shifts').insert([{
-        ...shiftData,
+        user_id: shiftData.userId,
+        date: shiftData.date,
+        hours_worked: shiftData.hoursWorked,
+        miles_traveled: shiftData.milesTraveled,
+        odometer_image_url: shiftData.odometerImageUrl,
+        toll_amount: shiftData.tollAmount,
+        toll_receipt_image_url: shiftData.tollReceiptImageUrl,
+        start_time: shiftData.startTime,
+        end_time: shiftData.endTime,
+        dispensary_name: shiftData.dispensaryName,
+        region: shiftData.region,
+        has_vehicle: shiftData.hasVehicle,
+        brand: shiftData.brand,
         status: shiftData.status || 'pending',
         created_at: new Date().toISOString()
     }]).select().single();
@@ -62,13 +74,29 @@ export async function addShift(shiftData) {
 }
 
 export async function getUserShifts(userId) {
-    const { data, error } = await supabase.from('shifts').select('*').eq('userId', userId); // userId column case?
-    // Supabase is usually snake_case, but we migrated loosely. Let's assume schema matches migration.
-    // Migration script didn't migrate shifts! 
-    // We didn't enable Shifts migration. Creating empty table now implicitly or assuming user handles lost shift data?
-    // User instruction only mentioned Sales/Commission.
-    if (error) return [];
-    return data;
+    const { data, error } = await supabase.from('shifts').select('*').eq('user_id', userId);
+    if (error) {
+        console.error("Error fetching user shifts:", error);
+        return [];
+    }
+    return data.map(s => ({
+        id: s.id,
+        userId: s.user_id,
+        date: s.date,
+        hoursWorked: s.hours_worked,
+        milesTraveled: s.miles_traveled,
+        odometerImageUrl: s.odometer_image_url,
+        tollAmount: s.toll_amount,
+        tollReceiptImageUrl: s.toll_receipt_image_url,
+        startTime: s.start_time,
+        endTime: s.end_time,
+        dispensaryName: s.dispensary_name,
+        region: s.region,
+        hasVehicle: s.has_vehicle,
+        brand: s.brand,
+        status: s.status,
+        createdAt: s.created_at
+    }));
 }
 
 export async function getAllShifts() {
