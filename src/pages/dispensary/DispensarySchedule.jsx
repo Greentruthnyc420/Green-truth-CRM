@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, Clock, MapPin, Building2, User } from 'lucide-react';
+import CalendarView from '../../components/CalendarView';
+import { Calendar, Plus, Clock, MapPin, Building2, User, X, Tag } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getActivations, getAllBrandProfiles } from '../../services/firestoreService';
 import ActivationFormModal from '../../components/ActivationFormModal';
@@ -8,9 +8,11 @@ import { useNotification } from '../../contexts/NotificationContext';
 export default function DispensarySchedule() {
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
-    const [activations, setActivations] = useState([]);
+    const [events, setEvents] = useState([]); // Calendar Events
+    const [activations, setActivations] = useState([]); // Raw data (optional, but keeping for now)
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState(null); // For Details Modal
 
     useEffect(() => {
         loadActivations();
@@ -25,18 +27,35 @@ export default function DispensarySchedule() {
                 getAllBrandProfiles()
             ]);
 
-            // Map brand names
+            // Filter for this dispensary
             const myActivations = allActivations
-                .filter(a => a.dispensaryId === currentUser.uid)
-                .map(a => {
-                    const brand = brandProfiles.find(b => b.id === a.brandId);
-                    return {
-                        ...a,
-                        brandName: brand ? brand.name : (a.brandName || 'Unknown Brand')
-                    };
-                });
+                .filter(a => a.dispensaryId === currentUser.uid);
 
-            setActivations(myActivations);
+            // Transform for Calendar
+            const calendarEvents = myActivations.map(a => {
+                const brand = brandProfiles.find(b => b.id === a.brandId);
+                const brandName = brand ? brand.name : (a.brandName || 'Unknown Brand');
+
+                // Handle Dates
+                const dateStr = a.date || (a.datePreferences?.[0]) || new Date().toISOString().split('T')[0];
+                const start = new Date(`${dateStr}T${a.startTime || '12:00'}:00`);
+                const end = new Date(`${dateStr}T${a.endTime || '16:00'}:00`);
+
+                return {
+                    id: a.id,
+                    title: `${a.status === 'Requested' ? '❓' : ''} ${brandName}`,
+                    start,
+                    end,
+                    resource: {
+                        ...a,
+                        brandName,
+                        status: a.status || 'Scheduled'
+                    },
+                    style: a.status === 'Requested' ? { backgroundColor: '#fef3c7', borderColor: '#d97706', color: '#92400e' } : {}
+                };
+            }).filter(Boolean);
+
+            setEvents(calendarEvents);
         } catch (error) {
             console.error("Failed to load activations", error);
             showNotification("Failed to load schedule", "error");
@@ -68,71 +87,108 @@ export default function DispensarySchedule() {
                 <div className="flex justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                 </div>
-            ) : activations.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center border border-slate-100 shadow-sm">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Calendar className="text-slate-300" size={32} />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-800 mb-2">No Activations Scheduled</h3>
-                    <p className="text-slate-500 mb-6 max-w-md mx-auto">
-                        You haven't scheduled any brand activations yet. Request a demo or pop-up to engage your customers!
-                    </p>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="text-emerald-600 font-bold hover:underline"
-                    >
-                        Schedule your first event
-                    </button>
-                </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {activations.map(activation => (
-                        <div key={activation.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:border-emerald-200 transition-all group">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-xl">
-                                        📅
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-800">{activation.brandName}</h3>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${activation.status === 'Scheduled' ? 'bg-green-100 text-green-700' :
-                                            activation.status === 'Requested' ? 'bg-amber-100 text-amber-700' :
-                                                'bg-slate-100 text-slate-600'
-                                            }`}>
-                                            {activation.status || 'Scheduled'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <CalendarView
+                        events={events}
+                        onEventClick={setSelectedEvent}
+                        height="70vh"
+                    />
+                </div>
+            )}
 
-                            <div className="space-y-2 text-sm text-slate-600">
-                                {activation.status === 'Requested' && activation.datePreferences ? (
-                                    <div className="bg-amber-50 p-2 rounded border border-amber-100 mb-2">
-                                        <span className="text-xs font-bold text-amber-800 uppercase block mb-1">Requested Dates:</span>
-                                        <ul className="list-disc list-inside text-xs text-amber-900">
-                                            {activation.datePreferences.map((d, i) => (
-                                                <li key={i}>{new Date(d).toLocaleDateString()}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <Calendar size={16} className="text-slate-400" />
-                                        <span>{new Date(activation.date).toLocaleDateString()}</span>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center gap-2">
-                                    <Clock size={16} className="text-slate-400" />
-                                    <span>{activation.startTime || '12:00'} - {activation.endTime || '16:00'}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <User size={16} className="text-slate-400" />
-                                    <span>{activation.activationType || 'General'}</span>
-                                </div>
+            {/* Event Details Modal */}
+            {selectedEvent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-emerald-50 p-6 border-b border-emerald-100 flex justify-between items-start">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900">Activation Details</h3>
+                                <p className="text-emerald-700 text-sm font-medium mt-1 uppercase tracking-wide">
+                                    {selectedEvent.resource.status}
+                                </p>
                             </div>
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="p-2 hover:bg-white/50 rounded-full transition-colors text-emerald-700"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
-                    ))}
+
+                        <div className="p-6 space-y-4">
+                            {/* Status Banner for Requested */}
+                            {(selectedEvent.resource.status === 'Requested' || selectedEvent.resource.status === 'Pending') && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-2">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-amber-100 rounded-full text-amber-600">
+                                            <Calendar size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-amber-900">Activation Requested</h4>
+                                            <p className="text-sm text-amber-700 mt-1 mb-2">
+                                                Awaiting confirmation from Admin/Brand.
+                                            </p>
+                                            {selectedEvent.resource.datePreferences && (
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-bold text-amber-800 uppercase">Your Preferred Dates:</p>
+                                                    {selectedEvent.resource.datePreferences.map((d, i) => (
+                                                        <div key={i} className="text-sm text-amber-900 flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
+                                                            {new Date(d).toLocaleDateString()}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400 uppercase">Brand</label>
+                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                        <Tag size={16} className="text-emerald-500" />
+                                        {selectedEvent.resource.brandName}
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400 uppercase">Type</label>
+                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                        <User size={16} className="text-emerald-500" />
+                                        {selectedEvent.resource.activationType || 'Activation'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1 pt-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase">Time</label>
+                                <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                    <Clock size={16} className="text-emerald-500" />
+                                    {selectedEvent.resource.startTime || '12:00'} - {selectedEvent.resource.endTime || '16:00'}
+                                </div>
+                                <p className="text-sm text-slate-500 pl-6">
+                                    {new Date(selectedEvent.resource.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                            </div>
+
+                            {selectedEvent.resource.notes && (
+                                <div className="bg-slate-50 p-4 rounded-lg mt-4 text-sm text-slate-600 italic">
+                                    "{selectedEvent.resource.notes}"
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
