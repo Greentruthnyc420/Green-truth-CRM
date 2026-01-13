@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import CalendarView from '../../components/CalendarView';
 import { Calendar, Plus, Clock, MapPin, Building2, User, X, Tag } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
