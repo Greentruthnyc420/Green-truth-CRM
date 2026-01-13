@@ -705,13 +705,25 @@ export async function getActivations() {
 
 export async function getAllBrandProfiles() {
     // Note: 'brands' table doesn't exist, using 'brand_profiles' if available
-    // For now, returning empty array as fallback
     const { data, error } = await supabase.from('brand_profiles').select('*');
-    if (error) {
-        console.warn("brand_profiles table not found, returning empty array", error);
-        return [];
+
+    if (!error && data && data.length > 0) {
+        return data;
     }
-    return data || [];
+
+    console.warn("brand_profiles empty/missing, returning static brands");
+    // Fallback static brands (matching BrandAuthContext.jsx)
+    return [
+        { id: 'honey-king', name: 'Honey King' },
+        { id: 'bud-cracker', name: 'Bud Cracker Boulevard' },
+        { id: 'canna-dots', name: 'Canna Dots' },
+        { id: 'space-poppers', name: 'Space Poppers' },
+        { id: 'smoothie-bar', name: 'Smoothie Bar' },
+        { id: 'waferz', name: 'Waferz NY' },
+        { id: 'pines', name: 'Pines' },
+        { id: 'flx-extracts', name: 'FLX Extracts' },
+        { id: 'budcracker-nyc', name: 'Budcracker NYC' }
+    ];
 }
 
 // --- PAYROLL ---
