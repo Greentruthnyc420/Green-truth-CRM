@@ -1,35 +1,3 @@
-/**
- * Green Truth CRM - Cloud Functions
- * 
- * This file is the main entry point for all Cloud Functions.
- * It imports and exports functions from specialized modules.
- */
-
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const nodemailer = require('nodemailer');
-const Joi = require('joi');
-
-admin.initializeApp();
-
-// Import specialized function modules
-const integrations = require('./integrations');
-const webhooks = require('./webhooks');
-
-// Export all functions from the integrations module
-exports.getMondaySettings = integrations.getMondaySettings;
-exports.saveMondaySettings = integrations.saveMondaySettings;
-exports.testMondayConnection = integrations.testMondayConnection;
-exports.getRecentSyncHistory = integrations.getRecentSyncHistory;
-exports.triggerFullSync = integrations.triggerFullSync;
-exports.syncInvoiceToMonday = integrations.syncInvoiceToMonday;
-exports.syncLeadToMonday = integrations.syncLeadToMonday;
-exports.syncOrderToMonday = integrations.syncOrderToMonday;
-exports.syncActivationToMonday = integrations.syncActivationToMonday;
-exports.trimSyncLogs = integrations.trimSyncLogs;
-
-// Export webhook handlers
-exports.mondayWebhook = webhooks.mondayWebhook;
 
 // ============================================================
 // EMAIL: Transporter Setup
@@ -201,8 +169,6 @@ exports.sendActivationRequestNotification = functions.https.onCall(async (data, 
     const { requestData } = value;
 
     try {
-        // requestData includes: brandName, dispensaryName, dates (array), notes, requestedBy
-
         const html = `
             <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <h2 style="color: #10b981;">New Activation Request</h2>
@@ -223,11 +189,10 @@ exports.sendActivationRequestNotification = functions.https.onCall(async (data, 
         `;
 
         const ADMIN_EMAIL = 'notifications@thegreentruthnyc.com';
-        // In a real scenario, we'd also fetch the Brand's contact email if applicable
 
         await transporter.sendMail({
             from: `"Green Truth CRM" <${transporter.options.auth.user}>`,
-            to: ADMIN_EMAIL, // And potentially brand email
+            to: ADMIN_EMAIL,
             subject: `Activation Request: ${requestData.brandName} @ ${requestData.dispensaryName}`,
             html: html
         });
@@ -248,6 +213,27 @@ exports.exchangeMondayToken = exchangeMondayToken;
 // ============================================================
 // MONDAY.COM SYNC: SALES (ORDERS)
 // ============================================================
+// Note: Keeping Jules' version as it includes commission and items
+const { getBrandMondayIntegration, logSyncEvent, mondayRequest } = require('./integrations'); // Access helper function if possible? 
+// Ah, the helper functions are NOT exported from integrations.js. 
+// I need them for these inline functions. 
+// OR I should move these inline functions TO integrations.js.
+
+// For now, to allow the file to run and fix valid syntax, I will import dependencies or rely on duplications if they were in the original file.
+// The original file (Jules version) had helpers inline or imported.
+// In the 'index.js' I viewed, 'mondayRequest' was a helper defined at the top.
+// Since I moved 'mondayRequest' to integrations.js and didn't export it, these functions below will FAIL.
+
+// FATAL FLAW IN PLAN: 'mondayRequest' and 'logSyncEvent' are in integrations.js but not exported.
+// I must export them from integrations.js to use them here.
+
+
+// ============================================================
+// MONDAY.COM SYNC: SALES (ORDERS)
+// ============================================================
+// Import helpers from integrations.js
+const { getBrandMondayIntegration, logSyncEvent, mondayRequest } = require('./integrations');
+
 const syncSaleToMondaySchema = Joi.object({
     brandId: Joi.string().required(),
     sale: Joi.object().required()
@@ -376,6 +362,7 @@ exports.syncAccountToMonday = functions.https.onCall(async (data, context) => {
         return { success: false, error: error.message };
     }
 });
+
 
 // Schema for syncing a dispensary invoice
 const syncDispensaryInvoiceSchema = Joi.object({

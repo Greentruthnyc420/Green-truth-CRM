@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plug, CheckCircle2, FileText, KeyRound, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, Upload, Plug, CheckCircle2, FileText, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
-import { startOfWeek, endOfWeek, format, addDays } from 'date-fns';
 import { useNotification } from '../../contexts/NotificationContext';
+import MondayIntegrationCard from '../../components/integrations/MondayIntegrationCard';
 
 const SUPPORTED_SYSTEMS = [
     { id: 'distru', name: 'Distru', logo: '📦', description: 'Cannabis wholesale and distribution ERP', features: ['Wholesale Orders', 'Inventory Tracking', 'Route Optimization'], status: 'active', type: 'erp' },
@@ -13,280 +13,12 @@ const SUPPORTED_SYSTEMS = [
     { id: 'generic', name: 'Generic CSV', logo: '📄', description: 'Universal spreadsheet format for manual processing', features: ['Custom Formatting', 'Excel Compatible', 'Easy Sharing'], status: 'active', type: 'generic' }
 ];
 
-const MondayIntegrationCard = () => {
-    const { brandUser } = useBrandAuth();
-    const { showNotification } = useNotification();
-    const [settings, setSettings] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [mondayToken, setMondayToken] = useState('');
-    const [invoicesBoardId, setInvoicesBoardId] = useState('');
-    const [activationsBoardId, setActivationsBoardId] = useState('');
-    const [salesBoardId, setSalesBoardId] = useState('');
-    const [accountsBoardId, setAccountsBoardId] = useState('');
-
-    const [isSaving, setIsSaving] = useState(false);
-    const [showManual, setShowManual] = useState(false);
-
-    const handleConnectMonday = () => {
-        const clientId = '66298c1211917dbe3787ec943e18f039';
-        const redirectUri = window.location.origin + '/brand/integrations/monday/callback';
-        window.location.href = `https://auth.monday.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-    };
-
-    const functions = getFunctions();
-    const getMondaySettings = httpsCallable(functions, 'getMondaySettings');
-    const saveMondaySettings = httpsCallable(functions, 'saveMondaySettings');
-    const testMondayConnection = httpsCallable(functions, 'testMondayConnection');
-
-    useEffect(() => {
-        if (brandUser?.brandId) {
-            setIsLoading(true);
-            getMondaySettings({ brandId: brandUser.brandId })
-                .then((result) => {
-                    setSettings(result.data);
-                    setInvoicesBoardId(result.data.invoicesBoardId || '');
-                    setActivationsBoardId(result.data.activationsBoardId || '');
-                    setSalesBoardId(result.data.salesBoardId || '');
-                    setAccountsBoardId(result.data.accountsBoardId || '');
-                })
-                .catch((error) => {
-                    console.error("Error fetching Monday settings:", error);
-                    // Only show notification if it's not a permission/internal error which might happen on load
-                    if (error.code !== 'internal' && error.code !== 'permission-denied') {
-                        showNotification("Failed to retrieve integration status.", 'error');
-                    }
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            setIsLoading(false);
-        }
-    }, [brandUser, getMondaySettings]);
-
-    const handleSaveSettings = async () => {
-        if (!invoicesBoardId) {
-            showNotification("Please enter your Invoices Board ID.", 'error');
-            return;
-        }
-        setIsSaving(true);
-        try {
-            await saveMondaySettings({
-                brandId: brandUser.brandId,
-                settings: {
-                    invoicesBoardId,
-                    activationsBoardId,
-                    salesBoardId,
-                    accountsBoardId
-                }
-            });
-            showNotification("Settings saved successfully!", 'success');
-            setSettings({
-                ...settings,
-                invoicesBoardId,
-                activationsBoardId,
-                salesBoardId,
-                accountsBoardId
-            });
-        } catch (error) {
-            console.error("Error saving Monday settings:", error);
-            showNotification(`Failed to save settings: ${error.message}`, 'error');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleSaveMondayToken = async () => {
-        if (!mondayToken) {
-            showNotification("Please enter your Monday.com API Token.", 'error');
-            return;
-        }
-        setIsSaving(true);
-        try {
-            await saveMondaySettings({ brandId: brandUser.brandId, settings: { mondayApiToken: mondayToken } });
-            const testResult = await testMondayConnection({ apiToken: mondayToken });
-
-            if (testResult.data.success) {
-                showNotification(`Connection successful! Connected as ${testResult.data.user.name}.`, 'success');
-                setSettings({ ...settings, connected: true });
-                setMondayToken('');
-            } else {
-                throw new Error(testResult.data.error || "Connection test failed.");
-            }
-        } catch (error) {
-            console.error("Error saving Monday token:", error);
-            showNotification(`Connection failed: ${error.message}`, 'error');
-            setSettings({ ...settings, connected: false });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleDisconnect = async () => {
-        setIsSaving(true);
-        try {
-            // Set token to null to disconnect
-            await saveMondaySettings({ brandId: brandUser.brandId, settings: { mondayApiToken: null } });
-            showNotification("Successfully disconnected from Monday.com.", 'success');
-            setSettings({ ...settings, connected: false });
-        } catch (error) {
-            console.error("Error disconnecting Monday.com:", error);
-            showNotification("Failed to disconnect. Please try again.", 'error');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 col-span-1 md:col-span-2 lg:col-span-3">
-            <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">📅</span>
-                <div>
-                    <h3 className="font-bold text-slate-800 text-lg">Monday.com Integration</h3>
-                    <p className="text-sm text-slate-600">Work OS for order tracking and project management</p>
-                </div>
-            </div>
-
-            {isLoading && (
-                <div className="flex items-center gap-2 text-slate-500">
-                    <Loader2 className="animate-spin" size={16} />
-                    <span>Loading connection status...</span>
-                </div>
-            )}
-
-            {!isLoading && settings?.connected && (
-                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-md">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle2 size={20} className="text-green-600" />
-                            <p className="font-semibold text-green-800">Your account is connected to Monday.com</p>
-                        </div>
-                        <button
-                            onClick={handleDisconnect}
-                            disabled={isSaving}
-                            className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-red-600 disabled:bg-red-300">
-                            {isSaving ? 'Disconnecting...' : 'Disconnect'}
-                        </button>
-                    </div>
-                    <div className="mt-4">
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Invoices Board</h4>
-                                <input
-                                    type="text"
-                                    value={invoicesBoardId}
-                                    onChange={(e) => setInvoicesBoardId(e.target.value)}
-                                    placeholder="Board ID"
-                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Activations Board</h4>
-                                <input
-                                    type="text"
-                                    value={activationsBoardId}
-                                    onChange={(e) => setActivationsBoardId(e.target.value)}
-                                    placeholder="Board ID"
-                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Sales (Orders) Board</h4>
-                                <input
-                                    type="text"
-                                    value={salesBoardId}
-                                    onChange={(e) => setSalesBoardId(e.target.value)}
-                                    placeholder="Board ID"
-                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wide">Accounts (Leads) Board</h4>
-                                <input
-                                    type="text"
-                                    value={accountsBoardId}
-                                    onChange={(e) => setAccountsBoardId(e.target.value)}
-                                    placeholder="Board ID"
-                                    className="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
-                                />
-                            </div>
-
-                            <div className="col-span-1 md:col-span-2 flex justify-end">
-                                <button
-                                    onClick={handleSaveSettings}
-                                    disabled={isSaving}
-                                    className="bg-amber-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-amber-700 disabled:bg-amber-400 flex items-center justify-center gap-2"
-                                >
-                                    {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : 'Save Configuration'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {!isLoading && !settings?.connected && (
-                <div className="space-y-6 mt-4">
-                    {/* OAuth Connection (Primary) */}
-                    <div className="bg-slate-50 rounded-lg p-6 border border-slate-200 text-center">
-                        <h4 className="font-bold text-slate-800 mb-2">Connect Your Account</h4>
-                        <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto">
-                            Securely connect your Monday.com account to sync invoices, activations, and orders automatically.
-                        </p>
-                        <button
-                            onClick={handleConnectMonday}
-                            className="bg-[#0073ea] text-white px-6 py-3 rounded-full font-bold hover:bg-[#0060b9] transition-colors shadow-md flex items-center gap-2 mx-auto"
-                        >
-                            <Plug size={20} />
-                            Connect with Monday.com
-                        </button>
-                    </div>
-
-                    {/* Manual Fallback */}
-                    <div>
-                        <button
-                            onClick={() => setShowManual(!showManual)}
-                            className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 mx-auto"
-                        >
-                            {showManual ? 'Hide Advanced Settings' : 'Advanced: Connect Manually'}
-                        </button>
-
-                        {showManual && (
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 mt-3 animate-in fade-in slide-in-from-top-2">
-                                <h4 className="font-bold text-slate-800 mb-2 text-sm">Manual API Token</h4>
-                                <div className="flex items-center gap-2">
-                                    <KeyRound className="text-slate-400 flex-shrink-0" size={18} />
-                                    <input
-                                        type="password"
-                                        value={mondayToken}
-                                        onChange={(e) => setMondayToken(e.target.value)}
-                                        placeholder="Paste your Personal API Token here"
-                                        className="flex-1 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 text-sm"
-                                    />
-                                </div>
-                                <button
-                                    onClick={handleSaveMondayToken}
-                                    disabled={isSaving}
-                                    className="w-full mt-3 bg-slate-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-slate-700 disabled:bg-slate-400 flex items-center justify-center gap-2 text-xs"
-                                >
-                                    {isSaving ? <><Loader2 className="animate-spin" size={14} /> Saving...</> : 'Save Manual Token'}
-                                </button>
-                                <a href="https://monday.com/developers/v2/guides/authentication/api-keys" target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-amber-600 hover:underline mt-2">
-                                    Where do I find my token?
-                                </a>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 export default function BrandIntegrations() {
     const { brandUser } = useBrandAuth();
     const [activeTab, setActiveTab] = useState('overview');
+    const functions = getFunctions();
 
+    // Admin Fallback / Safety Check
     if (!brandUser) {
         return (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
@@ -308,6 +40,21 @@ export default function BrandIntegrations() {
                 </div>
             </div>
         );
+    }
+
+    const getBrandMondaySettings = () => {
+        const func = httpsCallable(functions, 'getMondaySettings');
+        return func({ brandId: brandUser.brandId });
+    }
+
+    const saveBrandMondaySettings = (settings) => {
+        const func = httpsCallable(functions, 'saveMondaySettings');
+        return func({ brandId: brandUser.brandId, settings });
+    }
+
+    const testBrandMondayConnection = (apiToken) => {
+        const func = httpsCallable(functions, 'testMondayConnection');
+        return func({ apiToken }); // Corrected to match earlier HEAD signature expectation if needed, or Jules'
     }
 
     return (
@@ -363,7 +110,11 @@ export default function BrandIntegrations() {
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">Supported Systems & Formats</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <MondayIntegrationCard />
+                            <MondayIntegrationCard
+                                getSettings={getBrandMondaySettings}
+                                saveSettings={saveBrandMondaySettings}
+                                testConnection={testBrandMondayConnection}
+                            />
                             {SUPPORTED_SYSTEMS.map((system) => (
                                 <div
                                     key={system.id}

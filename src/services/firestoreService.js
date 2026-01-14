@@ -48,38 +48,101 @@ export async function getBrandUsers(brandId) {
     return data;
 }
 
-// --- SHIFTS --- 
+// --- ACTIVATIONS (Shift Completion) ---
+// Note: "Logging a shift" means creating/completing an activation
+// The shifts table is deprecated - all shift data goes into activations
 
-export async function addShift(shiftData) {
-    const { data, error } = await supabase.from('shifts').insert([{
-        ...shiftData,
-        status: shiftData.status || 'pending',
-        created_at: new Date().toISOString()
+export async function addCompletedActivation(activationData) {
+    // Calculate total hours from start and end time
+    const calculateHours = (startTime, endTime) => {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const diffMs = end - start;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        return parseFloat(diffHours.toFixed(2));
+    };
+
+    const totalHours = activationData.startTime && activationData.endTime
+        ? calculateHours(activationData.startTime, activationData.endTime)
+        : activationData.hoursWorked || 0;
+
+    const { data, error } = await supabase.from('activations').insert([{
+        brand_id: activationData.brandId || activationData.brand,
+        brand_name: activationData.brand || activationData.brandName,
+        dispensary_name: activationData.dispensaryName,
+        dispensary_id: activationData.dispensaryId || null,
+        rep_id: activationData.userId || activationData.repId,
+        rep_name: activationData.repName || null,
+        activation_date: activationData.date || new Date().toISOString().split('T')[0],
+        activation_type: activationData.activationType || 'walk-in',
+        status: 'completed',
+        start_time: activationData.startTime,
+        end_time: activationData.endTime,
+        total_hours: totalHours,
+        miles_traveled: activationData.milesTraveled || 0,
+        odometer_image_url: activationData.odometerImageUrl || null,
+        toll_amount: activationData.tollAmount || 0,
+        toll_receipt_url: activationData.tollReceiptImageUrl || null,
+        region: activationData.region || 'NYC',
+        has_vehicle: activationData.hasVehicle !== undefined ? activationData.hasVehicle : true,
+        completed_at: new Date().toISOString(),
+        notes: activationData.notes || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
     }]).select().single();
 
     if (error) throw error;
     return data.id;
 }
 
+// Deprecated: Use addCompletedActivation instead
+export async function addShift(shiftData) {
+    console.warn('⚠️ addShift is deprecated. Use addCompletedActivation instead.');
+    return addCompletedActivation(shiftData);
+}
+
+export async function getUserActivations(userId, statusFilter = null) {
+    let query = supabase.from('activations').select('*').eq('rep_id', userId);
+
+    if (statusFilter) {
+        query = query.eq('status', statusFilter);
+    }
+
+    const { data, error } = await query.order('activation_date', { ascending: false });
+    if (error) return [];
+    return data;
+}
+
+export async function getAllActivations() {
+    const { data, error } = await supabase.from('activations').select('*').order('activation_date', { ascending: false });
+    if (error) return [];
+    return data;
+}
+
+// Deprecated: Use getUserActivations instead
 export async function getUserShifts(userId) {
-    const { data, error } = await supabase.from('shifts').select('*').eq('userId', userId); // userId column case?
-    // Supabase is usually snake_case, but we migrated loosely. Let's assume schema matches migration.
-    // Migration script didn't migrate shifts! 
-    // We didn't enable Shifts migration. Creating empty table now implicitly or assuming user handles lost shift data?
-    // User instruction only mentioned Sales/Commission.
-    if (error) return [];
-    return data;
+    console.warn('⚠️ getUserShifts is deprecated. Use getUserActivations(userId, "completed") instead.');
+    return getUserActivations(userId, 'completed');
 }
 
+// Deprecated: Use getAllActivations instead
 export async function getAllShifts() {
-    const { data, error } = await supabase.from('shifts').select('*');
-    if (error) return [];
-    return data;
+    console.warn('⚠️ getAllShifts is deprecated. Use getAllActivations() instead.');
+    return getAllActivations();
 }
 
-export async function updateShiftStatus(shiftId, newStatus) {
-    const { error } = await supabase.from('shifts').update({ status: newStatus }).eq('id', shiftId);
+export async function updateActivationStatus(activationId, newStatus) {
+    const { error } = await supabase.from('activations').update({
+        status: newStatus,
+        updated_at: new Date().toISOString()
+    }).eq('id', activationId);
     return !error;
+}
+
+// Deprecated: Use updateActivationStatus instead
+export async function updateShiftStatus(shiftId, newStatus) {
+    console.warn('⚠️ updateShiftStatus is deprecated. Use updateActivationStatus instead.');
+    return updateActivationStatus(shiftId, newStatus);
 }
 
 // --- LEADS ---

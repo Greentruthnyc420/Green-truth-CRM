@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Camera, MapPin, Clock, DollarSign, UploadCloud, X } from 'lucide-react';
 import { uploadTollReceipt } from '../services/storageService';
-import { addShift } from '../services/firestoreService';
+import { addCompletedActivation } from '../services/firestoreService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
@@ -107,24 +107,25 @@ export default function LogShift() {
                 odometerUrl = await uploadTollReceipt(odometerImage, currentUser?.uid || 'anonymous');
             }
 
-            const shiftData = {
+            const activationData = {
                 userId: currentUser?.uid || 'demo-user',
+                brand: formData.brand,
+                brandName: formData.brand,
+                dispensaryName: formData.dispensaryName,
                 date: new Date(),
-                hoursWorked: 8, // Calculate from start/end in real logic
+                startTime: formData.startTime,
+                endTime: formData.endTime,
                 milesTraveled: parseFloat(formData.miles) || 0,
                 odometerImageUrl: odometerUrl,
                 tollAmount: parseFloat(formData.tollAmount) || 0,
                 tollReceiptImageUrl: receiptUrl,
-                startTime: formData.startTime,
-                endTime: formData.endTime,
-                dispensaryName: formData.dispensaryName,
                 region: formData.region,
                 hasVehicle: formData.hasVehicle,
-                brand: formData.brand,
-                status: 'pending'
+                activationType: 'walk-in', // Unscheduled activation
+                notes: `Walk-in activation | Miles: ${formData.miles || 0} | Tolls: $${formData.tollAmount || 0}`
             };
 
-            await addShift(shiftData);
+            await addCompletedActivation(activationData);
 
             // Send admin email notification
             try {
