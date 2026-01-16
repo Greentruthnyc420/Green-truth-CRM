@@ -77,8 +77,8 @@ export default function LogShift() {
         // Validation: Mandatory Odometer Photo if miles populated
         if (parseFloat(formData.miles) > 0 && !odometerImage) {
             setModalMessage({
-                title: 'Odometer Photo Required',
-                body: 'To claim mileage reimbursement, you must upload a clear photo of your odometer starting/ending reading. This ensures accurate compensation.'
+                title: 'Trip Log Screenshot Required',
+                body: 'To claim mileage reimbursement, you must upload a screenshot from your trip log app showing the distance traveled. This ensures accurate compensation.'
             });
             setShowModal(true);
             return;
@@ -323,12 +323,12 @@ export default function LogShift() {
                         {!odometerPreview ? (
                             <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors text-slate-500 text-sm">
                                 <Camera size={16} />
-                                <span>Add Odometer Photo</span>
+                                <span>Add Trip Log Screenshot</span>
                                 <input type="file" className="hidden" accept="image/*" onChange={handleOdometerChange} />
                             </label>
                         ) : (
                             <div className="relative rounded-lg overflow-hidden border border-slate-200 mt-2">
-                                <img src={odometerPreview} alt="Odometer" className="w-full h-32 object-cover" />
+                                <img src={odometerPreview} alt="Trip Log" className="w-full h-32 object-cover" />
                                 <button
                                     type="button"
                                     onClick={() => { setOdometerImage(null); setOdometerPreview(null); }}
