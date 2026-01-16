@@ -312,6 +312,8 @@ export default function LogShift() {
                             <input
                                 type="number"
                                 placeholder="420"
+                                step="0.1"
+                                min="0"
                                 className="w-full pl-10 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
                                 value={formData.miles}
                                 onChange={(e) => setFormData({ ...formData, miles: e.target.value })}
@@ -352,6 +354,8 @@ export default function LogShift() {
                             <input
                                 type="number"
                                 placeholder="420.00"
+                                step="0.01"
+                                min="0"
                                 className="w-full pl-8 rounded-lg border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 outline-none p-3 border"
                                 value={formData.tollAmount}
                                 onChange={(e) => setFormData({ ...formData, tollAmount: e.target.value })}

@@ -411,6 +411,7 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                                 className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none text-sm"
                                 placeholder="Miles"
                                 min="0"
+                                step="0.1"
                                 value={formData.milesTraveled}
                                 onChange={e => setFormData({ ...formData, milesTraveled: e.target.value })}
                             />
