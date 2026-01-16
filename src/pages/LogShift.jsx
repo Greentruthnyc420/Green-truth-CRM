@@ -147,8 +147,16 @@ export default function LogShift() {
                 // Don't block user experience if email fails
             }
 
-            showNotification('Shift logged successfully!', 'success');
-            navigate('/history');
+            setModalMessage({
+                title: '✅ Shift Logged Successfully!',
+                body: 'Your activation has been recorded. Redirecting to dashboard...'
+            });
+            setShowModal(true);
+
+            // Auto-redirect to dashboard after 2 seconds
+            setTimeout(() => {
+                navigate('/');
+            }, 2000);
         } catch (error) {
             console.error('Error logging shift:', error);
             showNotification('Failed to log shift: ' + (error.message || 'Unknown error'), 'error');
