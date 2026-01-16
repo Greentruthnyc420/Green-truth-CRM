@@ -89,7 +89,7 @@ export async function addCompletedActivation(activationData) {
         end_time: activationData.endTime,
         total_hours: totalHours,
         miles_traveled: activationData.milesTraveled || 0,
-        odometer_image_url: activationData.odometerImageUrl || null,
+        trip_log_image_url: activationData.odometerImageUrl || null,
         toll_amount: activationData.tollAmount || 0,
         toll_receipt_url: activationData.tollReceiptImageUrl || null,
         region: activationData.region || 'NYC',
