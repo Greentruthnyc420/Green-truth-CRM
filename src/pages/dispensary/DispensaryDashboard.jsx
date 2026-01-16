@@ -183,6 +183,7 @@ export default function DispensaryDashboard() {
                 <SampleRequestModal
                     onClose={() => setShowSampleRequest(false)}
                     profile={profile}
+                    currentUser={currentUser}
                 />
             )}
         </div>
@@ -202,7 +203,7 @@ const StatCard = ({ icon, label, value, color }) => (
 );
 
 // Sample Request Modal Component
-const SampleRequestModal = ({ onClose, profile }) => {
+const SampleRequestModal = ({ onClose, profile, currentUser }) => {
     const [selectedBrands, setSelectedBrands] = useState([]);
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);

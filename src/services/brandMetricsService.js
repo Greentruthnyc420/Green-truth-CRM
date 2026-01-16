@@ -21,10 +21,16 @@ export async function calculateBrandMetrics(brandId, brandName) {
         const productSalesMap = {};
 
         allSales.forEach(sale => {
+            // Check nested items for brandId match
             const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
+            // Fallback: check top-level brandId or brandName
+            const matchesTopLevel = sale.brandId === brandId || sale.brandName === brandName;
 
-            if (brandItems.length > 0) {
-                const saleRevenue = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (brandItems.length > 0 || matchesTopLevel) {
+                // Calculate revenue - prefer nested items, fallback to sale.amount
+                const saleRevenue = brandItems.length > 0
+                    ? brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                    : parseFloat(sale.amount) || 0;
                 totalRevenue += saleRevenue;
                 totalOrders++;
 
@@ -33,7 +39,7 @@ export async function calculateBrandMetrics(brandId, brandName) {
                     pendingRevenue += saleRevenue;
                 }
 
-                // Track product sales
+                // Track product sales from items
                 brandItems.forEach(item => {
                     productSalesMap[item.name] = (productSalesMap[item.name] || 0) + item.quantity;
                 });

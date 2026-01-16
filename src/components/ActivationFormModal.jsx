@@ -1,9 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, Building2, User, Clock, Check } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
 import { getLeads, addActivation, getAllBrandProfiles } from '../services/firestoreService';
 import { useNotification } from '../contexts/NotificationContext';
+import { calculateAgencyShiftCost } from '../utils/pricing';
+
+const CostEstimator = ({ start, end, region, type, milesTraveled = 0, tollAmount = 0 }) => {
+    if (!start || !end || type === 'Sample Drop') return null;
+
+    // Calculate duration
+    const startDate = new Date(`2000-01-01T${start}`);
+    const endDate = new Date(`2000-01-01T${end}`);
+    const diffHours = (endDate - startDate) / 1000 / 60 / 60;
+
+    if (diffHours <= 0) return null;
+
+    const cost = calculateAgencyShiftCost({
+        region,
+        hoursWorked: diffHours,
+        milesTraveled: parseFloat(milesTraveled) || 0,
+        tollAmount: parseFloat(tollAmount) || 0
+    });
+
+    return (
+        <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-lg flex justify-between items-center">
+            <span className="text-sm font-medium text-emerald-800">Estimated Cost ({diffHours}h):</span>
+            <span className="text-lg font-bold text-emerald-700">${cost.toFixed(2)}</span>
+        </div>
+    );
+};
 
 export default function ActivationFormModal({ isOpen, onClose, onSuccess, initialData = {} }) {
     const { currentUser } = useAuth(); // Admin or Rep
@@ -11,8 +37,7 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
     const { showNotification } = useNotification();
 
     // Determine User Role
-    // Determine User Role
-    const isAdmin = currentUser?.email && (Array.isArray(window.ADMIN_EMAILS) ? window.ADMIN_EMAILS.includes(currentUser.email) : ['omarelsayed1122@gmail.com', 'admin@flx.com', 'omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'].includes(currentUser.email?.toLowerCase()));
+    const isAdmin = currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 
     const isBrandOrProcessor = !!brandUser;
     const isProcessor = brandUser?.isProcessor || false;
@@ -35,6 +60,7 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
 
         // Single Date (for Admins/Reps scheduling directly)
         dateOfActivation: initialData.dateOfActivation || '',
+        dateEndOfActivation: initialData.dateEndOfActivation || '', // End date, defaults to same as start
 
         // Multiple Options (for Requests)
         dateOption1: '',
@@ -45,7 +71,12 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
         timeEnd: initialData.timeEnd || '16:00',
         activationType: initialData.activationType || 'Activation',
         repId: initialData.repId || (currentUser?.uid || ''),
-        notes: initialData.notes || ''
+        notes: initialData.notes || '',
+
+        // Pricing fields
+        region: initialData.region || 'NYC',
+        milesTraveled: initialData.milesTraveled || '',
+        tollAmount: initialData.tollAmount || ''
     });
 
     useEffect(() => {
@@ -142,6 +173,18 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                 ].filter(Boolean) : null,
                 // If it's a request, primary 'date' might be tentatively the 1st option or null
                 date: isRequest ? formData.dateOption1 : formData.dateOfActivation,
+                // Pricing data for proper cost calculation
+                region: formData.region || 'NYC',
+                milesTraveled: parseFloat(formData.milesTraveled) || 0,
+                tollAmount: parseFloat(formData.tollAmount) || 0,
+                // Calculate duration from time inputs
+                duration: (() => {
+                    const [startH, startM] = formData.timeStart.split(':').map(Number);
+                    const [endH, endM] = formData.timeEnd.split(':').map(Number);
+                    const startMinutes = startH * 60 + startM;
+                    const endMinutes = endH * 60 + endM;
+                    return Math.max(2, Math.round((endMinutes - startMinutes) / 60));
+                })(),
                 // Add requester info if helpful
                 requestedBy: isDispensary ? 'Dispensary' : (isBrand ? 'Brand' : 'Admin/Rep')
             };
@@ -158,19 +201,34 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
         }
     };
 
+    const [adminRequestMode, setAdminRequestMode] = useState(false);
+
     if (!isOpen) return null;
 
-    // Check if we are in "Request Mode" (Brand or Dispensary)
-    const isRequestMode = isBrand || isDispensary;
+    // Check if we are in "Request Mode" (Brand or Processor or Dispensary OR Admin Context)
+    const isRequestMode = isBrand || isProcessor || isDispensary || adminRequestMode;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Calendar className="text-emerald-600" />
-                        {isRequestMode ? 'Request Activation' : 'Schedule Activation'}
-                    </h2>
+                    <div className="flex flex-col">
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <Calendar className="text-emerald-600" />
+                            {isRequestMode ? 'Request Activation' : 'Schedule Activation'}
+                        </h2>
+                        {isAdmin && (
+                            <label className="flex items-center gap-2 mt-2 text-xs text-slate-500 cursor-pointer hover:text-emerald-600 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={adminRequestMode}
+                                    onChange={(e) => setAdminRequestMode(e.target.checked)}
+                                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                Log as Request (3 Dates)
+                            </label>
+                        )}
+                    </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
                         <X size={20} className="text-slate-500" />
                     </button>
@@ -178,8 +236,8 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
-                    {/* Brand Selection: Hidden if Single Brand User, Visible for Admin/Rep/Dispensary/Processor */}
-                    {(!isBrand || isProcessor) && (
+                    {/* Brand Selection: Visible for Admin/Rep/Dispensary/Processor */}
+                    {(isAdmin || !isBrand || isProcessor) && (
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Brand</label>
                             <div className="relative">
@@ -253,12 +311,30 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                     ) : (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Date</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Start Date</label>
                                 <input
                                     type="date"
                                     className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none"
                                     value={formData.dateOfActivation}
-                                    onChange={e => setFormData({ ...formData, dateOfActivation: e.target.value })}
+                                    onChange={e => {
+                                        const newDate = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            dateOfActivation: newDate,
+                                            // Auto-fill end date to same as start date
+                                            dateEndOfActivation: formData.dateEndOfActivation || newDate
+                                        });
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">End Date</label>
+                                <input
+                                    type="date"
+                                    className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none"
+                                    value={formData.dateEndOfActivation}
+                                    onChange={e => setFormData({ ...formData, dateEndOfActivation: e.target.value })}
+                                    min={formData.dateOfActivation}
                                 />
                             </div>
                             <div>
@@ -273,6 +349,18 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                                 </select>
                             </div>
                         </div>
+                    )}
+
+                    {/* Cost Estimation */}
+                    {!isRep && formData.timeStart && formData.timeEnd && (
+                        <CostEstimator
+                            start={formData.timeStart}
+                            end={formData.timeEnd}
+                            region={formData.region || 'NYC'}
+                            type={formData.activationType}
+                            milesTraveled={formData.milesTraveled}
+                            tollAmount={formData.tollAmount}
+                        />
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
@@ -299,6 +387,45 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                                     onChange={e => setFormData({ ...formData, timeEnd: e.target.value })}
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Region, Mileage, Tolls */}
+                    <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Region</label>
+                            <select
+                                className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-sm"
+                                value={formData.region}
+                                onChange={e => setFormData({ ...formData, region: e.target.value })}
+                            >
+                                <option value="NYC">NYC</option>
+                                <option value="LI">Long Island / Downstate</option>
+                                <option value="UPSTATE">Upstate</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Mileage</label>
+                            <input
+                                type="number"
+                                className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none text-sm"
+                                placeholder="Miles"
+                                min="0"
+                                value={formData.milesTraveled}
+                                onChange={e => setFormData({ ...formData, milesTraveled: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Tolls ($)</label>
+                            <input
+                                type="number"
+                                className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none text-sm"
+                                placeholder="0.00"
+                                min="0"
+                                step="0.01"
+                                value={formData.tollAmount}
+                                onChange={e => setFormData({ ...formData, tollAmount: e.target.value })}
+                            />
                         </div>
                     </div>
 

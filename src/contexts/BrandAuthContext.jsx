@@ -18,7 +18,7 @@ export const INTERNAL_BRAND_ID = 'greentruth';
 // Available brands for signup - users select from dropdown and enter their REAL license
 // No fake license validation - license is stored as-is
 export const AVAILABLE_BRANDS = {
-    'honey-king': { brandId: 'honey-king', brandName: 'Honey King', isProcessor: true, managedBrands: [] },
+    'honey-king': { brandId: 'honey-king', brandName: '🍯 Honey King', isProcessor: true, managedBrands: [] },
     'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
     'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots' },
     'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers' },

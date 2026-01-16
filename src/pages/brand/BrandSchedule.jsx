@@ -53,6 +53,24 @@ const BrandSchedule = () => {
         }
     };
 
+    const handleDelete = async () => {
+        if (!selectedEvent?.resource?.id) return;
+
+        if (!window.confirm('Delete this activation? This cannot be undone.')) return;
+
+        try {
+            const { deleteActivation } = await import('../../services/firestoreService');
+            await deleteActivation(selectedEvent.resource.id);
+
+            showNotification('Activation deleted successfully', 'success');
+            setSelectedEvent(null);
+            loadData(); // Refresh calendar
+        } catch (error) {
+            console.error("Delete failed:", error);
+            showNotification(`Delete failed: ${error.message}`, 'error');
+        }
+    };
+
     useEffect(() => {
         loadData();
     }, [brandUser]);
@@ -255,7 +273,14 @@ const BrandSchedule = () => {
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between">
+                            <button
+                                onClick={handleDelete}
+                                className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium hover:bg-red-100 transition-colors flex items-center gap-2"
+                            >
+                                <Trash2 size={16} />
+                                Delete Activation
+                            </button>
                             <button
                                 onClick={() => setSelectedEvent(null)}
                                 className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"

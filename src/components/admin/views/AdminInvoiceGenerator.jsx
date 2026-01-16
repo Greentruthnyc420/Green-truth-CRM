@@ -16,8 +16,35 @@ const COMPANY_INFO = {
 
 const AdminInvoiceGenerator = () => {
     const { brandUser } = useBrandAuth();
+    // State
+    const [invoiceType, setInvoiceType] = useState('brand'); // 'brand' | 'dispensary'
     const [selectedBrand, setSelectedBrand] = useState('');
-    const [selectedRecipient, setSelectedRecipient] = useState('');
+    const [selectedDispensary, setSelectedDispensary] = useState('');
+    const [dispensaries, setDispensaries] = useState([]);
+    const [selectedRecipient, setSelectedRecipient] = useState(''); // Email
+
+    useEffect(() => {
+        // Fetch dispensaries if type is dispensary
+        if (invoiceType === 'dispensary' && dispensaries.length === 0) {
+            import('../../../services/firestoreService').then(({ getLeads }) => {
+                getLeads().then(data => setDispensaries(data));
+            });
+        }
+    }, [invoiceType, dispensaries.length]); // Added dispensaries.length to dependency array
+
+    // Handle Brand/Dispensary Selection
+    const handleEntitySelect = (id) => {
+        if (invoiceType === 'brand') {
+            setSelectedBrand(id);
+            // Mock email for brand
+            setSelectedRecipient(`${id}@brand.com`);
+        } else {
+            setSelectedDispensary(id);
+            const disp = dispensaries.find(d => d.id === id);
+            setSelectedRecipient(disp?.email || '');
+        }
+        setLineItems([]); // Clear items on switch
+    };
     const [brandUsers, setBrandUsers] = useState([]);
 
     const [invoiceData, setInvoiceData] = useState(null); // Will be set before preview/save
@@ -78,30 +105,117 @@ const AdminInvoiceGenerator = () => {
             const activations = await getUnbilledActivations(selectedBrand);
             const userMap = brandUsers.reduce((acc, u) => ({ ...acc, [u.id]: u.name || u.email }), {});
 
-            const newItems = activations.map(act => ({
-                id: `act-${act.id}`,
-                description: `Activation: ${act.storeName || 'Store Visit'} - ${new Date(act.createdAt).toLocaleDateString()}`,
-                quantity: act.duration || 4, // Default 4 hours if missing
-                rate: 25, // Default rate
-                amount: (act.duration || 4) * 25,
-                sourceType: 'activation',
-                sourceId: act.id,
-                attachmentUrl: null, // No receipt by default for activations unless we pull from activation proof
-                meta: {
-                    repName: act.repName || userMap[act.repId] || 'Rep',
-                    date: act.createdAt
-                }
-            }));
+            // Dynamic import of pricing logic to avoid circular dependency issues if any
+            const { calculateAgencyShiftCost } = await import('../../../utils/pricing');
+
+            const newItems = activations.map(act => {
+                const duration = act.duration || 4; // Default to 4 hours if missing
+
+                // Calculate real cost based on region and duration
+                // Assuming act.region exists, otherwise default to NYC
+                const shiftData = {
+                    region: act.region || 'NYC',
+                    hoursWorked: duration,
+                    milesTraveled: act.milesTraveled || 0,
+                    tollAmount: act.tollAmount || 0
+                };
+
+                const cost = calculateAgencyShiftCost(shiftData);
+
+                return {
+                    id: `act-${act.id}`,
+                    description: `Activation: ${act.storeName || 'Store Visit'} - ${new Date(act.createdAt).toLocaleDateString()} (${duration}h, ${act.region || 'NYC'})`,
+                    quantity: 1, // Quantity is 1 event
+                    rate: cost, // Total cost for the event
+                    amount: cost,
+                    sourceType: 'activation',
+                    sourceId: act.id,
+                    // AUTO-ATTACH RECEIPTS: toll receipt takes priority, but store both
+                    attachmentUrl: act.toll_receipt_url || act.trip_log_image_url || null,
+                    meta: {
+                        repName: act.repName || userMap[act.repId] || 'Rep',
+                        date: act.createdAt,
+                        // Store both receipt URLs for reference
+                        tollReceiptUrl: act.toll_receipt_url || null,
+                        tripLogImageUrl: act.trip_log_image_url || null,
+                        mileageData: act.milesTraveled || 0
+                    }
+                };
+            });
 
             if (newItems.length === 0) {
                 alert("No unbilled work found.");
             } else {
                 setLineItems(prev => [...prev, ...newItems]);
-                alert(`Imported ${activations.length} items. Please verify rates.`);
+                alert(`Imported ${activations.length} items with correct regional pricing.`);
             }
         } catch (error) {
             console.error("Import failed", error);
             alert("Failed to import activations.");
+        } finally {
+            setImportLoading(false);
+        }
+    };
+
+    // Handle Import Sales logic (New Feature)
+    const handleImportSales = async () => {
+        if (!selectedBrand) {
+            alert("Please select a brand first");
+            return;
+        }
+        setImportLoading(true);
+        try {
+            // We need to fetch sales for this brand. 
+            // Currently getSales returns all sales, we need to filter client-side or add server-side filter.
+            // Importing getSales from filtered service
+            const { getSales } = await import('../../../services/firestoreService');
+            const allSales = await getSales();
+
+            // Filter by brand (assuming sales have brand info or we check items)
+            // Sales schema: items: [{ brandName... }]
+            // Or matches selectedBrand.name
+
+            // This is a bit tricky because sales are by Dispnsary, but might contain various brands.
+            // We'll filter sales where ANY item matches the selected brand name or ID.
+
+            const brandName = brandList.find(b => b.id === selectedBrand)?.name || selectedBrand;
+
+            const brandSales = allSales.filter(sale => {
+                // Check items
+                if (sale.items && sale.items.length > 0) {
+                    return sale.items.some(item =>
+                        (item.brandId === selectedBrand) ||
+                        (item.brandName && item.brandName.toLowerCase().includes(brandName.toLowerCase()))
+                    );
+                }
+                return false;
+            });
+
+            const newItems = brandSales.map(sale => ({
+                id: `sale-${sale.id}`,
+                description: `Wholesale: ${sale.dispensaryName} - ${new Date(sale.date).toLocaleDateString()}`,
+                quantity: 1,
+                rate: sale.totalAmount,
+                amount: sale.totalAmount,
+                sourceType: 'sale',
+                sourceId: sale.id,
+                attachmentUrl: null,
+                meta: {
+                    repName: 'Sales Rep', // Ideally fetch from user ID
+                    date: sale.date
+                }
+            }));
+
+            if (newItems.length === 0) {
+                alert("No sales found for this brand.");
+            } else {
+                setLineItems(prev => [...prev, ...newItems]);
+                alert(`Imported ${brandSales.length} sales records.`);
+            }
+
+        } catch (error) {
+            console.error("Import Sales failed", error);
+            alert("Failed to import sales.");
         } finally {
             setImportLoading(false);
         }
@@ -235,38 +349,98 @@ const AdminInvoiceGenerator = () => {
             {/* Builder Mode */}
             {!showPreview && (
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
-                    {/* Top Controls */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold text-slate-500 mb-1">Brand</label>
-                            <select
-                                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50"
-                                value={selectedBrand}
-                                onChange={(e) => setSelectedBrand(e.target.value)}
+                    {/* Invoice Configuration */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Invoice Type</label>
+                                <div className="flex p-1 bg-slate-100 rounded-lg w-fit">
+                                    <button
+                                        onClick={() => setInvoiceType('brand')}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${invoiceType === 'brand' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Brand Invoice
+                                    </button>
+                                    <button
+                                        onClick={() => setInvoiceType('dispensary')}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${invoiceType === 'dispensary' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Dispensary Invoice
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
+                                    {invoiceType === 'brand' ? 'Select Brand' : 'Select Dispensary'}
+                                </label>
+                                {invoiceType === 'brand' ? (
+                                    <select
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                        value={selectedBrand}
+                                        onChange={(e) => handleEntitySelect(e.target.value)}
+                                    >
+                                        <option value="">-- Choose Brand --</option>
+                                        {brandList.map(brand => (
+                                            <option key={brand.id} value={brand.id}>{brand.name}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <select
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                        value={selectedDispensary}
+                                        onChange={(e) => handleEntitySelect(e.target.value)}
+                                    >
+                                        <option value="">-- Choose Dispensary --</option>
+                                        {dispensaries.sort((a, b) => a.dispensaryName.localeCompare(b.dispensaryName)).map(disp => (
+                                            <option key={disp.id} value={disp.id}>{disp.dispensaryName}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Bill To (Email)</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input
+                                        type="email"
+                                        className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                        placeholder="billing@company.com"
+                                        value={selectedRecipient}
+                                        onChange={(e) => setSelectedRecipient(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                            <h3 className="font-bold text-slate-800 mb-4">Invoice Summary</h3>
+                            <div className="space-y-3 mb-6">
+                                <div className="flex justify-between text-slate-500">
+                                    <span>Subtotal</span>
+                                    <span>${calculateTotal().toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-slate-500">
+                                    <span>Tax (0%)</span>
+                                    <span>$0.00</span>
+                                </div>
+                                <div className="pt-3 border-t border-slate-200 flex justify-between font-bold text-lg text-slate-900">
+                                    <span>Total Due</span>
+                                    <span>${calculateTotal().toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handlePreview}
+                                disabled={lineItems.length === 0}
+                                className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                <option value="">Select Brand</option>
-                                {brandList.map(b => <option key={b.id} value={b.id}>{b.brandName}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-500 mb-1">Recipient</label>
-                            <input
-                                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50"
-                                value={selectedRecipient}
-                                onChange={(e) => setSelectedRecipient(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-500 mb-1">Due Date</label>
-                            <input
-                                type="date"
-                                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50"
-                                value={dueDate}
-                                onChange={(e) => setDueDate(e.target.value)}
-                            />
+                                <FileText size={18} />
+                                Generate Invoice PDF
+                            </button>
+                            {/* Send Email Button placeholder */}
                         </div>
                     </div>
-
                     {/* Line Items */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
@@ -285,6 +459,14 @@ const AdminInvoiceGenerator = () => {
                                 >
                                     {importLoading ? <RefreshCw className="animate-spin" size={16} /> : <Import size={16} />}
                                     Import Unbilled Work
+                                </button>
+                                <button
+                                    onClick={handleImportSales}
+                                    disabled={!selectedBrand || importLoading}
+                                    className="px-3 py-1.5 text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
+                                >
+                                    {importLoading ? <RefreshCw className="animate-spin" size={16} /> : <Import size={16} />}
+                                    Import Sales
                                 </button>
                             </div>
                         </div>

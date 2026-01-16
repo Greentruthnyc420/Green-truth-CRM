@@ -16,7 +16,11 @@ import { sendAdminNotification, createUserRegistrationEmail } from '../services/
 
 export const ADMIN_EMAILS = [
     'omar@thegreentruthnyc.com',
-    'amber@thegreentruthnyc.com'
+    'amber@thegreentruthnyc.com',
+    'omarelsayed1122@gmail.com',
+    'admin@flx.com',
+    'realtest@test.com',
+    'omar@gmail.com'
 ];
 
 const AuthContext = createContext();
@@ -186,23 +190,33 @@ export function AuthProvider({ children }) {
                             // Only create if missing (PGRST116 = no rows returned)
                             if (!profile && profileError?.code === 'PGRST116') {
                                 const { createUserProfile } = await import('../services/firestoreService');
+
+                                // Check for referral / signup context
+                                const referralId = sessionStorage.getItem('referralRef');
+                                const signupRole = sessionStorage.getItem('signupRole');
+
                                 await createUserProfile(user.uid, {
                                     email: user.email,
                                     name: user.displayName || user.email?.split('@')[0],
-                                    role: 'rep',
+                                    role: signupRole || (referralId ? 'dispensary' : 'rep'), // Default to 'rep' unless referred (then 'dispensary')
+                                    assigned_ambassador_id: referralId || null,
                                     created_at: new Date().toISOString()
                                 });
+
+                                // Clear session storage
+                                sessionStorage.removeItem('referralRef');
+                                sessionStorage.removeItem('signupRole');
 
                                 // Send admin notification
                                 try {
                                     const { html, text } = createUserRegistrationEmail({
                                         userEmail: user.email,
-                                        role: 'Sales Representative',
+                                        role: signupRole || (referralId ? 'Dispensary Account' : 'Sales Representative'),
                                         timestamp: new Date().toLocaleString()
                                     });
 
                                     await sendAdminNotification({
-                                        subject: `👤 New Rep Registered: ${user.email}`,
+                                        subject: `👤 New User Registered: ${user.email}`,
                                         html,
                                         text
                                     });

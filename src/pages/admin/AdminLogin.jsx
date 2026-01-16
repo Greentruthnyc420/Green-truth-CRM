@@ -77,7 +77,7 @@ export default function AdminLogin() {
 
                 {/* Header */}
                 <div className="bg-slate-950/50 p-8 text-center border-b border-slate-700/50">
-                    <NavLink to="/" className="absolute top-4 left-4 text-slate-500 hover:text-white transition-colors flex items-center gap-2 text-xs font-medium">
+                    <NavLink to="/gateway" className="absolute top-4 left-4 text-slate-500 hover:text-white transition-colors flex items-center gap-2 text-xs font-medium">
                         <ArrowLeft size={14} />
                         Back to Gateway
                     </NavLink>

@@ -56,7 +56,7 @@ export default function CommissionPayouts() {
     return (
         <div className="max-w-4xl mx-auto pb-12">
             <div className="mb-8">
-                <Link to="/" className="inline-flex items-center text-slate-500 hover:text-slate-800 mb-4 transition-colors">
+                <Link to="/app" className="inline-flex items-center text-slate-500 hover:text-slate-800 mb-4 transition-colors">
                     <ArrowLeft size={16} className="mr-1" /> Back to Dashboard
                 </Link>
                 <div className="flex items-center gap-3">

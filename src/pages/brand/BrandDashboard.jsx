@@ -13,7 +13,7 @@ import {
 import { getSales as getAllSales, getAllShifts } from '../../services/firestoreService';
 import { getMondayIntegrationStatus } from '../../services/mondayService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
-import RequestActivationModal from '../../components/RequestActivationModal';
+import ActivationFormModal from '../../components/ActivationFormModal';
 
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import FLXProcessorDashboard from './FLXProcessorDashboard';
@@ -478,10 +478,11 @@ export default function BrandDashboard() {
             </div>
 
             {/* Modals */}
-            <RequestActivationModal
+            <ActivationFormModal
                 isOpen={isRequestModalOpen}
                 onClose={() => setIsRequestModalOpen(false)}
-                brandUser={brandUser}
+                onSuccess={() => setIsRequestModalOpen(false)}
+                initialData={{ userRole: 'brand' }}
             />
         </div>
     );

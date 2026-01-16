@@ -35,6 +35,15 @@ export async function getAllUsers() {
     return data;
 }
 
+export async function deleteUser(userId) {
+    const { error } = await supabase.from('users').delete().eq('id', userId);
+    if (error) {
+        console.error("Error deleting user:", error);
+        return false;
+    }
+    return true;
+}
+
 export async function getBrandUsers(brandId) {
     const { data, error } = await supabase
         .from('brand_users')
@@ -376,7 +385,10 @@ export async function getSales() {
         items: s.items,
         status: s.status,
         date: s.created_at, // App expects 'date'
-        createdAt: s.created_at
+        createdAt: s.created_at,
+        // Add brand info for Brand Oversight
+        brandId: s.brand_id || null,
+        brandName: s.brand_name || null
     }));
 }
 
@@ -599,6 +611,15 @@ export async function deleteSale(id) {
     return !error;
 }
 
+export async function deleteActivation(id) {
+    const { error } = await supabase.from('activations').delete().eq('id', id);
+    if (error) {
+        console.error('Delete activation error:', error);
+        throw error;
+    }
+    return true;
+}
+
 export async function resetDatabase() {
     console.warn("⚠️ DELETING ALL TEST DATA...");
 
@@ -744,7 +765,7 @@ export async function getActivations() {
         return [];
     }
     return (data || []).map(a => ({
-        id: a.activation_id,
+        id: a.id, // Fixed: use a.id instead of a.activation_id
         brandId: a.brand_id,
         dispensaryId: a.dispensary_id,
         dateOfActivation: a.date_of_activation,
@@ -777,7 +798,7 @@ export async function getAllBrandProfiles() {
     console.warn("brand_profiles empty/missing, returning static brands");
     // Fallback static brands (matching BrandAuthContext.jsx)
     return [
-        { id: 'honey-king', name: 'Honey King' },
+        { id: 'honey-king', name: '🍯 Honey King' },
         { id: 'bud-cracker', name: 'Bud Cracker Boulevard' },
         { id: 'canna-dots', name: 'Canna Dots' },
         { id: 'space-poppers', name: 'Space Poppers' },

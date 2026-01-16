@@ -32,16 +32,8 @@ export default function AdminTeam() {
                 // 1. Sales Ambassadors: role === 'rep'
                 const ambassadors = users.filter(u => u.role === 'rep');
 
-                // 2. Brand Partners: role === 'brand' OR (role !== 'rep' AND email contains specific domains/users like Russ)
-                const brands = users.filter(u => {
-                    if (u.role === 'brand') return true;
-                    // Catch-all for non-reps that are NOT dispensaries
-                    if (u.role !== 'rep' && !u.role?.includes('dispensary') && u.role !== 'lead' && u.role !== 'sale') {
-                        // Explicitly include Russ/Admins here if needed
-                        return true;
-                    }
-                    return false;
-                });
+                // 2. Brand Partners: ONLY role === 'brand' (strict filter)
+                const brands = users.filter(u => u.role === 'brand');
 
                 // 3. Dispensary Partners: role === 'dispensary', 'lead', or 'sale'
                 // This captures clients who have logged in via the dispensary portal

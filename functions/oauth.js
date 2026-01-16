@@ -36,9 +36,9 @@ exports.exchangeMondayToken = functions.https.onCall(async (data, context) => {
     }
 
     // 3. Get Secrets
-    // Note: We use functions.config() as configured via CLI
-    const clientId = functions.config().monday.client_id;
-    const clientSecret = functions.config().monday.client_secret;
+    // Note: Secrets must be exposed to the function via runWith({ secrets: [...] })
+    const clientId = process.env.MONDAY_CLIENT_ID || functions.config().monday.client_id;
+    const clientSecret = process.env.MONDAY_CLIENT_SECRET || functions.config().monday.client_secret;
 
     if (!clientId || !clientSecret) {
         throw new functions.https.HttpsError('failed-precondition', 'Monday.com OAuth credentials not configured on server.');
@@ -75,11 +75,13 @@ exports.exchangeMondayToken = functions.https.onCall(async (data, context) => {
         try {
             const { provisionMondayBoards, provisionDispensaryBoards } = require('./monday-provision');
 
+            /* 
             if (userType === 'dispensary') {
                 boardIds = await provisionDispensaryBoards(access_token);
             } else {
                 boardIds = await provisionMondayBoards(access_token);
             }
+            */
         } catch (provErr) {
             functions.logger.error('Monday Provisioning Failed', provErr);
             // Continue - we still want to save the token

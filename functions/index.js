@@ -1,3 +1,13 @@
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
+const Joi = require('joi');
+
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+const db = admin.firestore();
 
 // ============================================================
 // EMAIL: Transporter Setup
@@ -207,8 +217,15 @@ exports.sendActivationRequestNotification = functions.https.onCall(async (data, 
 // ============================================================
 // OAUTH: Monday.com
 // ============================================================
+// ============================================================
+// OAUTH: Monday.com
+// ============================================================
 const { exchangeMondayToken } = require('./oauth');
-exports.exchangeMondayToken = exchangeMondayToken;
+// Grant access to secrets
+exports.exchangeMondayToken = functions.runWith({
+    secrets: ['MONDAY_CLIENT_ID', 'MONDAY_CLIENT_SECRET', 'MONDAY_SIGNING_SECRET']
+}).https.onCall(exchangeMondayToken);
+
 
 // ============================================================
 // MONDAY.COM SYNC: SALES (ORDERS)
@@ -232,7 +249,9 @@ const { getBrandMondayIntegration, logSyncEvent, mondayRequest } = require('./in
 // MONDAY.COM SYNC: SALES (ORDERS)
 // ============================================================
 // Import helpers from integrations.js
-const { getBrandMondayIntegration, logSyncEvent, mondayRequest } = require('./integrations');
+// Import helpers from integrations.js
+// const { getBrandMondayIntegration, logSyncEvent, mondayRequest } = require('./integrations');
+
 
 const syncSaleToMondaySchema = Joi.object({
     brandId: Joi.string().required(),
@@ -448,5 +467,95 @@ exports.syncDispensaryInvoiceToMonday = functions.https.onCall(async (data, cont
     } catch (err) {
         functions.logger.error('syncDispensaryInvoiceToMonday Error', err);
         return { success: false, error: err.message };
+    }
+});
+
+// ============================================================
+// MONDAY.COM: AUTO-DASHBOARD CREATION
+// ============================================================
+/**
+ * Create standard Monday.com boards for a brand
+ */
+exports.createMondayDashboards = functions.https.onCall(async (data, context) => {
+    // 1. Auth Check
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+    const { brandId } = data;
+    if (!brandId) throw new functions.https.HttpsError('invalid-argument', 'Brand ID required');
+
+    try {
+        const settings = await getBrandMondayIntegration(brandId);
+        const { mondayApiToken } = settings;
+
+        if (!mondayApiToken) {
+            throw new Error('Monday integration not connected.');
+        }
+
+        const BOARD_TEMPLATES = [
+            { name: 'GreenTruth Sales', kind: 'public', columns: [{ title: 'Amount', type: 'numbers' }, { title: 'Status', type: 'status' }] },
+            { name: 'GreenTruth Invoices', kind: 'public', columns: [{ title: 'Invoice #', type: 'text' }, { title: 'Total', type: 'numbers' }, { title: 'Due Date', type: 'date' }] },
+            { name: 'Scheduled Activations', kind: 'public', columns: [{ title: 'Date', type: 'date' }, { title: 'Location', type: 'text' }, { title: 'Rep', type: 'people' }] },
+            { name: 'Requested Activations', kind: 'public', columns: [{ title: 'Requested Dates', type: 'text' }, { title: 'Status', type: 'status' }] },
+            { name: 'Leads & Accounts', kind: 'public', columns: [{ title: 'License #', type: 'text' }, { title: 'Status', type: 'status' }] }
+        ];
+
+        const createdBoards = [];
+
+        // Create each board
+        for (const template of BOARD_TEMPLATES) {
+            try {
+                // Check if board already exists (skipping deep check for now, just creating new one)
+                const createQuery = `
+                    mutation ($name: String!, $kind: BoardKind!) {
+                        create_board (board_name: $name, board_kind: $kind) {
+                            id
+                            name
+                        }
+                    }
+                `;
+
+                const result = await mondayRequest(mondayApiToken, createQuery, {
+                    name: template.name,
+                    kind: template.kind
+                });
+
+                if (result.data?.create_board?.id) {
+                    createdBoards.push({
+                        name: result.data.create_board.name,
+                        id: result.data.create_board.id
+                    });
+
+                    // Note: Column creation is complex via API (requires creating cols then updating). 
+                    // For V1, we just create the board.
+                }
+            } catch (err) {
+                console.warn(`Failed to create board ${template.name}:`, err.message);
+            }
+        }
+
+        // Save the Created Board IDs to Firestore for future sync usage
+        // Mapping: Sales -> salesBoardId, Invoices -> invoicesBoardId, etc.
+        const updates = {};
+        const salesBoard = createdBoards.find(b => b.name.includes('Sales'));
+        if (salesBoard) updates.ordersBoardId = salesBoard.id; // Map 'Sales' to 'ordersBoardId'
+
+        const invoicesBoard = createdBoards.find(b => b.name.includes('Invoices'));
+        if (invoicesBoard) updates.invoicesBoardId = invoicesBoard.id;
+
+        const accountsBoard = createdBoards.find(b => b.name.includes('Leads'));
+        if (accountsBoard) updates.leadsBoardId = accountsBoard.id; // Map 'Leads & Accounts' to 'leadsBoardId'
+
+        const activationsBoard = createdBoards.find(b => b.name.includes('Scheduled Activations'));
+        if (activationsBoard) updates.activationsBoardId = activationsBoard.id;
+
+        if (Object.keys(updates).length > 0) {
+            await db.collection('brand_integrations').doc(brandId).set(updates, { merge: true });
+        }
+
+        return { success: true, createdBoards };
+
+    } catch (error) {
+        functions.logger.error('createMondayDashboards error:', error);
+        return { success: false, error: error.message };
     }
 });

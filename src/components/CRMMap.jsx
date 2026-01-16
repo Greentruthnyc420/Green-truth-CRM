@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Phone, Mail, Navigation, Calendar, DollarSign, Package, X, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { deliverSamples, LEAD_STATUS } from '../services/firestoreService';
 import { BRAND_LICENSES } from '../contexts/BrandAuthContext';
 
@@ -95,6 +95,7 @@ const Legend = () => (
 );
 
 export default function CRMMap({ leads = [], viewMode = 'admin', currentBrandId = null, onRefresh = null }) {
+    const navigate = useNavigate();
     const [updating, setUpdating] = useState(false);
 
     const handleDeliverSamples = async (leadId) => {
@@ -164,7 +165,7 @@ export default function CRMMap({ leads = [], viewMode = 'admin', currentBrandId 
             {/* Mobile Exit Button */}
             <div className="md:hidden absolute top-4 left-4 z-[1001] flex gap-2">
                 <button
-                    onClick={() => window.history.back()}
+                    onClick={() => navigate(-1)}
                     className="p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 text-slate-700 flex items-center gap-2 font-bold active:scale-95 transition-all"
                 >
                     <ArrowLeft size={20} />

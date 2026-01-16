@@ -22,6 +22,21 @@ export default function Login() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    // Capture Referral Code
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        const role = params.get('role');
+        if (ref) {
+            sessionStorage.setItem('referralRef', ref);
+            setIsRegistering(true); // Auto-switch to signup
+            setSuccess("Referral code applied! Please create your account.");
+        }
+        if (role) {
+            sessionStorage.setItem('signupRole', role);
+        }
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -94,7 +109,7 @@ export default function Login() {
                 {/* Header Section */}
                 <div className="bg-slate-900 p-8 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full bg-brand-600/10 z-0"></div>
-                    <NavLink to="/" className="absolute top-4 left-4 z-20 text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium">
+                    <NavLink to="/gateway" className="absolute top-4 left-4 z-20 text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium">
                         <ArrowLeft size={16} />
                         Back
                     </NavLink>

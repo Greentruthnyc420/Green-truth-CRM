@@ -57,7 +57,7 @@ export default function DriverLogin() {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
             {/* Back Button */}
             <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/gateway')}
                 className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-white rounded-xl transition-all shadow-sm hover:shadow-md"
             >
                 <ArrowLeft size={20} />

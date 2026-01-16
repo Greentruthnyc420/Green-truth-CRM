@@ -255,7 +255,7 @@ export default function MyDispensaries() {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4 mb-6">
-                <Link to="/" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
+                <Link to="/app" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                     <ArrowLeft size={24} className="text-slate-600" />
                 </Link>
                 <div>

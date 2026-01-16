@@ -52,7 +52,7 @@ export default function DispensaryVerification() {
             <div className="max-w-md w-full">
                 {/* Back to Gateway Button */}
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/gateway')}
                     className="flex items-center gap-2 text-slate-500 hover:text-emerald-600 font-medium transition-colors mb-6"
                 >
                     <ArrowLeft size={18} /> Back to Gateway

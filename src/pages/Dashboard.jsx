@@ -11,6 +11,7 @@ import {
     calculateReimbursement,
     getMilestoneBonus
 } from '../services/compensationService';
+import RepSignupLink from '../components/RepSignupLink';
 
 const StatCard = ({ title, value, subtext, icon: IconComponent, trend, highlight }) => (
     <div className={`bg-white p-6 rounded-xl border ${highlight ? 'border-brand-200 ring-4 ring-brand-50' : 'border-slate-100'} shadow-sm hover:shadow-md transition-all`}>
@@ -252,14 +253,17 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-gradient-to-r from-brand-600 to-teal-600 rounded-xl p-6 text-white shadow-lg mb-6 flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-bold mb-1">Manage Your Territory</h2>
-                    <p className="text-brand-100 text-sm">Track activations and purchase history for your doors.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gradient-to-r from-brand-600 to-teal-600 rounded-xl p-6 text-white shadow-lg flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold mb-1">Manage Your Territory</h2>
+                        <p className="text-brand-100 text-sm">Track activations and purchase history for your doors.</p>
+                    </div>
+                    <Link to="/app/my-dispensaries" className="bg-white text-brand-600 px-6 py-2 rounded-lg font-bold hover:bg-brand-50 transition-colors shadow-sm">
+                        View My Doors
+                    </Link>
                 </div>
-                <Link to="/app/my-dispensaries" className="bg-white text-brand-600 px-6 py-2 rounded-lg font-bold hover:bg-brand-50 transition-colors shadow-sm">
-                    View My Doors
-                </Link>
+                <RepSignupLink />
             </div>
 
             {/* Recent Activity Section */}
@@ -294,6 +298,6 @@ export default function Dashboard() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

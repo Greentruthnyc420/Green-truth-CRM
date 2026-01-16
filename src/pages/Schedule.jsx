@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { getActivations, getAllBrandProfiles, updateActivation } from '../services/firestoreService';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
+import { getActivations, getAllBrandProfiles, updateActivation, getLeads } from '../services/firestoreService';
 import CalendarView from '../components/CalendarView';
-import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, Plus, Trash2 } from 'lucide-react';
 import ActivationFormModal from '../components/ActivationFormModal';
 
 const Schedule = () => {
@@ -14,7 +14,7 @@ const Schedule = () => {
     const [brands, setBrands] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const isAdmin = currentUser && ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'].includes(currentUser.email?.toLowerCase());
+    const isAdmin = currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 
     useEffect(() => {
         loadData();
@@ -23,12 +23,15 @@ const Schedule = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [activationsData, brandsData] = await Promise.all([
+            const [activationsData, brandsData, leadsData] = await Promise.all([
                 getActivations(),
-                getAllBrandProfiles() // Fetch brands for filtering if needed
+                getAllBrandProfiles(),
+                getLeads()
             ]);
 
             setBrands(brandsData);
+            const dispensaryMap = Object.fromEntries(leadsData.map(l => [l.id, l.dispensaryName || l.companyName]));
+            const brandMap = Object.fromEntries(brandsData.map(b => [b.brandId || b.id, b.brandName || b.name]));
 
             // Filter activations
             let filteredActivations = activationsData;
@@ -54,9 +57,12 @@ const Schedule = () => {
                         return null;
                     }
 
+                    const brandName = brandMap[a.brandId] || 'Unknown Brand';
+                    const storeName = dispensaryMap[a.dispensaryId] || 'Unknown Store';
+
                     return {
                         id: a.id,
-                        title: `${a.status === 'Requested' ? '❓' : ''} ${a.brandName} @ ${a.storeName}`,
+                        title: `${a.status === 'Requested' ? '❓' : ''} ${brandName} @ ${storeName}`,
                         start,
                         end,
                         resource: {
@@ -268,10 +274,39 @@ const Schedule = () => {
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between">
+                            {isAdmin && (
+                                <button
+                                    onClick={async () => {
+                                        const activationId = selectedEvent?.resource?.id;
+                                        if (!activationId) {
+                                            alert('Error: Could not find activation ID.');
+                                            return;
+                                        }
+
+                                        if (!window.confirm("Are you sure you want to delete this activation? This cannot be undone.")) {
+                                            return;
+                                        }
+
+                                        try {
+                                            const { deleteActivation } = await import('../services/firestoreService');
+                                            await deleteActivation(activationId);
+                                            alert("Activation deleted successfully!");
+                                            setSelectedEvent(null);
+                                            loadData();
+                                        } catch (error) {
+                                            console.error('Delete failed:', error);
+                                            alert(`Delete failed: ${error.message}`);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg font-medium hover:bg-red-100 transition-colors flex items-center gap-2"
+                                >
+                                    <Trash2 size={16} /> Delete
+                                </button>
+                            )}
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors ml-auto"
                             >
                                 Close
                             </button>

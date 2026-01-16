@@ -224,7 +224,7 @@ export default function BrandLogin() {
                         )}
 
                         <div className="mt-12 text-center">
-                            <NavLink to="/" className="text-slate-500 hover:text-white transition-colors inline-flex items-center gap-2">
+                            <NavLink to="/gateway" className="text-slate-500 hover:text-white transition-colors inline-flex items-center gap-2">
                                 <ArrowLeft size={16} /> Back to Gateway
                             </NavLink>
                         </div>

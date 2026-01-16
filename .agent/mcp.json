@@ -26,16 +26,14 @@
                 "JULES_API_KEY": "AQ.Ab8RN6Jyxqgkr24kl9xSo53odTFGhZRPMW2MHLX1aiRhhueCvg"
             }
         },
-        "supabase-db": {
+        "supabase": {
             "command": "npx",
             "args": [
                 "-y",
-                "@modelcontextprotocol/server-postgres",
-                "postgresql://postgres:Nookie929$@db.wlcqrgkvkcmewepbxwfh.supabase.co:5432/postgres"
-            ],
-            "env": {
-                "UV_THREADPOOL_SIZE": "128"
-            }
+                "@supabase/mcp-server-supabase@latest",
+                "--access-token",
+                "sbp_d62d3540fed19304cff33619191fca9c33b85c9a"
+            ]
         }
     }
 }
