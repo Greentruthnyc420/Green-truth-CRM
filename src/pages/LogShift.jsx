@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, MapPin, Clock, DollarSign, UploadCloud, X } from 'lucide-react';
+import { Camera, MapPin, Clock, DollarSign, UploadCloud, X, CalendarIcon } from 'lucide-react';
 import { uploadTollReceipt } from '../services/storageService';
 import { addCompletedActivation } from '../services/firestoreService';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,7 @@ export default function LogShift() {
     const [modalMessage, setModalMessage] = useState({ title: '', body: '' });
 
     const [formData, setFormData] = useState({
+        date: new Date().toISOString().split('T')[0], // Default to today
         startTime: '',
         endTime: '',
         miles: '',
@@ -112,7 +113,7 @@ export default function LogShift() {
                 brand: formData.brand,
                 brandName: formData.brand,
                 dispensaryName: formData.dispensaryName,
-                date: new Date(),
+                date: formData.startTime ? new Date(formData.startTime) : new Date(), // Use date from start time
                 startTime: formData.startTime,
                 endTime: formData.endTime,
                 milesTraveled: parseFloat(formData.miles) || 0,
