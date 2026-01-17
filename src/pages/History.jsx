@@ -83,43 +83,61 @@ export default function History() {
 
             <div className="space-y-4">
                 {view === 'shifts' ? (
-                    shifts.length > 0 ? shifts.map((shift) => (
-                        <div key={shift.id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 relative group">
+                    shifts.length > 0 ? shifts.map((shift) => {
+                        // Safe date formatting
+                        let displayDate = 'Date not recorded';
+                        try {
+                            const dateObj = shift.date instanceof Date ? shift.date : new Date(shift.date);
+                            if (!isNaN(dateObj.getTime())) {
+                                displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                            }
+                        } catch (e) {
+                            console.warn('Invalid date:', shift.date);
+                        }
 
-                            {/* Delete Button (Top Right) */}
-                            <button
-                                onClick={() => handleDeleteActivation(shift.id)}
-                                className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                title="Delete Activation"
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                        return (
+                            <div key={shift.id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 relative group">
 
-                            <div className="flex items-start gap-4">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${shift.status === 'paid' ? 'bg-brand-100 text-brand-600' : 'bg-amber-100 text-amber-600'}`}>
-                                    {shift.status === 'paid' ? <CheckCircle size={24} /> : <Clock size={24} />}
-                                </div>
+                                {/* Delete Button (Top Right) */}
+                                <button
+                                    onClick={() => handleDeleteActivation(shift.id)}
+                                    className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                    title="Delete Activation"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
 
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-bold text-slate-800">
-                                            {shift.date instanceof Date ? shift.date.toLocaleDateString() : new Date(shift.date).toLocaleDateString()}
-                                        </h3>
-                                        <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full ${shift.status === 'paid' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {shift.status}
-                                        </span>
+                                <div className="flex items-start gap-4">
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${shift.status === 'paid' ? 'bg-brand-100 text-brand-600' : 'bg-amber-100 text-amber-600'}`}>
+                                        {shift.status === 'paid' ? <CheckCircle size={24} /> : <Clock size={24} />}
                                     </div>
-                                    <div className="text-sm font-medium text-slate-700 mb-1">{shift.brandName} @ {shift.dispensaryName || 'Store Visit'}</div>
 
-                                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                                        <span className="flex items-center gap-1"><Clock size={14} /> {shift.hoursWorked} hrs</span>
-                                        <span className="flex items-center gap-1"><MapPin size={14} /> {shift.milesTraveled} mi</span>
-                                        {shift.tollAmount > 0 && <span className="flex items-center gap-1"><DollarSign size={14} /> ${shift.tollAmount} Tolls</span>}
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-bold text-slate-800">
+                                                {shift.brandName || shift.brand || 'Unknown Brand'}
+                                            </h3>
+                                            <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full ${shift.status === 'paid' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {shift.status || 'pending'}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-600 mb-1">
+                                            📍 {shift.dispensaryName || 'Store Visit'}
+                                        </div>
+                                        <div className="text-sm text-slate-500 mb-2">
+                                            📅 {displayDate}
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                                            <span className="flex items-center gap-1"><Clock size={14} /> {shift.hoursWorked || '—'} hrs</span>
+                                            <span className="flex items-center gap-1"><MapPin size={14} /> {shift.milesTraveled || 0} mi</span>
+                                            {parseFloat(shift.tollAmount) > 0 && <span className="flex items-center gap-1"><DollarSign size={14} /> ${shift.tollAmount} Tolls</span>}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )) : <p className="text-slate-400 text-center py-8">No activation history found.</p>
+                        )
+                    }) : <p className="text-slate-400 text-center py-8">No activation history found.</p>
                 ) : (
                     sales.length > 0 ? sales.map((sale) => (
                         <div key={sale.id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 relative group">
