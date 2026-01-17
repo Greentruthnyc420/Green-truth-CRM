@@ -96,8 +96,14 @@ export default function LogShift() {
     const calculateEndTime = (startTime, hours) => {
         if (!startTime) return '';
         const start = new Date(startTime);
-        start.setHours(start.getHours() + hours);
-        return start.toISOString().slice(0, 16);
+        const end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+        // Format as YYYY-MM-DDTHH:MM for datetime-local input (local time)
+        const year = end.getFullYear();
+        const month = String(end.getMonth() + 1).padStart(2, '0');
+        const day = String(end.getDate()).padStart(2, '0');
+        const hour = String(end.getHours()).padStart(2, '0');
+        const minute = String(end.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hour}:${minute}`;
     };
 
     // Update end time whenever start time or duration changes
@@ -296,8 +302,8 @@ export default function LogShift() {
                             type="button"
                             onClick={() => setInputMode('scheduled')}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${inputMode === 'scheduled'
-                                    ? 'bg-white text-slate-900 shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <Calendar size={16} className="inline mr-1.5" />
@@ -307,8 +313,8 @@ export default function LogShift() {
                             type="button"
                             onClick={() => setInputMode('manual')}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${inputMode === 'manual'
-                                    ? 'bg-white text-slate-900 shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <Clock size={16} className="inline mr-1.5" />
@@ -329,8 +335,8 @@ export default function LogShift() {
                                                 type="button"
                                                 onClick={() => handleSelectActivation(act)}
                                                 className={`w-full p-4 rounded-xl border-2 text-left transition-all ${selectedActivation?.id === act.id
-                                                        ? 'border-brand-500 bg-brand-50'
-                                                        : 'border-slate-200 hover:border-brand-300 bg-white'
+                                                    ? 'border-brand-500 bg-brand-50'
+                                                    : 'border-slate-200 hover:border-brand-300 bg-white'
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
@@ -403,8 +409,8 @@ export default function LogShift() {
                                             type="button"
                                             onClick={() => setDuration(opt.hours)}
                                             className={`p-3 rounded-xl text-center font-bold transition-all ${duration === opt.hours
-                                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-200'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-200'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {opt.label}
