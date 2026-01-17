@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getLeads, LEAD_STATUS, getAllBrandProfiles, getSales, updateLead, deleteLead, getAllUsers } from '../../../services/firestoreService';
 import { TrendingUp, Filter, ShoppingBag, Store, Trash2, Edit2, CheckCircle, ChevronDown } from 'lucide-react';
 
@@ -223,9 +224,9 @@ export default function AdminGrowth() {
                         {brands.length === 0 && (
                             <p className="text-sm text-slate-400 text-center py-4">No brands connected.</p>
                         )}
-                        <button className="w-full py-2 text-sm text-center text-brand-600 font-medium bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors">
+                        <Link to="/admin/brands" className="w-full py-2 text-sm text-center text-brand-600 font-medium bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors block">
                             Manage Brands
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
