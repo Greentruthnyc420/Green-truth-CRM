@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     Plus, Search, Filter, Edit2, Trash2, Eye, X, ChevronRight,
     DollarSign, Calendar, Users, Building2, Phone, Mail, FileText,
-    TrendingUp, CheckCircle, AlertCircle
+    TrendingUp, CheckCircle, AlertCircle, Key, Copy
 } from 'lucide-react';
 import { getAllActivations, getSales, getAllBrandProfiles } from '../../../services/firestoreService';
 import { useNotification } from '../../../contexts/NotificationContext';
@@ -39,7 +39,9 @@ export default function AdminBrands() {
         status: 'active',
         commissionRate: 5,
         contractStart: new Date().toISOString().split('T')[0],
-        contacts: []
+        contacts: [],
+        loginEmail: '',
+        tempPassword: ''
     });
 
     useEffect(() => {
@@ -111,14 +113,54 @@ export default function AdminBrands() {
         const brand = {
             ...newBrand,
             id: newBrand.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-            contacts: []
+            contacts: newBrand.loginEmail ? [{ name: 'Primary Contact', email: newBrand.loginEmail, phone: '', role: 'Primary' }] : [],
+            loginEmail: newBrand.loginEmail,
+            tempPassword: newBrand.tempPassword || generateTempPassword(),
+            inviteSent: false
         };
 
         const updated = [...brands, brand];
         saveBrands(updated);
         setIsAddModalOpen(false);
-        setNewBrand({ name: '', status: 'active', commissionRate: 5, contractStart: new Date().toISOString().split('T')[0], contacts: [] });
+        setNewBrand({ name: '', status: 'active', commissionRate: 5, contractStart: new Date().toISOString().split('T')[0], contacts: [], loginEmail: '', tempPassword: '' });
         showNotification('Brand added successfully', 'success');
+    };
+
+    const generateTempPassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let password = '';
+        for (let i = 0; i < 10; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+    };
+
+    const handleUpdateCommissionRate = (newRate) => {
+        if (!selectedBrand) return;
+        const updated = brands.map(b =>
+            b.id === selectedBrand.id ? { ...b, commissionRate: newRate } : b
+        );
+        saveBrands(updated);
+        setSelectedBrand({ ...selectedBrand, commissionRate: newRate });
+    };
+
+    const handleSendInvite = async (brand) => {
+        // Copy credentials to clipboard and mark as sent
+        const credentials = `Brand Portal Login\n\nURL: ${window.location.origin}/brand/login\nEmail: ${brand.loginEmail}\nTemporary Password: ${brand.tempPassword}\n\nPlease change your password after first login.`;
+
+        try {
+            await navigator.clipboard.writeText(credentials);
+            const updated = brands.map(b =>
+                b.id === brand.id ? { ...b, inviteSent: true } : b
+            );
+            saveBrands(updated);
+            if (selectedBrand?.id === brand.id) {
+                setSelectedBrand({ ...selectedBrand, inviteSent: true });
+            }
+            showNotification('Credentials copied to clipboard! Send to brand contact.', 'success');
+        } catch (err) {
+            showNotification('Failed to copy credentials', 'error');
+        }
     };
 
     const handleRemoveBrand = (brandId) => {
@@ -246,8 +288,8 @@ export default function AdminBrands() {
                             key={status}
                             onClick={() => setFilterStatus(status)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filterStatus === status
-                                    ? 'bg-slate-800 text-white'
-                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                ? 'bg-slate-800 text-white'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
                             {status}
@@ -371,21 +413,60 @@ export default function AdminBrands() {
                                     <option value="inactive">Inactive</option>
                                 </select>
                             </div>
-                        </div>
 
-                        <div className="flex gap-3 mt-6">
-                            <button
-                                onClick={() => setIsAddModalOpen(false)}
-                                className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleAddBrand}
-                                className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium"
-                            >
-                                Add Brand
-                            </button>
+                            {/* Brand Portal Access Section */}
+                            <div className="border-t border-slate-200 pt-4 mt-4">
+                                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                    <Key size={16} /> Brand Portal Access
+                                </h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Brand Login Email</label>
+                                        <input
+                                            type="email"
+                                            value={newBrand.loginEmail}
+                                            onChange={(e) => setNewBrand({ ...newBrand, loginEmail: e.target.value })}
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                            placeholder="brand@company.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Temporary Password</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newBrand.tempPassword}
+                                                onChange={(e) => setNewBrand({ ...newBrand, tempPassword: e.target.value })}
+                                                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                                                placeholder="Auto-generated if empty"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewBrand({ ...newBrand, tempPassword: generateTempPassword() })}
+                                                className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                                            >
+                                                Generate
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">Leave empty to auto-generate. Share with brand to create their account.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAddBrand}
+                                    className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium"
+                                >
+                                    Add Brand
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -413,8 +494,8 @@ export default function AdminBrands() {
                                     <button
                                         onClick={() => handleToggleStatus(selectedBrand.id)}
                                         className={`px-3 py-1 rounded-lg text-sm font-medium ${selectedBrand.status === 'active'
-                                                ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                            ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                                             }`}
                                     >
                                         {selectedBrand.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -439,11 +520,54 @@ export default function AdminBrands() {
                                         <p className="font-medium text-slate-700">{selectedBrand.contractStart || 'N/A'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-slate-400">Commission Rate</p>
-                                        <p className="font-medium text-slate-700">{selectedBrand.commissionRate || 5}%</p>
+                                        <p className="text-slate-400 mb-1">Commission Rate</p>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                value={selectedBrand.commissionRate || 5}
+                                                onChange={(e) => handleUpdateCommissionRate(parseFloat(e.target.value) || 0)}
+                                                className="w-16 px-2 py-1 border border-slate-200 rounded text-center font-bold text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                                min="0"
+                                                max="100"
+                                                step="0.5"
+                                            />
+                                            <span className="text-slate-600 font-medium">%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Brand Portal Access */}
+                            {selectedBrand.loginEmail && (
+                                <div className="bg-purple-50 rounded-xl p-4">
+                                    <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                        <Key size={18} /> Brand Portal Access
+                                    </h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500">Email:</span>
+                                            <span className="font-mono text-slate-700">{selectedBrand.loginEmail}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500">Temp Password:</span>
+                                            <span className="font-mono text-slate-700">{selectedBrand.tempPassword || 'Not set'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500">Invite Status:</span>
+                                            <span className={`font-medium ${selectedBrand.inviteSent ? 'text-emerald-600' : 'text-orange-600'}`}>
+                                                {selectedBrand.inviteSent ? '✓ Sent' : 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleSendInvite(selectedBrand)}
+                                        className="w-full mt-4 flex items-center justify-center gap-2 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                                    >
+                                        <Copy size={16} />
+                                        {selectedBrand.inviteSent ? 'Copy Credentials Again' : 'Copy & Send Invite'}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Revenue Stats */}
                             <div className="bg-gradient-to-br from-brand-50 to-purple-50 rounded-xl p-4">
