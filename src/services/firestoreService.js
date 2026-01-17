@@ -119,7 +119,25 @@ export async function getUserActivations(userId, statusFilter = null) {
 
     const { data, error } = await query.order('activation_date', { ascending: false });
     if (error) return [];
-    return data;
+
+    // Map database fields to frontend expected format
+    return data.map(a => ({
+        id: a.id,
+        brandName: a.brand_name || a.brand_id || 'Unknown',
+        brand: a.brand_name || a.brand_id,
+        dispensaryName: a.dispensary_name || 'Store Visit',
+        date: a.activation_date || a.created_at,
+        hoursWorked: a.total_hours || 0,
+        milesTraveled: a.miles_traveled || 0,
+        tollAmount: a.toll_amount || 0,
+        status: a.status || 'pending',
+        region: a.region,
+        notes: a.notes,
+        startTime: a.start_time,
+        endTime: a.end_time,
+        tripLogImageUrl: a.trip_log_image_url,
+        tollReceiptUrl: a.toll_receipt_url
+    }));
 }
 
 export async function getAllActivations() {
