@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DollarSign, Users, Award, TrendingUp, Store, Globe, CheckCircle, AlertTriangle, Zap } from 'lucide-react';
-import { getSales } from '../../services/firestoreService';
+import { DollarSign, Users, Award, TrendingUp, Store, Globe, CheckCircle, AlertTriangle, Zap, Wallet, PiggyBank, Banknote } from 'lucide-react';
+import { getSales, getAllShifts, getLeads } from '../../services/firestoreService';
+import { calculateTotalLifetimeBonuses, calculateReimbursement, calculateShiftClientRevenue } from '../../services/compensationService';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import { db } from '../../firebase';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 
+const HOURLY_RATE = 20;
+
 export default function Dashboard() {
     const [stats, setStats] = useState({
         totalRevenue: 0,
+        netProfit: 0,
+        grossRevenue: 0,
+        totalExpenses: 0,
         totalSalesCount: 0,
         activeSellers: 0,
         revenueData: [],
@@ -25,10 +31,61 @@ export default function Dashboard() {
     useEffect(() => {
         async function fetchAnalytics() {
             try {
-                const sales = await getSales();
+                const [sales, allShifts, allLeads] = await Promise.all([
+                    getSales(),
+                    getAllShifts(),
+                    getLeads()
+                ]);
 
-                // 1. Total Revenue
-                const totalRevenue = sales.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+                // === TRUE PROFIT CALCULATION ===
+                // Total sales volume (not our revenue - this is what customers paid)
+                const totalSalesVolume = sales.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+
+                // 1. INCOME: Activation Fees (what brands pay us for shifts)
+                let activationRevenue = 0;
+                let totalWages = 0;
+                let totalReimbursements = 0;
+
+                allShifts.forEach(s => {
+                    activationRevenue += calculateShiftClientRevenue(s);
+                    totalWages += (parseFloat(s.hoursWorked) || 0) * HOURLY_RATE;
+                    totalReimbursements += calculateReimbursement(
+                        parseFloat(s.milesTraveled),
+                        parseFloat(s.tollAmount),
+                        s.hasVehicle !== false
+                    );
+                });
+
+                // 2. INCOME: Sales Commission (5% of sales go to company)
+                const salesCommissionIncome = totalSalesVolume * 0.05;
+
+                // 3. EXPENSES: Rep Commission (2% of sales go to reps)
+                const repCommissionPayout = totalSalesVolume * 0.02;
+
+                // 4. EXPENSES: Milestone Bonuses
+                const userStoreSets = {};
+                const addStore = (uid, name) => {
+                    if (!uid || !name) return;
+                    if (!userStoreSets[uid]) userStoreSets[uid] = new Set();
+                    userStoreSets[uid].add(name);
+                };
+                allShifts.forEach(s => addStore(s.userId, s.dispensaryName));
+                sales.forEach(s => addStore(s.userId, s.dispensaryName));
+                allLeads.forEach(l => addStore(l.userId, l.dispensaryName));
+
+                let totalBonuses = 0;
+                Object.keys(userStoreSets).forEach(uid => {
+                    const count = userStoreSets[uid].size;
+                    totalBonuses += calculateTotalLifetimeBonuses(count);
+                });
+
+                // === FINAL CALCULATIONS ===
+                const grossRevenue = activationRevenue + salesCommissionIncome;
+                const totalExpenses = totalWages + totalReimbursements + repCommissionPayout + totalBonuses;
+                const netProfit = grossRevenue - totalExpenses;
+
+                // For display - keep totalRevenue as sales volume for backward compatibility
+                const totalRevenue = totalSalesVolume;
 
                 // 2. Revenue Trend (Daily)
                 const salesByDate = {};
@@ -76,6 +133,9 @@ export default function Dashboard() {
 
                 setStats({
                     totalRevenue,
+                    netProfit,
+                    grossRevenue,
+                    totalExpenses,
                     totalSalesCount: sales.length,
                     activeSellers,
                     revenueData,
@@ -145,16 +205,56 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* High Level Stats */}
+            {/* High Level Stats - PROFIT FOCUSED */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* NET PROFIT - THE BOTTOM LINE */}
+                <div className="md:col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-2xl shadow-lg border border-emerald-400">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-white/20 text-white rounded-lg">
+                            <PiggyBank size={24} />
+                        </div>
+                        <h3 className="text-emerald-100 font-medium text-sm">Net Profit (Bottom Line)</h3>
+                    </div>
+                    <p className="text-4xl font-black text-white">${stats.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-emerald-200 text-xs mt-2">After paying reps, commissions, bonuses, wages & expenses</p>
+                </div>
+
+                {/* Gross Revenue */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Wallet size={20} />
+                        </div>
+                        <h3 className="text-slate-500 font-medium text-sm">Gross Revenue</h3>
+                    </div>
+                    <p className="text-2xl font-black text-slate-800">${stats.grossRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-slate-400 text-xs mt-1">Activation fees + 5% sales commission</p>
+                </div>
+
+                {/* Total Expenses */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                            <Banknote size={20} />
+                        </div>
+                        <h3 className="text-slate-500 font-medium text-sm">Total Expenses</h3>
+                    </div>
+                    <p className="text-2xl font-black text-red-600">-${stats.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-slate-400 text-xs mt-1">Wages, miles, tolls, 2% comm, bonuses</p>
+                </div>
+            </div>
+
+            {/* Secondary Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <div className="p-2 bg-violet-100 text-violet-600 rounded-lg">
                             <DollarSign size={20} />
                         </div>
-                        <h3 className="text-slate-500 font-medium text-sm">Total Revenue</h3>
+                        <h3 className="text-slate-500 font-medium text-sm">Total Sales Volume</h3>
                     </div>
-                    <p className="text-3xl font-black text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-black text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
+                    <p className="text-slate-400 text-xs mt-1">Partner product sales</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div className="flex items-center gap-3 mb-2">
@@ -163,7 +263,7 @@ export default function Dashboard() {
                         </div>
                         <h3 className="text-slate-500 font-medium text-sm">Sales Count</h3>
                     </div>
-                    <p className="text-3xl font-black text-slate-800">{stats.totalSalesCount}</p>
+                    <p className="text-2xl font-black text-slate-800">{stats.totalSalesCount}</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div className="flex items-center gap-3 mb-2">
@@ -172,7 +272,7 @@ export default function Dashboard() {
                         </div>
                         <h3 className="text-slate-500 font-medium text-sm">Active Sellers</h3>
                     </div>
-                    <p className="text-3xl font-black text-slate-800">{stats.activeSellers}</p>
+                    <p className="text-2xl font-black text-slate-800">{stats.activeSellers}</p>
                 </div>
             </div>
 
