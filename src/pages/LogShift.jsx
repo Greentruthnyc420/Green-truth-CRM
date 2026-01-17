@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
-import { Camera, MapPin, Clock, DollarSign, UploadCloud, X, CalendarIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Camera, MapPin, Clock, DollarSign, UploadCloud, X, CalendarIcon, Calendar, CheckCircle } from 'lucide-react';
 import { uploadTollReceipt } from '../services/storageService';
-import { addCompletedActivation } from '../services/firestoreService';
+import { addCompletedActivation, getUserActivations } from '../services/firestoreService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 import { sendAdminNotification, createActivationEmail } from '../services/adminNotifications';
 
+const DURATION_OPTIONS = [
+    { hours: 2, label: '2 Hours' },
+    { hours: 3, label: '3 Hours' },
+    { hours: 4, label: '4 Hours' },
+    { hours: 5, label: '5 Hours' }
+];
 
 export default function LogShift() {
     const { currentUser } = useAuth();
@@ -20,6 +26,12 @@ export default function LogShift() {
     const [odometerPreview, setOdometerPreview] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState({ title: '', body: '' });
+
+    // NEW: Scheduled activations and input mode
+    const [scheduledActivations, setScheduledActivations] = useState([]);
+    const [inputMode, setInputMode] = useState('scheduled'); // 'scheduled' or 'manual'
+    const [selectedActivation, setSelectedActivation] = useState(null);
+    const [duration, setDuration] = useState(3); // Default 3 hours
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0], // Default to today
@@ -43,8 +55,58 @@ export default function LogShift() {
         'Pines'
     ];
 
-    // Register Voice Assistant - REMOVED
+    // Fetch scheduled activations for this user
+    useEffect(() => {
+        async function fetchScheduled() {
+            if (!currentUser) return;
+            try {
+                // Get activations that are approved but not completed
+                const activations = await getUserActivations(currentUser.uid, 'approved');
+                // Filter to only show upcoming or today's activations
+                const today = new Date().toISOString().split('T')[0];
+                const upcoming = activations.filter(a => {
+                    const actDate = a.date?.split('T')[0];
+                    return actDate && actDate >= today;
+                });
+                setScheduledActivations(upcoming);
+                // If no scheduled, default to manual mode
+                if (upcoming.length === 0) {
+                    setInputMode('manual');
+                }
+            } catch (err) {
+                console.error('Failed to load scheduled activations:', err);
+                setInputMode('manual');
+            }
+        }
+        fetchScheduled();
+    }, [currentUser]);
 
+    // When selecting a scheduled activation, prefill form data
+    const handleSelectActivation = (activation) => {
+        setSelectedActivation(activation);
+        setFormData(prev => ({
+            ...prev,
+            dispensaryName: activation.dispensaryName || '',
+            brand: activation.brandName || activation.brand || '',
+            region: activation.region || 'NYC'
+        }));
+    };
+
+    // Calculate end time from start time and duration
+    const calculateEndTime = (startTime, hours) => {
+        if (!startTime) return '';
+        const start = new Date(startTime);
+        start.setHours(start.getHours() + hours);
+        return start.toISOString().slice(0, 16);
+    };
+
+    // Update end time whenever start time or duration changes
+    useEffect(() => {
+        if (inputMode === 'manual' && formData.startTime) {
+            const endTime = calculateEndTime(formData.startTime, duration);
+            setFormData(prev => ({ ...prev, endTime }));
+        }
+    }, [formData.startTime, duration, inputMode]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -225,31 +287,147 @@ export default function LogShift() {
                 <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
                     <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                         <Clock size={20} className="text-brand-600" />
-                        Time & Distance
+                        Time & Date
                     </h2>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
-                            <input
-                                type="datetime-local"
-                                required
-                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
-                                value={formData.startTime}
-                                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
-                            <input
-                                type="datetime-local"
-                                required
-                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
-                                value={formData.endTime}
-                                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                            />
-                        </div>
+                    {/* Mode Toggle */}
+                    <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit">
+                        <button
+                            type="button"
+                            onClick={() => setInputMode('scheduled')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${inputMode === 'scheduled'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            <Calendar size={16} className="inline mr-1.5" />
+                            From Schedule
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setInputMode('manual')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${inputMode === 'manual'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            <Clock size={16} className="inline mr-1.5" />
+                            Enter Manually
+                        </button>
                     </div>
+
+                    {/* Scheduled Activation Picker */}
+                    {inputMode === 'scheduled' && (
+                        <div className="space-y-3">
+                            {scheduledActivations.length > 0 ? (
+                                <>
+                                    <p className="text-sm text-slate-600">Select the activation you're logging:</p>
+                                    <div className="grid gap-2">
+                                        {scheduledActivations.map(act => (
+                                            <button
+                                                key={act.id}
+                                                type="button"
+                                                onClick={() => handleSelectActivation(act)}
+                                                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${selectedActivation?.id === act.id
+                                                        ? 'border-brand-500 bg-brand-50'
+                                                        : 'border-slate-200 hover:border-brand-300 bg-white'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="font-bold text-slate-800">{act.dispensaryName || 'Store Visit'}</p>
+                                                        <p className="text-sm text-slate-500">
+                                                            {act.brandName || act.brand} • {new Date(act.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                        </p>
+                                                    </div>
+                                                    {selectedActivation?.id === act.id && (
+                                                        <CheckCircle className="text-brand-600" size={24} />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-slate-400">
+                                    <Calendar size={36} className="mx-auto mb-2 opacity-50" />
+                                    <p className="font-medium">No scheduled activations found</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setInputMode('manual')}
+                                        className="text-brand-600 font-medium mt-2 hover:underline"
+                                    >
+                                        Enter time manually instead
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Still need start time if scheduled */}
+                            {selectedActivation && (
+                                <div className="pt-4 border-t border-slate-100 space-y-3">
+                                    <label className="block text-sm font-medium text-slate-700">When did you start?</label>
+                                    <input
+                                        type="datetime-local"
+                                        required
+                                        className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
+                                        value={formData.startTime}
+                                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Manual Entry Mode */}
+                    {inputMode === 'manual' && (
+                        <div className="space-y-4">
+                            {/* Date and Start Time */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Date & Start Time</label>
+                                <input
+                                    type="datetime-local"
+                                    required
+                                    className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
+                                    value={formData.startTime}
+                                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Duration Buttons */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Activation Duration</label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {DURATION_OPTIONS.map(opt => (
+                                        <button
+                                            key={opt.hours}
+                                            type="button"
+                                            onClick={() => setDuration(opt.hours)}
+                                            className={`p-3 rounded-xl text-center font-bold transition-all ${duration === opt.hours
+                                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-200'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Show calculated end time */}
+                            {formData.startTime && (
+                                <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600">
+                                    <span className="font-medium">End Time:</span>{' '}
+                                    {formData.endTime ? new Date(formData.endTime).toLocaleString('en-US', {
+                                        weekday: 'short',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit'
+                                    }) : '—'}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Transport Mode Selection */}
                     <div>
