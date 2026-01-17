@@ -33,23 +33,34 @@ export default function AdminFinancials() {
             setActivations(allActivations);
 
             // Calc Commission Stats
-            const totalRev = allSales.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-            const companyComm = totalRev * 0.05;
+            // Total commission earned from sales is 5% of sales revenue
+            const totalSalesAmount = allSales.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+            const totalCommission = totalSalesAmount * 0.05; // 5% total commission
+            const repCommission = totalSalesAmount * 0.02;   // 2% to reps
+            const netProfit = totalSalesAmount * 0.03;       // 3% kept by company (5% - 2%)
             const pendingRep = allSales.filter(s => s.status !== 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
             const paidRep = allSales.filter(s => s.status === 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
 
             setStats({
-                totalRevenue: totalRev,
-                companyCommission: companyComm,
+                totalRevenue: totalCommission, // This is our 5% commission from sales
+                netProfit: netProfit,          // 3% after paying reps
                 pendingRepCommissions: pendingRep,
                 paidRepCommissions: paidRep
             });
 
             // Calc Activation Stats
+            // Calculate fee from stored fee OR estimate from hours (default $50/hour)
+            const getActivationFee = (a) => {
+                const storedFee = parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0;
+                if (storedFee > 0) return storedFee;
+                // Estimate from hours worked at $50/hour
+                const hours = parseFloat(a.hoursWorked) || parseFloat(a.total_hours) || 0;
+                return hours * 50;
+            };
             const totalActivations = allActivations.length;
-            const totalFees = allActivations.reduce((acc, a) => acc + (parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0), 0);
-            const pendingFees = allActivations.filter(a => a.status !== 'paid' && a.status !== 'completed').reduce((acc, a) => acc + (parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0), 0);
-            const completedFees = allActivations.filter(a => a.status === 'paid' || a.status === 'completed').reduce((acc, a) => acc + (parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0), 0);
+            const totalFees = allActivations.reduce((acc, a) => acc + getActivationFee(a), 0);
+            const pendingFees = allActivations.filter(a => a.status !== 'paid' && a.status !== 'completed').reduce((acc, a) => acc + getActivationFee(a), 0);
+            const completedFees = allActivations.filter(a => a.status === 'paid' || a.status === 'completed').reduce((acc, a) => acc + getActivationFee(a), 0);
 
             setActivationStats({
                 total: totalActivations,
@@ -119,13 +130,13 @@ export default function AdminFinancials() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-slate-500 text-sm font-medium mb-1">Total Sales Revenue</p>
+                    <p className="text-slate-500 text-sm font-medium mb-1">Gross Commission (5%)</p>
                     <h3 className="text-3xl font-bold text-slate-900">${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden">
                     <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><DollarSign size={64} className="text-indigo-600" /></div>
-                    <p className="text-indigo-600 text-sm font-medium mb-1">Company Commission (5%)</p>
-                    <h3 className="text-3xl font-bold text-indigo-700">${stats.companyCommission.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <p className="text-indigo-600 text-sm font-medium mb-1">Net Profit (3%)</p>
+                    <h3 className="text-3xl font-bold text-indigo-700">${(stats.netProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-orange-100 shadow-sm relative overflow-hidden">
                     <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><DollarSign size={64} className="text-orange-600" /></div>
@@ -287,12 +298,17 @@ export default function AdminFinancials() {
                                             <td className="px-6 py-3 font-medium text-slate-800">{activation.dispensaryName || activation.dispensary_name || 'N/A'}</td>
                                             <td className="px-6 py-3 text-slate-600">{activation.brandName || activation.brand_name || activation.brand || 'N/A'}</td>
                                             <td className="px-6 py-3 text-right font-bold text-purple-600 font-mono">
-                                                ${(parseFloat(activation.activationFee) || parseFloat(activation.activation_fee) || 0).toFixed(2)}
+                                                ${(() => {
+                                                    const storedFee = parseFloat(activation.activationFee) || parseFloat(activation.activation_fee) || 0;
+                                                    if (storedFee > 0) return storedFee.toFixed(2);
+                                                    const hours = parseFloat(activation.hoursWorked) || parseFloat(activation.total_hours) || 0;
+                                                    return (hours * 50).toFixed(2);
+                                                })()}
                                             </td>
                                             <td className="px-6 py-3 text-center">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${activation.status === 'completed' || activation.status === 'paid'
-                                                        ? 'bg-teal-100 text-teal-700'
-                                                        : 'bg-amber-100 text-amber-700'
+                                                    ? 'bg-teal-100 text-teal-700'
+                                                    : 'bg-amber-100 text-amber-700'
                                                     }`}>
                                                     {activation.status || 'pending'}
                                                 </span>
