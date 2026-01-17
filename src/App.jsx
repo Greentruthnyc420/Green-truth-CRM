@@ -76,6 +76,7 @@ import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
 import DispensaryIntegrations from './pages/dispensary/DispensaryIntegrations';
 import DispensaryMondayCallback from './pages/dispensary/MondayCallback';
 import DispensarySchedule from './pages/dispensary/DispensarySchedule';
+import DispensaryInvoices from './pages/dispensary/DispensaryInvoices';
 
 // Driver Portal Imports
 import DriverLogin from './pages/driver/DriverLogin';
@@ -171,6 +172,7 @@ function App() {
             <Route index element={<DispensaryDashboard />} />
             <Route path="marketplace" element={<DispensaryMarketplace />} />
             <Route path="schedule" element={<DispensarySchedule />} />
+            <Route path="invoices" element={<DispensaryInvoices />} />
             <Route path="integrations" element={<DispensaryIntegrations />} />
             <Route path="integrations/monday/callback" element={<DispensaryMondayCallback />} />
           </Route>

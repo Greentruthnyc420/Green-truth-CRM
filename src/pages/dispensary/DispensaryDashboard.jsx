@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Package, Clock, CheckCircle2, ArrowRight, Star, Gift } from 'lucide-react';
+import { ShoppingBag, Package, Clock, CheckCircle2, ArrowRight, Star, Gift, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getLeads, getUserProfile, getSales } from '../../services/firestoreService';
 import { useNavigate } from 'react-router-dom';
@@ -82,6 +82,12 @@ export default function DispensaryDashboard() {
                     <p className="text-slate-500 mt-2 font-medium">Welcome to your ordering portal.</p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={() => navigate('/dispensary/invoices')}
+                        className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-700 text-white font-bold rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all active:scale-95"
+                    >
+                        <FileText size={20} /> Invoices
+                    </button>
                     <button
                         onClick={() => setShowSampleRequest(true)}
                         className="flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 shadow-lg shadow-purple-200 transition-all active:scale-95"
