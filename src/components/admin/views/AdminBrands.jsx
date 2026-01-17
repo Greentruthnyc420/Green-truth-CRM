@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus, Search, Filter, Edit2, Trash2, Eye, X, ChevronRight,
     DollarSign, Calendar, Users, Building2, Phone, Mail, FileText,
-    TrendingUp, CheckCircle, AlertCircle, Key, Copy
+    TrendingUp, CheckCircle, AlertCircle, Key, Copy, Upload, Image
 } from 'lucide-react';
 import { getAllActivations, getSales, getAllBrandProfiles } from '../../../services/firestoreService';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { calculateAgencyShiftCost } from '../../../utils/pricing';
+import { storage } from '../../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Default brands for initial data
 const DEFAULT_BRANDS = [
@@ -41,8 +43,12 @@ export default function AdminBrands() {
         contractStart: new Date().toISOString().split('T')[0],
         contacts: [],
         loginEmail: '',
-        tempPassword: ''
+        tempPassword: '',
+        logo: ''
     });
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
+    const detailFileInputRef = useRef(null);
 
     useEffect(() => {
         loadBrands();
@@ -122,8 +128,53 @@ export default function AdminBrands() {
         const updated = [...brands, brand];
         saveBrands(updated);
         setIsAddModalOpen(false);
-        setNewBrand({ name: '', status: 'active', commissionRate: 5, contractStart: new Date().toISOString().split('T')[0], contacts: [], loginEmail: '', tempPassword: '' });
+        setNewBrand({ name: '', status: 'active', commissionRate: 5, contractStart: new Date().toISOString().split('T')[0], contacts: [], loginEmail: '', tempPassword: '', logo: '' });
         showNotification('Brand added successfully', 'success');
+    };
+
+    // Logo upload handler
+    const handleLogoUpload = async (file, brandId = null) => {
+        if (!file) return null;
+
+        setUploading(true);
+        try {
+            const fileName = `brand-logos/${brandId || 'new'}-${Date.now()}-${file.name}`;
+            const storageRef = ref(storage, fileName);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            showNotification('Logo uploaded successfully', 'success');
+            return url;
+        } catch (error) {
+            console.error('Error uploading logo:', error);
+            showNotification('Failed to upload logo', 'error');
+            return null;
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleNewBrandLogoChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = await handleLogoUpload(file);
+            if (url) {
+                setNewBrand({ ...newBrand, logo: url });
+            }
+        }
+    };
+
+    const handleBrandLogoChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file && selectedBrand) {
+            const url = await handleLogoUpload(file, selectedBrand.id);
+            if (url) {
+                const updated = brands.map(b =>
+                    b.id === selectedBrand.id ? { ...b, logo: url } : b
+                );
+                saveBrands(updated);
+                setSelectedBrand({ ...selectedBrand, logo: url });
+            }
+        }
     };
 
     const generateTempPassword = () => {
@@ -384,6 +435,40 @@ export default function AdminBrands() {
                                     placeholder="Enter brand name"
                                 />
                             </div>
+
+                            {/* Logo Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Brand Logo</label>
+                                <div className="flex items-center gap-4">
+                                    {newBrand.logo ? (
+                                        <img src={newBrand.logo} alt="Brand logo" className="w-16 h-16 object-contain rounded-lg border border-slate-200" />
+                                    ) : (
+                                        <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center">
+                                            <Image size={24} className="text-slate-400" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleNewBrandLogoChange}
+                                            accept="image/*"
+                                            className="hidden"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={uploading}
+                                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium text-sm disabled:opacity-50"
+                                        >
+                                            <Upload size={16} />
+                                            {uploading ? 'Uploading...' : 'Upload Logo'}
+                                        </button>
+                                        <p className="text-xs text-slate-400 mt-1">PNG, JPG up to 2MB</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Contract Start Date</label>
                                 <input
@@ -484,6 +569,36 @@ export default function AdminBrands() {
                         </div>
 
                         <div className="p-6 space-y-6">
+                            {/* Brand Logo */}
+                            <div className="flex items-center gap-4">
+                                {selectedBrand.logo ? (
+                                    <img src={selectedBrand.logo} alt={selectedBrand.name} className="w-20 h-20 object-contain rounded-xl border border-slate-200 shadow-sm" />
+                                ) : (
+                                    <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center">
+                                        <Image size={32} className="text-slate-400" />
+                                    </div>
+                                )}
+                                <div>
+                                    <input
+                                        type="file"
+                                        ref={detailFileInputRef}
+                                        onChange={handleBrandLogoChange}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => detailFileInputRef.current?.click()}
+                                        disabled={uploading}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium text-sm disabled:opacity-50"
+                                    >
+                                        <Upload size={14} />
+                                        {uploading ? 'Uploading...' : (selectedBrand.logo ? 'Change Logo' : 'Upload Logo')}
+                                    </button>
+                                    <p className="text-xs text-slate-400 mt-1">This logo will appear on their dashboard</p>
+                                </div>
+                            </div>
+
                             {/* Status & Actions */}
                             <div className="flex items-center justify-between">
                                 <span className={`px-3 py-1 rounded-full text-sm font-bold ${selectedBrand.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
