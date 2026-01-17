@@ -6,7 +6,7 @@ export const PRICING_TIERS = {
     'UPSTATE': { 2: 160, 3: 200, 4: 240, 5: 280 }
 };
 
-export const MILEAGE_RATE = 0.70;
+export const MILEAGE_RATE = 0.725;
 
 export const calculateAgencyShiftCost = (shift) => {
     const duration = Math.max(2, Math.round(parseFloat(shift.hoursWorked) || 0)); // Minimum 2 hours

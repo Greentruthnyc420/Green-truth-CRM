@@ -328,41 +328,41 @@ export default function Dashboard() {
             <div className="mt-8">
                 <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Quick Navigation</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                    <Link to="/admin/financials" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
                         <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
                             <DollarSign size={24} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Payroll</span>
+                        <span className="text-sm font-bold text-slate-700">Financials</span>
                     </Link>
-                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                    <Link to="/admin/workflow" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
                         <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
                             <Users size={24} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Commissions</span>
+                        <span className="text-sm font-bold text-slate-700">Workflow</span>
                     </Link>
-                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                    <Link to="/admin/pipeline" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
                         <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
                             <Award size={24} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Partner Brands</span>
+                        <span className="text-sm font-bold text-slate-700">Pipeline</span>
                     </Link>
-                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                    <Link to="/admin/territory" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
                         <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
                             <Store size={24} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Leads</span>
+                        <span className="text-sm font-bold text-slate-700">Territory</span>
                     </Link>
-                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                    <Link to="/admin/invoices" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
                         <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
                             <Calendar size={24} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Scheduling</span>
+                        <span className="text-sm font-bold text-slate-700">Invoices</span>
                     </Link>
-                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                    <Link to="/admin/team" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
                         <div className="p-3 bg-cyan-100 text-cyan-600 rounded-lg">
                             <UserCheck size={24} />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Ambassadors</span>
+                        <span className="text-sm font-bold text-slate-700">Team</span>
                     </Link>
                 </div>
             </div>
