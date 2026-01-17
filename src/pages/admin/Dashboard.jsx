@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DollarSign, Users, Award, TrendingUp, Store, Globe, CheckCircle, AlertTriangle, Zap } from 'lucide-react';
-import AmbassadorOverview from '../../components/admin/AmbassadorOverview';
 import { getSales } from '../../services/firestoreService';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import { db } from '../../firebase';
@@ -265,14 +264,6 @@ export default function Dashboard() {
                         </div>
                         <p className="text-3xl font-black text-slate-800">{integrationStats.syncsLast24h.toLocaleString()}</p>
                     </div>
-                </div>
-            </div>
-
-            {/* Personal Stats Section (Hidden Hourly Rate for Admin) */}
-            <div className="mt-8">
-                <h2 className="text-xl font-bold text-slate-800 mb-4">Your Ambassador Stats</h2>
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <AmbassadorOverview showHourlyRate={false} />
                 </div>
             </div>
         </div>

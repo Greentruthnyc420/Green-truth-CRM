@@ -75,9 +75,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                             Admin
                         </div>
 
-                        <NavItem to="/admin" icon={<ShieldCheck size={20} className="text-indigo-400" />} label="New Admin Portal" isCollapsed={isCollapsed} />
-                        <NavItem to="/app/admin" icon={<ShieldCheck size={20} />} label="Legacy Council" isCollapsed={isCollapsed} />
-                        <NavItem to="/app/brand-oversight" icon={<Building2 size={20} />} label="Brand Oversight" isCollapsed={isCollapsed} />
+                        <NavItem to="/admin" icon={<ShieldCheck size={20} className="text-indigo-400" />} label="Admin Portal" isCollapsed={isCollapsed} />
                     </>
                 )}
             </nav>
@@ -251,11 +249,7 @@ export default function Layout() {
                                 <MoreMenuItem to="/app/menus" icon={<FileText className="text-emerald-500" />} label="Menus" onClick={() => setIsMoreMenuOpen(false)} />
 
                                 {isAdmin && (
-                                    <>
-                                        <MoreMenuItem to="/admin" icon={<ShieldCheck className="text-purple-500" />} label="Admin" onClick={() => setIsMoreMenuOpen(false)} />
-                                        <MoreMenuItem to="/app/brand-oversight" icon={<Building2 className="text-pink-500" />} label="Oversight" onClick={() => setIsMoreMenuOpen(false)} />
-                                        <MoreMenuItem to="/admin/integrations" icon={<Settings className="text-slate-600" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
-                                    </>
+                                    <MoreMenuItem to="/admin" icon={<ShieldCheck className="text-purple-500" />} label="Admin" onClick={() => setIsMoreMenuOpen(false)} />
                                 )}
                             </div>
 
