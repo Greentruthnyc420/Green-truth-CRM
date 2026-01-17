@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 import {
     Package, ShoppingCart, DollarSign,
     TrendingUp, AlertCircle, CheckCircle, Clock,
-    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus, Gift, ArrowRight
+    ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus, Gift, ArrowRight,
+    Store, RefreshCw, Boxes, TrendingDown
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie
 } from 'recharts';
 import { getSales as getAllSales, getAllShifts } from '../../services/firestoreService';
-import { getMondayIntegrationStatus } from '../../services/mondayService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import ActivationFormModal from '../../components/ActivationFormModal';
 
@@ -27,7 +27,6 @@ export default function BrandDashboard() {
     }
 
     const [activeBrandId, setActiveBrandId] = useState(null);
-    const [mondayStatus, setMondayStatus] = useState({ connected: false, lastSync: null });
     const [financials, setFinancials] = useState({
         revenue: 0,
         commissionOwed: 0,
@@ -39,7 +38,12 @@ export default function BrandDashboard() {
         productMix: [],
         topProduct: 'N/A',
         aov: 0,
-        outstandingInvoices: 0
+        outstandingInvoices: 0,
+        // Performance metrics
+        storeReach: 0,
+        reorderRate: 0,
+        unitsSold: 0,
+        monthOverMonthGrowth: 0
     });
     const [brandLeads, setBrandLeads] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -69,10 +73,9 @@ export default function BrandDashboard() {
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
                 const { getBrandLeads } = await import('../../services/firestoreService');
 
-                const [metrics, leads, mondayData] = await Promise.all([
+                const [metrics, leads] = await Promise.all([
                     calculateBrandMetrics(activeBrandId, currentBrandName),
-                    getBrandLeads(activeBrandId),
-                    getMondayIntegrationStatus(activeBrandId)
+                    getBrandLeads(activeBrandId)
                 ]);
 
                 // Fetch sample requests count manually for now (or integrate into metrics service later)
@@ -94,7 +97,6 @@ export default function BrandDashboard() {
 
                 setFinancials(prev => ({ ...prev, ...metrics }));
                 setBrandLeads(leads);
-                setMondayStatus(mondayData);
             } catch (error) {
                 console.error("Failed to load brand dashboard data", error);
             } finally {
@@ -317,23 +319,73 @@ export default function BrandDashboard() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Monday.com Integration Status */}
+            {/* Performance Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Store Reach */}
                 <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${mondayStatus.connected ? 'bg-green-100' : 'bg-gray-100'}`}>
-                            <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
+                        <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                            <Store size={24} className="text-cyan-600" />
                         </div>
-                        <Link to="/brand/integrations" className="text-xs font-bold text-emerald-600 hover:underline">
-                            Configure
-                        </Link>
+                        <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full border border-cyan-100">
+                            Coverage
+                        </span>
                     </div>
-                    <p className={`text-2xl font-bold ${mondayStatus.connected ? 'text-slate-800' : 'text-slate-500'}`}>
-                        {mondayStatus.connected ? 'Connected' : 'Not Connected'}
+                    <p className="text-2xl font-bold text-slate-800">{financials.storeReach}</p>
+                    <p className="text-sm text-slate-500">Unique Stores Reached</p>
+                </div>
+
+                {/* Reorder Rate */}
+                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+                            <RefreshCw size={24} className="text-violet-600" />
+                        </div>
+                        <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-full border border-violet-100">
+                            Retention
+                        </span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-800">{financials.reorderRate.toFixed(1)}%</p>
+                    <p className="text-sm text-slate-500">Reorder Rate</p>
+                </div>
+
+                {/* Units Sold */}
+                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                            <Boxes size={24} className="text-orange-600" />
+                        </div>
+                        <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full border border-orange-100">
+                            Volume
+                        </span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-800">{financials.unitsSold.toLocaleString()}</p>
+                    <p className="text-sm text-slate-500">Total Units Sold</p>
+                </div>
+
+                {/* Month-over-Month Growth */}
+                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${financials.monthOverMonthGrowth >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                            {financials.monthOverMonthGrowth >= 0
+                                ? <TrendingUp size={24} className="text-emerald-600" />
+                                : <TrendingDown size={24} className="text-red-600" />
+                            }
+                        </div>
+                        <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border ${financials.monthOverMonthGrowth >= 0
+                            ? 'text-emerald-600 bg-emerald-50 border-emerald-100'
+                            : 'text-red-600 bg-red-50 border-red-100'
+                            }`}>
+                            {financials.monthOverMonthGrowth >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                            MoM
+                        </span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-800">
+                        {financials.monthOverMonthGrowth >= 0 ? '+' : ''}{financials.monthOverMonthGrowth.toFixed(1)}%
                     </p>
-                    <p className="text-sm text-slate-500">
-                        {mondayStatus.lastSync ? `Last sync: ${new Date(mondayStatus.lastSync).toLocaleString()}` : 'Data not syncing'}
-                    </p>
+                    <p className="text-sm text-slate-500">Month-over-Month Growth</p>
                 </div>
             </div>
 

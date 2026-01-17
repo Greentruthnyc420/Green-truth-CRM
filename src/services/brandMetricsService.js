@@ -114,6 +114,48 @@ export async function calculateBrandMetrics(brandId, brandName) {
         const commissionOwed = totalRevenue * 0.05;
         const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+        // === NEW PERFORMANCE METRICS ===
+
+        // Store Reach - unique dispensaries this brand has sold at
+        const uniqueDispensaries = new Set();
+        allSales.forEach(sale => {
+            const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
+            const matchesTopLevel = sale.brandId === brandId || sale.brandName === brandName;
+            if ((brandItems.length > 0 || matchesTopLevel) && sale.dispensaryName) {
+                uniqueDispensaries.add(sale.dispensaryName);
+            }
+        });
+        const storeReach = uniqueDispensaries.size;
+
+        // Reorder Rate - % of dispensaries that ordered more than once
+        const dispensaryOrderCount = {};
+        allSales.forEach(sale => {
+            const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
+            const matchesTopLevel = sale.brandId === brandId || sale.brandName === brandName;
+            if ((brandItems.length > 0 || matchesTopLevel) && sale.dispensaryName) {
+                dispensaryOrderCount[sale.dispensaryName] = (dispensaryOrderCount[sale.dispensaryName] || 0) + 1;
+            }
+        });
+        const totalDispensaries = Object.keys(dispensaryOrderCount).length;
+        const repeatDispensaries = Object.values(dispensaryOrderCount).filter(count => count > 1).length;
+        const reorderRate = totalDispensaries > 0 ? (repeatDispensaries / totalDispensaries) * 100 : 0;
+
+        // Units Sold - total product quantity
+        let unitsSold = 0;
+        allSales.forEach(sale => {
+            const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
+            brandItems.forEach(item => {
+                unitsSold += item.quantity || 0;
+            });
+        });
+
+        // Month-over-Month Growth
+        const currentMonthRevenue = salesHistory.length > 0 ? salesHistory[salesHistory.length - 1].revenue : 0;
+        const lastMonthRevenue = salesHistory.length > 1 ? salesHistory[salesHistory.length - 2].revenue : 0;
+        const monthOverMonthGrowth = lastMonthRevenue > 0
+            ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+            : (currentMonthRevenue > 0 ? 100 : 0);
+
         return {
             revenue: totalRevenue,
             commissionOwed: commissionOwed,
@@ -124,7 +166,12 @@ export async function calculateBrandMetrics(brandId, brandName) {
             aov: aov,
             outstandingInvoices: pendingRevenue,
             salesHistory,
-            productMix
+            productMix,
+            // New performance metrics
+            storeReach,
+            reorderRate,
+            unitsSold,
+            monthOverMonthGrowth
         };
 
     } catch (error) {
@@ -138,8 +185,12 @@ export async function calculateBrandMetrics(brandId, brandName) {
             topProduct: 'N/A',
             aov: 0,
             outstandingInvoices: 0,
-            salesHistory: [],  // Added to prevent Recharts crash
-            productMix: []     // Added to prevent Recharts crash
+            salesHistory: [],
+            productMix: [],
+            storeReach: 0,
+            reorderRate: 0,
+            unitsSold: 0,
+            monthOverMonthGrowth: 0
         };
     }
 }
