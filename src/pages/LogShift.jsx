@@ -148,9 +148,9 @@ export default function LogShift() {
                 // Don't block user experience if email fails
             }
 
-            // Show success and redirect
+            // Show success and redirect to dashboard
             alert('✅ Shift Logged Successfully!\n\nYour activation has been recorded.');
-            window.location.href = '/';
+            navigate('/dashboard');
         } catch (error) {
             console.error('Error logging shift:', error);
             showNotification('Failed to log shift: ' + (error.message || 'Unknown error'), 'error');
