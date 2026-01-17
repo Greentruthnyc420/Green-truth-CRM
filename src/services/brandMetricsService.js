@@ -144,9 +144,17 @@ export async function calculateBrandMetrics(brandId, brandName) {
         let unitsSold = 0;
         allSales.forEach(sale => {
             const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
-            brandItems.forEach(item => {
-                unitsSold += item.quantity || 0;
-            });
+            const matchesTopLevel = sale.brandId === brandId || sale.brandName === brandName;
+
+            if (brandItems.length > 0) {
+                // Count from nested items
+                brandItems.forEach(item => {
+                    unitsSold += item.quantity || 1;
+                });
+            } else if (matchesTopLevel) {
+                // Top-level sale without items array - count as 1 unit or use quantity if available
+                unitsSold += sale.quantity || 1;
+            }
         });
 
         // Month-over-Month Growth
