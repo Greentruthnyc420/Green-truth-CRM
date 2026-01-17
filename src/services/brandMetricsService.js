@@ -140,20 +140,38 @@ export async function calculateBrandMetrics(brandId, brandName) {
         const repeatDispensaries = Object.values(dispensaryOrderCount).filter(count => count > 1).length;
         const reorderRate = totalDispensaries > 0 ? (repeatDispensaries / totalDispensaries) * 100 : 0;
 
-        // Units Sold - total product quantity
+        // Units Sold - total product quantity (accounting for case sizes)
+        // Import product catalog to look up case sizes
+        const { PRODUCT_CATALOG } = await import('../data/productCatalog');
+
+        // Build a map of product ID to case size for quick lookup
+        const caseSizeMap = {};
+        PRODUCT_CATALOG.forEach(brand => {
+            (brand.products || []).forEach(product => {
+                caseSizeMap[product.id] = product.caseSize || 1;
+                // Also map by name for fallback matching
+                caseSizeMap[product.name] = product.caseSize || 1;
+            });
+        });
+
         let unitsSold = 0;
         allSales.forEach(sale => {
             const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
             const matchesTopLevel = sale.brandId === brandId || sale.brandName === brandName;
 
             if (brandItems.length > 0) {
-                // Count from nested items
+                // Count from nested items - multiply quantity by caseSize
                 brandItems.forEach(item => {
-                    unitsSold += item.quantity || 1;
+                    const qty = item.quantity || 1;
+                    // Use caseSize from item if available, otherwise look up from catalog
+                    const caseSize = item.caseSize || caseSizeMap[item.productId] || caseSizeMap[item.name] || 1;
+                    unitsSold += qty * caseSize;
                 });
             } else if (matchesTopLevel) {
-                // Top-level sale without items array - count as 1 unit or use quantity if available
-                unitsSold += sale.quantity || 1;
+                // Top-level sale without items array
+                const qty = sale.quantity || 1;
+                const caseSize = sale.caseSize || caseSizeMap[sale.productId] || caseSizeMap[sale.productName] || 1;
+                unitsSold += qty * caseSize;
             }
         });
 
