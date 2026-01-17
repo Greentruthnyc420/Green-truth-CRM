@@ -9,7 +9,7 @@ export default function AdminFinancials() {
     const [filter, setFilter] = useState('all'); // all, pending, paid
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
-    const [stats, setStats] = useState({ totalRevenue: 0, pendingCommissions: 0, paidCommissions: 0 });
+    const [stats, setStats] = useState({ totalRevenue: 0, companyCommission: 0, pendingRepCommissions: 0, paidRepCommissions: 0 });
 
     useEffect(() => {
         loadFinancials();
@@ -23,13 +23,15 @@ export default function AdminFinancials() {
 
             // Calc Stats
             const totalRev = allSales.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-            const pending = allSales.filter(s => s.status !== 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
-            const paid = allSales.filter(s => s.status === 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
+            const companyComm = totalRev * 0.05; // Company earns 5%
+            const pendingRep = allSales.filter(s => s.status !== 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
+            const paidRep = allSales.filter(s => s.status === 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
 
             setStats({
                 totalRevenue: totalRev,
-                pendingCommissions: pending,
-                paidCommissions: paid
+                companyCommission: companyComm,
+                pendingRepCommissions: pendingRep,
+                paidRepCommissions: paidRep
             });
 
         } catch (error) {
@@ -88,20 +90,25 @@ export default function AdminFinancials() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <p className="text-slate-500 text-sm font-medium mb-1">Total Sales Revenue</p>
                     <h3 className="text-3xl font-bold text-slate-900">${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                 </div>
+                <div className="bg-white p-6 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><DollarSign size={64} className="text-indigo-600" /></div>
+                    <p className="text-indigo-600 text-sm font-medium mb-1">Company Commission (5%)</p>
+                    <h3 className="text-3xl font-bold text-indigo-700">${stats.companyCommission.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                </div>
                 <div className="bg-white p-6 rounded-xl border border-orange-100 shadow-sm relative overflow-hidden">
                     <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><DollarSign size={64} className="text-orange-600" /></div>
-                    <p className="text-orange-600 text-sm font-medium mb-1">Pending Commissions</p>
-                    <h3 className="text-3xl font-bold text-orange-700">${stats.pendingCommissions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <p className="text-orange-600 text-sm font-medium mb-1">Pending Rep Payout (2%)</p>
+                    <h3 className="text-3xl font-bold text-orange-700">${stats.pendingRepCommissions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-emerald-100 shadow-sm relative overflow-hidden">
                     <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><CheckCircle size={64} className="text-emerald-600" /></div>
-                    <p className="text-emerald-600 text-sm font-medium mb-1">Paid Out</p>
-                    <h3 className="text-3xl font-bold text-emerald-700">${stats.paidCommissions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <p className="text-emerald-600 text-sm font-medium mb-1">Paid to Reps (2%)</p>
+                    <h3 className="text-3xl font-bold text-emerald-700">${stats.paidRepCommissions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                 </div>
             </div>
 
@@ -129,7 +136,7 @@ export default function AdminFinancials() {
                                 <th className="px-6 py-3">Date</th>
                                 <th className="px-6 py-3">Dispensary</th>
                                 <th className="px-6 py-3 text-right">Sale Amt</th>
-                                <th className="px-6 py-3 text-right">Commission (2%)</th>
+                                <th className="px-6 py-3 text-right">Rep Commission (2%)</th>
                                 <th className="px-6 py-3 text-center">Status</th>
                                 <th className="px-6 py-3 text-right">Action</th>
                             </tr>
