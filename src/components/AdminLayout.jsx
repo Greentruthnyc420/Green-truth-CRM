@@ -69,13 +69,20 @@ export default function AdminLayout() {
                     />
 
                     <div className="pt-4 mt-4 border-t border-slate-800 opacity-50">
-                        {isSidebarOpen && <p className="text-[10px] font-bold uppercase tracking-widest px-3 mb-2">Internal Tools</p>}
+                        {isSidebarOpen && <p className="text-[10px] font-bold uppercase tracking-widest px-3 mb-2">Admin Tools</p>}
                     </div>
 
                     <AdminNavItem
-                        to="/app"
-                        icon={<ArrowLeftRight size={20} />}
-                        label="Switch to GT App"
+                        to="/app/brand-oversight"
+                        icon={<Store size={20} />}
+                        label="Brand Oversight"
+                        isOpen={isSidebarOpen}
+                    />
+
+                    <AdminNavItem
+                        to="/app/admin"
+                        icon={<ShieldCheck size={20} />}
+                        label="Legacy Console"
                         isOpen={isSidebarOpen}
                     />
 
@@ -83,6 +90,17 @@ export default function AdminLayout() {
                         to="/admin/integrations"
                         icon={<Settings size={20} />}
                         label="Integrations"
+                        isOpen={isSidebarOpen}
+                    />
+
+                    <div className="pt-4 mt-4 border-t border-slate-800 opacity-50">
+                        {isSidebarOpen && <p className="text-[10px] font-bold uppercase tracking-widest px-3 mb-2">Switch Portal</p>}
+                    </div>
+
+                    <AdminNavItem
+                        to="/app"
+                        icon={<ArrowLeftRight size={20} />}
+                        label="Sales Rep App"
                         isOpen={isSidebarOpen}
                     />
                 </nav>

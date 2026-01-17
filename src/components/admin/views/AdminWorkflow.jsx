@@ -141,29 +141,52 @@ export default function AdminWorkflow() {
                                         <th className="py-3 px-6 font-semibold text-slate-500">Dispensary</th>
                                         <th className="py-3 px-6 font-semibold text-slate-500">Date</th>
                                         <th className="py-3 px-6 font-semibold text-slate-500 text-center">Hours</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500 text-right">Pay Est.</th>
+                                        <th className="py-3 px-6 font-semibold text-slate-500 text-center">Miles</th>
+                                        <th className="py-3 px-6 font-semibold text-slate-500 text-center">Tolls</th>
+                                        <th className="py-3 px-6 font-semibold text-slate-500 text-right">Total Pay</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {shifts.map(shift => (
-                                        <tr key={shift.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="py-3 px-6"><input type="checkbox" checked={selectedShiftIds.includes(shift.id)} onChange={() => toggleShiftSelection(shift.id)} className="rounded border-slate-300 focus:ring-brand-500" /></td>
-                                            <td className="py-3 px-6 font-mono text-xs text-slate-500">{shift.userId.substring(0, 8)}...</td>
-                                            <td className="py-3 px-6 font-medium text-slate-800">{shift.dispensaryName}</td>
-                                            <td className="py-3 px-6 text-slate-600">
-                                                {(() => {
-                                                    try {
-                                                        const d = shift.date?.toDate ? shift.date.toDate() : new Date(shift.date);
-                                                        return d.toLocaleDateString();
-                                                    } catch (e) { return 'N/A'; }
-                                                })()}
-                                            </td>
-                                            <td className="py-3 px-6 text-center text-slate-800 font-medium">{shift.hoursWorked}</td>
-                                            <td className="py-3 px-6 text-right text-slate-600">
-                                                ${((parseFloat(shift.hoursWorked) || 0) * 20).toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {shifts.map(shift => {
+                                        const hours = parseFloat(shift.hoursWorked) || 0;
+                                        const miles = parseFloat(shift.milesTraveled) || 0;
+                                        const tolls = parseFloat(shift.tollAmount) || 0;
+                                        const hourlyRate = 20; // Base rate
+                                        const mileageRate = shift.hasVehicle !== false ? 0.35 : 0.20;
+                                        const wages = hours * hourlyRate;
+                                        const mileageReimbursement = miles * mileageRate;
+                                        const totalPay = wages + mileageReimbursement + tolls;
+
+                                        return (
+                                            <tr key={shift.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="py-3 px-6"><input type="checkbox" checked={selectedShiftIds.includes(shift.id)} onChange={() => toggleShiftSelection(shift.id)} className="rounded border-slate-300 focus:ring-brand-500" /></td>
+                                                <td className="py-3 px-6 font-mono text-xs text-slate-500">{shift.userId.substring(0, 8)}...</td>
+                                                <td className="py-3 px-6 font-medium text-slate-800">{shift.dispensaryName}</td>
+                                                <td className="py-3 px-6 text-slate-600">
+                                                    {(() => {
+                                                        try {
+                                                            const d = shift.date?.toDate ? shift.date.toDate() : new Date(shift.date);
+                                                            return d.toLocaleDateString();
+                                                        } catch (e) { return 'N/A'; }
+                                                    })()}
+                                                </td>
+                                                <td className="py-3 px-6 text-center">
+                                                    <span className="font-medium text-slate-800">{hours}h</span>
+                                                    <span className="text-xs text-slate-400 block">${wages.toFixed(2)}</span>
+                                                </td>
+                                                <td className="py-3 px-6 text-center">
+                                                    <span className="font-medium text-slate-800">{miles}</span>
+                                                    <span className="text-xs text-slate-400 block">${mileageReimbursement.toFixed(2)}</span>
+                                                </td>
+                                                <td className="py-3 px-6 text-center">
+                                                    <span className="font-medium text-slate-800">${tolls.toFixed(2)}</span>
+                                                </td>
+                                                <td className="py-3 px-6 text-right">
+                                                    <span className="font-bold text-emerald-600">${totalPay.toFixed(2)}</span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
