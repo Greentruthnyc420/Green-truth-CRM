@@ -3,6 +3,7 @@ import { getSales, markRepAsPaid, updateSaleStatus, getAllShifts, getAllActivati
 import { DollarSign, Users, Award, Download, Filter, Search, CheckCircle, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { convertToCSV, downloadCSV } from '../../../utils/csvHelper';
+import { calculateAgencyShiftCost } from '../../../utils/pricing';
 
 export default function AdminFinancials() {
     const [sales, setSales] = useState([]);
@@ -48,14 +49,17 @@ export default function AdminFinancials() {
                 paidRepCommissions: paidRep
             });
 
-            // Calc Activation Stats
-            // Calculate fee from stored fee OR estimate from hours (default $50/hour)
+            // Calc Activation Stats - use real pricing from pricing.js
             const getActivationFee = (a) => {
                 const storedFee = parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0;
                 if (storedFee > 0) return storedFee;
-                // Estimate from hours worked at $50/hour
-                const hours = parseFloat(a.hoursWorked) || parseFloat(a.total_hours) || 0;
-                return hours * 50;
+                // Use the real pricing calculation
+                return calculateAgencyShiftCost({
+                    hoursWorked: a.hoursWorked || a.total_hours || 0,
+                    region: a.region || 'NYC',
+                    milesTraveled: a.milesTraveled || a.miles_traveled || 0,
+                    tollAmount: a.tollAmount || a.toll_amount || 0
+                });
             };
             const totalActivations = allActivations.length;
             const totalFees = allActivations.reduce((acc, a) => acc + getActivationFee(a), 0);
@@ -301,8 +305,12 @@ export default function AdminFinancials() {
                                                 ${(() => {
                                                     const storedFee = parseFloat(activation.activationFee) || parseFloat(activation.activation_fee) || 0;
                                                     if (storedFee > 0) return storedFee.toFixed(2);
-                                                    const hours = parseFloat(activation.hoursWorked) || parseFloat(activation.total_hours) || 0;
-                                                    return (hours * 50).toFixed(2);
+                                                    return calculateAgencyShiftCost({
+                                                        hoursWorked: activation.hoursWorked || activation.total_hours || 0,
+                                                        region: activation.region || 'NYC',
+                                                        milesTraveled: activation.milesTraveled || activation.miles_traveled || 0,
+                                                        tollAmount: activation.tollAmount || activation.toll_amount || 0
+                                                    }).toFixed(2);
                                                 })()}
                                             </td>
                                             <td className="px-6 py-3 text-center">
