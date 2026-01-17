@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import {
     Package, ShoppingCart, DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight,
     BarChart3, PieChart, Sparkles, Building2, Users, Calendar, Award, Target,
-    TrendingDown, Percent, Clock, Star, Zap, Activity
+    TrendingDown, Percent, Clock, Star, Zap, Activity, UserPlus, Gift, ArrowRight,
+    Store, RefreshCw, Boxes
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie, LineChart, Line,
     RadialBarChart, RadialBar, ComposedChart
 } from 'recharts';
+import ActivationFormModal from '../../components/ActivationFormModal';
 
 const FLX_SUB_BRANDS = [
     { id: 'pines', name: 'Pines', color: '#10b981' },
@@ -23,6 +26,8 @@ export default function FLXProcessorDashboard() {
     const { brandUser } = useBrandAuth();
     const [activeView, setActiveView] = useState('all');
     const [loading, setLoading] = useState(true);
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [pendingSampleRequests, setPendingSampleRequests] = useState(0);
     const [metrics, setMetrics] = useState({
         combined: null,
         byBrand: {}
@@ -105,6 +110,16 @@ export default function FLXProcessorDashboard() {
                 const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
                 const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalActivationCost) / totalRevenue * 100) : 0;
 
+                // Combined performance metrics (same as brand dashboard)
+                const combinedStoreReach = results.reduce((s, r) => s + (r.metrics?.storeReach || 0), 0);
+                const avgReorderRate = results.filter(r => r.metrics?.reorderRate > 0).length > 0
+                    ? results.reduce((s, r) => s + (r.metrics?.reorderRate || 0), 0) / results.filter(r => r.metrics?.reorderRate > 0).length
+                    : 0;
+                const totalUnitsSold = results.reduce((s, r) => s + (r.metrics?.unitsSold || 0), 0);
+                const avgMoMGrowth = results.filter(r => r.metrics?.monthOverMonthGrowth !== 0).length > 0
+                    ? results.reduce((s, r) => s + (r.metrics?.monthOverMonthGrowth || 0), 0) / results.filter(r => r.metrics?.monthOverMonthGrowth !== 0).length
+                    : 0;
+
                 setMetrics({
                     combined: {
                         totalRevenue,
@@ -119,7 +134,12 @@ export default function FLXProcessorDashboard() {
                         salesHistory: Object.values(salesHistoryMap),
                         topProducts,
                         bestBrand,
-                        categoryBreakdown
+                        categoryBreakdown,
+                        // New performance metrics
+                        storeReach: combinedStoreReach,
+                        reorderRate: avgReorderRate,
+                        unitsSold: totalUnitsSold,
+                        monthOverMonthGrowth: avgMoMGrowth
                     },
                     byBrand
                 });
@@ -161,22 +181,40 @@ export default function FLXProcessorDashboard() {
                     <p className="text-slate-500 mt-1">Complete view of Pines • Smoothie Bar • Waferz NY</p>
                 </div>
 
-                {/* View Tabs */}
-                <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-xl">
-                    <TabButton active={activeView === 'all'} onClick={() => setActiveView('all')} color="#f59e0b">
-                        📊 All Brands
-                    </TabButton>
-                    {FLX_SUB_BRANDS.map(brand => (
-                        <TabButton
-                            key={brand.id}
-                            active={activeView === brand.id}
-                            onClick={() => setActiveView(brand.id)}
-                            color={brand.color}
-                        >
-                            {brand.name}
-                        </TabButton>
-                    ))}
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="/brand/new-lead"
+                        className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <UserPlus size={18} className="text-amber-500" />
+                        <span>Create Lead</span>
+                    </Link>
+                    <button
+                        onClick={() => setIsRequestModalOpen(true)}
+                        className="flex items-center gap-2 bg-amber-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-200"
+                    >
+                        <Sparkles size={18} />
+                        <span>Request Activation</span>
+                    </button>
                 </div>
+            </div>
+
+            {/* View Tabs */}
+            <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-xl w-fit">
+                <TabButton active={activeView === 'all'} onClick={() => setActiveView('all')} color="#f59e0b">
+                    📊 All Brands
+                </TabButton>
+                {FLX_SUB_BRANDS.map(brand => (
+                    <TabButton
+                        key={brand.id}
+                        active={activeView === brand.id}
+                        onClick={() => setActiveView(brand.id)}
+                        color={brand.color}
+                    >
+                        {brand.name}
+                    </TabButton>
+                ))}
             </div>
 
             {activeView === 'all' ? (
@@ -184,6 +222,14 @@ export default function FLXProcessorDashboard() {
             ) : (
                 <SingleBrandView brand={displayBrand} formatCurrency={formatCurrency} formatNumber={formatNumber} />
             )}
+
+            {/* Activation Request Modal */}
+            <ActivationFormModal
+                isOpen={isRequestModalOpen}
+                onClose={() => setIsRequestModalOpen(false)}
+                brandId={brandUser?.brandId || 'flx-extracts'}
+                brandName={brandUser?.brandName || 'FLX Extracts'}
+            />
         </div>
     );
 }
@@ -194,8 +240,8 @@ function TabButton({ children, active, onClick, color }) {
         <button
             onClick={onClick}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${active
-                    ? 'bg-white text-slate-900 shadow-lg'
-                    : 'text-slate-600 hover:bg-white/50'
+                ? 'bg-white text-slate-900 shadow-lg'
+                : 'text-slate-600 hover:bg-white/50'
                 }`}
             style={active ? { borderBottom: `3px solid ${color}` } : {}}
         >
@@ -269,6 +315,36 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
                     subtitle="After activation costs"
                     trend={combined.profitMargin > 50 ? "Healthy" : "Monitor"}
                     trendUp={combined.profitMargin > 50}
+                />
+            </div>
+
+            {/* KPI Row 3 - Brand Analytics (same as Brand Dashboard) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard
+                    title="Store Reach"
+                    value={formatNumber(combined.storeReach || 0)}
+                    icon={<Store className="text-cyan-600" />}
+                    subtitle="Unique stores"
+                />
+                <KPICard
+                    title="Reorder Rate"
+                    value={`${(combined.reorderRate || 0).toFixed(1)}%`}
+                    icon={<RefreshCw className="text-violet-500" />}
+                    subtitle="Repeat buyers"
+                />
+                <KPICard
+                    title="Units Sold"
+                    value={formatNumber(combined.unitsSold || 0)}
+                    icon={<Boxes className="text-orange-500" />}
+                    subtitle="Total volume"
+                />
+                <KPICard
+                    title="MoM Growth"
+                    value={`${(combined.monthOverMonthGrowth || 0).toFixed(1)}%`}
+                    icon={(combined.monthOverMonthGrowth || 0) >= 0 ? <TrendingUp className="text-emerald-500" /> : <TrendingDown className="text-red-500" />}
+                    subtitle="Revenue trend"
+                    trend={(combined.monthOverMonthGrowth || 0) >= 0 ? "Growing" : "Declining"}
+                    trendUp={(combined.monthOverMonthGrowth || 0) >= 0}
                 />
             </div>
 
