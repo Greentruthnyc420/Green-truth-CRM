@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DollarSign, Users, Award, TrendingUp, Store, Globe, CheckCircle, AlertTriangle, Zap, Wallet, PiggyBank, Banknote } from 'lucide-react';
-import { getSales, getAllShifts, getLeads } from '../../services/firestoreService';
+import { DollarSign, Users, Award, TrendingUp, Store, Wallet, PiggyBank, Banknote, Percent, Target, Calendar, FileText, UserCheck } from 'lucide-react';
+import { getSales, getAllShifts, getLeads, LEAD_STATUS } from '../../services/firestoreService';
 import { calculateTotalLifetimeBonuses, calculateReimbursement, calculateShiftClientRevenue } from '../../services/compensationService';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
-import { db } from '../../firebase';
-import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 
 const HOURLY_RATE = 20;
 
@@ -18,13 +17,12 @@ export default function Dashboard() {
         totalSalesCount: 0,
         activeSellers: 0,
         revenueData: [],
-        productMix: []
-    });
-    const [integrationStats, setIntegrationStats] = useState({
-        connectedBrands: 0,
-        totalSyncs: 0,
-        failedSyncs: 0,
-        syncsLast24h: 0,
+        productMix: [],
+        // Pipeline/Growth stats
+        totalLeads: 0,
+        activeAccounts: 0,
+        prospects: 0,
+        conversionRate: 0
     });
     const [loading, setLoading] = useState(true);
 
@@ -131,6 +129,12 @@ export default function Dashboard() {
 
                 const activeSellers = new Set(sales.map(s => s.userId)).size;
 
+                // Pipeline/Growth Stats
+                const totalLeads = allLeads.length;
+                const activeAccounts = allLeads.filter(l => l.leadStatus === LEAD_STATUS?.ACTIVE || l.status === 'Sold').length;
+                const prospects = allLeads.filter(l => !l.leadStatus || l.leadStatus === LEAD_STATUS?.PROSPECT).length;
+                const conversionRate = totalLeads > 0 ? ((activeAccounts / totalLeads) * 100) : 0;
+
                 setStats({
                     totalRevenue,
                     netProfit,
@@ -139,46 +143,21 @@ export default function Dashboard() {
                     totalSalesCount: sales.length,
                     activeSellers,
                     revenueData,
-                    productMix
+                    productMix,
+                    totalLeads,
+                    activeAccounts,
+                    prospects,
+                    conversionRate
                 });
 
             } catch (err) {
                 console.error("Failed to load analytics", err);
-            }
-        }
-
-        async function fetchIntegrationStats() {
-            try {
-                const integrationsSnapshot = await getDocs(collection(db, 'brand_integrations'));
-                const connectedBrands = integrationsSnapshot.docs.filter(doc => doc.data().mondayApiToken).length;
-
-                const logsCollection = collection(db, 'brand_sync_logs');
-                const syncLogsSnapshot = await getDocs(logsCollection);
-                const totalSyncs = syncLogsSnapshot.size;
-
-                const failedQuery = query(logsCollection, where('success', '==', false));
-                const failedSnapshot = await getDocs(failedQuery);
-                const failedSyncs = failedSnapshot.size;
-
-                const oneDayAgo = Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000);
-                const recentQuery = query(logsCollection, where('timestamp', '>', oneDayAgo));
-                const recentSnapshot = await getDocs(recentQuery);
-                const syncsLast24h = recentSnapshot.size;
-
-                setIntegrationStats({
-                    connectedBrands,
-                    totalSyncs,
-                    failedSyncs,
-                    syncsLast24h,
-                });
-
-            } catch (err) {
-                console.error("Failed to load integration stats", err);
+            } finally {
+                setLoading(false);
             }
         }
 
         fetchAnalytics();
-        fetchIntegrationStats();
     }, []);
 
     // Custom Tooltip for Charts
@@ -202,6 +181,27 @@ export default function Dashboard() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
                     <p className="text-slate-500">Company performance overview.</p>
+                </div>
+            </div>
+
+            {/* Pipeline/Growth Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Total Pipeline</p>
+                    <p className="text-2xl font-bold text-slate-800">{stats.totalLeads}</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Conversion Rate</p>
+                    <p className="text-2xl font-bold text-emerald-600">{stats.conversionRate.toFixed(1)}%</p>
+                    <p className="text-[10px] text-slate-400 mt-1 font-medium">Leads to Active</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Active Accounts</p>
+                    <p className="text-2xl font-bold text-indigo-600">{stats.activeAccounts}</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Prospects</p>
+                    <p className="text-2xl font-bold text-slate-500">{stats.prospects}</p>
                 </div>
             </div>
 
@@ -324,46 +324,46 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Integration Health Section */}
+            {/* Quick Navigation */}
             <div className="mt-8">
-                <h2 className="text-xl font-bold text-slate-800 mb-4">Monday.com Integration Health</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-sky-100 text-sky-600 rounded-lg">
-                                <Globe size={20} />
-                            </div>
-                            <h3 className="text-slate-500 font-medium text-sm">Connected Brands</h3>
+                <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Quick Navigation</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                        <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                            <DollarSign size={24} />
                         </div>
-                        <p className="text-3xl font-black text-slate-800">{integrationStats.connectedBrands}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                                <CheckCircle size={20} />
-                            </div>
-                            <h3 className="text-slate-500 font-medium text-sm">Total Syncs</h3>
+                        <span className="text-sm font-bold text-slate-700">Payroll</span>
+                    </Link>
+                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                        <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
+                            <Users size={24} />
                         </div>
-                        <p className="text-3xl font-black text-slate-800">{integrationStats.totalSyncs.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                                <AlertTriangle size={20} />
-                            </div>
-                            <h3 className="text-slate-500 font-medium text-sm">Failed Syncs</h3>
+                        <span className="text-sm font-bold text-slate-700">Commissions</span>
+                    </Link>
+                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Award size={24} />
                         </div>
-                        <p className="text-3xl font-black text-slate-800">{integrationStats.failedSyncs.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg">
-                                <Zap size={20} />
-                            </div>
-                            <h3 className="text-slate-500 font-medium text-sm">Activity (24h)</h3>
+                        <span className="text-sm font-bold text-slate-700">Partner Brands</span>
+                    </Link>
+                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                        <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                            <Store size={24} />
                         </div>
-                        <p className="text-3xl font-black text-slate-800">{integrationStats.syncsLast24h.toLocaleString()}</p>
-                    </div>
+                        <span className="text-sm font-bold text-slate-700">Leads</span>
+                    </Link>
+                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                        <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
+                            <Calendar size={24} />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">Scheduling</span>
+                    </Link>
+                    <Link to="/admin-dashboard" className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-brand-500 hover:shadow-md transition-all flex flex-col items-center gap-2 text-center">
+                        <div className="p-3 bg-cyan-100 text-cyan-600 rounded-lg">
+                            <UserCheck size={24} />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">Ambassadors</span>
+                    </Link>
                 </div>
             </div>
         </div>
