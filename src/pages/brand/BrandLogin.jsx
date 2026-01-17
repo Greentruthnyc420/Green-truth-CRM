@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { useBrandAuth, AVAILABLE_BRANDS } from '../../contexts/BrandAuthContext';
-import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
-// BrandLoginGate removed
+import { updatePassword } from 'firebase/auth';
+import { auth } from '../../firebase';
+import { getAdminBrandByEmail, markBrandPasswordChanged } from '../../services/firestoreService';
 
 // Map brand IDs to absolute logo paths (matching Gateway)
 const BRAND_LOGOS = {
@@ -37,6 +39,10 @@ export default function BrandLogin() {
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [requiresPasswordChange, setRequiresPasswordChange] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [changingPassword, setChangingPassword] = useState(false);
 
     // Store the full license info object here
     const [selectedBrand, setSelectedBrand] = useState(null);
@@ -79,12 +85,94 @@ export default function BrandLogin() {
                 setTimeout(() => setAuthMode('login'), 3000);
             } else {
                 await loginBrand(email, password, licenseNumber);
+
+                // Check if this brand needs password change (created via admin with temp password)
+                // Try Supabase first, fallback to localStorage
+                let brandEntry = await getAdminBrandByEmail(email);
+                if (!brandEntry) {
+                    // Fallback to localStorage
+                    const storedBrands = JSON.parse(localStorage.getItem('admin_brands') || '[]');
+                    brandEntry = storedBrands.find(b =>
+                        b.loginEmail?.toLowerCase() === email.toLowerCase() &&
+                        !b.passwordChanged
+                    );
+                } else {
+                    // Convert Supabase snake_case
+                    brandEntry = {
+                        loginEmail: brandEntry.login_email,
+                        tempPassword: brandEntry.temp_password,
+                        passwordChanged: brandEntry.password_changed,
+                        id: brandEntry.id
+                    };
+                }
+
+                if (brandEntry && !brandEntry.passwordChanged && brandEntry.tempPassword === password) {
+                    // User logged in with temp password - require change
+                    setRequiresPasswordChange(true);
+                    setLoading(false);
+                    return; // Don't navigate yet
+                }
+
                 navigate(from, { replace: true });
             }
         } catch (err) {
             setError(err.message || 'Authentication failed. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle password change for first login
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (newPassword.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error('No user logged in');
+
+            await updatePassword(user, newPassword);
+
+            // Mark password as changed - try Supabase first, then localStorage
+            try {
+                // Get brand ID from Supabase and mark as changed
+                const brand = await getAdminBrandByEmail(email);
+                if (brand?.id) {
+                    await markBrandPasswordChanged(brand.id);
+                }
+            } catch (e) {
+                console.warn('Supabase password change sync failed:', e);
+            }
+
+            // Also update localStorage for backwards compatibility
+            const storedBrands = JSON.parse(localStorage.getItem('admin_brands') || '[]');
+            const updatedBrands = storedBrands.map(b =>
+                b.loginEmail?.toLowerCase() === email.toLowerCase()
+                    ? { ...b, passwordChanged: true, tempPassword: null }
+                    : b
+            );
+            localStorage.setItem('admin_brands', JSON.stringify(updatedBrands));
+
+            setSuccessMessage('Password changed successfully!');
+            setTimeout(() => {
+                navigate(from, { replace: true });
+            }, 1500);
+        } catch (err) {
+            console.error('Password change error:', err);
+            setError(err.message || 'Failed to change password');
+        } finally {
+            setChangingPassword(false);
         }
     };
 
@@ -170,8 +258,95 @@ export default function BrandLogin() {
 
             <div className={`relative z-10 w-full transition-all duration-500 ${step === 'selection' ? 'max-w-6xl' : 'max-w-md'}`}>
 
+                {/* --- PASSWORD CHANGE REQUIRED --- */}
+                {requiresPasswordChange && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="w-full max-w-md mx-auto"
+                    >
+                        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-8 text-center">
+                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <KeyRound size={32} className="text-white" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-white mb-2">Set Your Password</h2>
+                                <p className="text-amber-100 text-sm">Please create a new password for your account</p>
+                            </div>
+
+                            <div className="p-8">
+                                {error && (
+                                    <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
+                                        <Shield size={18} /> {error}
+                                    </div>
+                                )}
+                                {successMessage && (
+                                    <div className="mb-6 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 flex items-center gap-2">
+                                        <CheckCircle size={18} /> {successMessage}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handlePasswordChange} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">New Password</label>
+                                        <div className="relative group">
+                                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                required
+                                                minLength={6}
+                                                className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                                                placeholder="Min 6 characters"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Confirm Password</label>
+                                        <div className="relative group">
+                                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                required
+                                                minLength={6}
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                                                placeholder="Confirm your password"
+                                                value={confirmNewPassword}
+                                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={changingPassword}
+                                        className="w-full bg-amber-500 text-white py-3.5 rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-70 flex items-center justify-center gap-2 mt-4"
+                                    >
+                                        {changingPassword ? (
+                                            <Loader size={20} className="animate-spin" />
+                                        ) : (
+                                            <>
+                                                Set Password <ArrowRight size={18} />
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* --- SELECTION STEP --- */}
-                {step === 'selection' && (
+                {step === 'selection' && !requiresPasswordChange && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

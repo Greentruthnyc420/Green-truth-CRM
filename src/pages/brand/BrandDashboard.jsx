@@ -60,6 +60,17 @@ export default function BrandDashboard() {
     const currentBrandName = brandUser?.brandName || 'Brand';
     const brandData = PRODUCT_CATALOG.find(b => b.id === activeBrandId);
 
+    // Get brand logo - check admin-uploaded logos first, then fallback to product catalog
+    const getBrandLogo = () => {
+        try {
+            const storedBrands = JSON.parse(localStorage.getItem('admin_brands') || '[]');
+            const adminBrand = storedBrands.find(b => b.id === activeBrandId);
+            if (adminBrand?.logo) return adminBrand.logo;
+        } catch (e) { console.warn('Error reading admin brands:', e); }
+        return brandData?.logo || null;
+    };
+    const brandLogo = getBrandLogo();
+
     // Fetch dashboard data
     useEffect(() => {
         async function fetchData() {
@@ -122,7 +133,17 @@ export default function BrandDashboard() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
+                        {/* Brand Logo */}
+                        {brandLogo && (
+                            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center p-2 shrink-0">
+                                <img
+                                    src={brandLogo}
+                                    alt={currentBrandName}
+                                    className="max-w-full max-h-full object-contain"
+                                />
+                            </div>
+                        )}
                         <h1 className="text-3xl font-black text-slate-900 leading-tight">
                             {currentBrandName} <span className="text-emerald-500">Portal</span>
                         </h1>

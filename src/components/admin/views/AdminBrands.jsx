@@ -5,7 +5,7 @@ import {
     DollarSign, Calendar, Users, Building2, Phone, Mail, FileText,
     TrendingUp, CheckCircle, AlertCircle, Key, Copy, Upload, Image
 } from 'lucide-react';
-import { getAllActivations, getSales, getAllBrandProfiles } from '../../../services/firestoreService';
+import { getAllActivations, getSales, getAllBrandProfiles, getAdminBrands, saveAdminBrand, deleteAdminBrand, updateAdminBrand } from '../../../services/firestoreService';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { calculateAgencyShiftCost } from '../../../utils/pricing';
 import { storage } from '../../../firebase';
@@ -57,9 +57,31 @@ export default function AdminBrands() {
     const loadBrands = async () => {
         setLoading(true);
         try {
-            // Load brands from localStorage or use defaults
-            const savedBrands = localStorage.getItem('adminBrands');
-            const brandList = savedBrands ? JSON.parse(savedBrands) : DEFAULT_BRANDS;
+            // Load brands from Supabase, fallback to localStorage, then defaults
+            let brandList;
+            try {
+                brandList = await getAdminBrands();
+                // Convert from Supabase snake_case to camelCase
+                brandList = brandList.map(b => ({
+                    id: b.id,
+                    name: b.name,
+                    status: b.status,
+                    commissionRate: b.commission_rate,
+                    contractStart: b.contract_start,
+                    contacts: b.contacts || [],
+                    loginEmail: b.login_email,
+                    tempPassword: b.temp_password,
+                    passwordChanged: b.password_changed,
+                    inviteSent: b.invite_sent,
+                    logo: b.logo,
+                    createdAt: b.created_at
+                }));
+            } catch (e) {
+                console.warn('Supabase fetch failed, using localStorage:', e);
+                const savedBrands = localStorage.getItem('adminBrands');
+                brandList = savedBrands ? JSON.parse(savedBrands) : DEFAULT_BRANDS;
+            }
+            if (!brandList.length) brandList = DEFAULT_BRANDS;
             setBrands(brandList);
 
             // Load stats for each brand
@@ -105,9 +127,20 @@ export default function AdminBrands() {
         }
     };
 
-    const saveBrands = (updatedBrands) => {
+    const saveBrands = async (updatedBrands) => {
+        // Save to localStorage as backup
         localStorage.setItem('adminBrands', JSON.stringify(updatedBrands));
+        localStorage.setItem('admin_brands', JSON.stringify(updatedBrands)); // For brand login compatibility
         setBrands(updatedBrands);
+
+        // Also sync to Supabase (fire and forget)
+        try {
+            for (const brand of updatedBrands) {
+                await saveAdminBrand(brand).catch(e => console.warn('Brand sync failed:', brand.id, e));
+            }
+        } catch (e) {
+            console.warn('Supabase sync failed:', e);
+        }
     };
 
     const handleAddBrand = () => {

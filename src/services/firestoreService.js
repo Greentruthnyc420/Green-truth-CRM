@@ -862,3 +862,111 @@ export async function markRepAsPaid(repId) {
     // Placeholder implementation:
     return { success: true, count: 0 };
 }
+
+// --- ADMIN BRANDS (Managed via Admin Panel) ---
+
+export async function getAdminBrands() {
+    try {
+        const { data, error } = await supabase
+            .from('admin_brands')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching admin brands:', error);
+        // Fallback to localStorage for backwards compatibility
+        try {
+            return JSON.parse(localStorage.getItem('admin_brands') || '[]');
+        } catch { return []; }
+    }
+}
+
+export async function saveAdminBrand(brand) {
+    try {
+        const { data, error } = await supabase
+            .from('admin_brands')
+            .upsert({
+                id: brand.id,
+                name: brand.name,
+                status: brand.status || 'active',
+                commission_rate: brand.commissionRate || 5,
+                contract_start: brand.contractStart,
+                contacts: brand.contacts || [],
+                login_email: brand.loginEmail,
+                temp_password: brand.tempPassword,
+                password_changed: brand.passwordChanged || false,
+                invite_sent: brand.inviteSent || false,
+                logo: brand.logo,
+                created_at: brand.createdAt || new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'id' })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error saving admin brand:', error);
+        throw error;
+    }
+}
+
+export async function deleteAdminBrand(brandId) {
+    try {
+        const { error } = await supabase
+            .from('admin_brands')
+            .delete()
+            .eq('id', brandId);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('Error deleting admin brand:', error);
+        throw error;
+    }
+}
+
+export async function updateAdminBrand(brandId, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('admin_brands')
+            .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', brandId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error updating admin brand:', error);
+        throw error;
+    }
+}
+
+export async function getAdminBrandByEmail(email) {
+    try {
+        const { data, error } = await supabase
+            .from('admin_brands')
+            .select('*')
+            .ilike('login_email', email)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+        return data;
+    } catch (error) {
+        console.error('Error fetching admin brand by email:', error);
+        return null;
+    }
+}
+
+export async function markBrandPasswordChanged(brandId) {
+    return updateAdminBrand(brandId, {
+        password_changed: true,
+        temp_password: null
+    });
+}
