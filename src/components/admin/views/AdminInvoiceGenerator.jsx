@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, FileText, Download, Import, Upload, CheckCircle, Eye, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Import, Upload, CheckCircle, Eye, RefreshCw, Mail } from 'lucide-react';
 import { useBrandAuth, AVAILABLE_BRANDS } from '../../../contexts/BrandAuthContext';
 import { createInvoice, getUnbilledActivations } from '../../../services/invoiceService';
 import { getBrandUsers } from '../../../services/firestoreService';
