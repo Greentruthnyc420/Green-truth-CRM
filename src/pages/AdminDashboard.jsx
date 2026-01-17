@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
-import { useBrandAuth, BRAND_LICENSES } from '../contexts/BrandAuthContext';
+import { useBrandAuth, BRAND_LICENSES, AVAILABLE_BRANDS } from '../contexts/BrandAuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 // Imports
 import {
@@ -982,7 +982,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {Object.values(BRAND_LICENSES).map((brand) => (
+                            {Object.values(AVAILABLE_BRANDS).map((brand) => (
                                 <div key={brand.brandId} className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center">
                                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-2xl font-bold text-slate-400">
                                         {brand.brandName.substring(0, 2).toUpperCase()}
