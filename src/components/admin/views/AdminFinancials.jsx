@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSales, markRepAsPaid, updateSaleStatus, getAllShifts, getAllActivations } from '../../../services/firestoreService';
+import { getSales, markRepAsPaid, updateSaleStatus, getAllShifts, getAllActivations, updateActivationStatus } from '../../../services/firestoreService';
 import { DollarSign, Users, Award, Download, Filter, Search, CheckCircle, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { convertToCSV, downloadCSV } from '../../../utils/csvHelper';
@@ -63,14 +63,14 @@ export default function AdminFinancials() {
             };
             const totalActivations = allActivations.length;
             const totalFees = allActivations.reduce((acc, a) => acc + getActivationFee(a), 0);
-            const pendingFees = allActivations.filter(a => a.status !== 'paid' && a.status !== 'completed').reduce((acc, a) => acc + getActivationFee(a), 0);
-            const completedFees = allActivations.filter(a => a.status === 'paid' || a.status === 'completed').reduce((acc, a) => acc + getActivationFee(a), 0);
+            const pendingFees = allActivations.filter(a => a.status !== 'paid').reduce((acc, a) => acc + getActivationFee(a), 0);
+            const paidFees = allActivations.filter(a => a.status === 'paid').reduce((acc, a) => acc + getActivationFee(a), 0);
 
             setActivationStats({
                 total: totalActivations,
                 totalFees,
                 pendingFees,
-                completedFees
+                paidFees
             });
 
         } catch (error) {
@@ -90,6 +90,15 @@ export default function AdminFinancials() {
         if (await updateSaleStatus(saleId, 'paid')) {
             showNotification("Commission marked as paid", "success");
             loadFinancials(); // reload
+        } else {
+            showNotification("Failed to update status", "error");
+        }
+    };
+
+    const handleMarkActivationPaid = async (activationId) => {
+        if (await updateActivationStatus(activationId, 'paid')) {
+            showNotification("Activation marked as paid", "success");
+            loadFinancials();
         } else {
             showNotification("Failed to update status", "error");
         }
@@ -249,8 +258,8 @@ export default function AdminFinancials() {
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-teal-100 shadow-sm relative overflow-hidden">
                     <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><CheckCircle size={64} className="text-teal-600" /></div>
-                    <p className="text-teal-600 text-sm font-medium mb-1">Completed/Paid</p>
-                    <h3 className="text-3xl font-bold text-teal-700">${activationStats.completedFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <p className="text-teal-600 text-sm font-medium mb-1">Paid</p>
+                    <h3 className="text-3xl font-bold text-teal-700">${activationStats.paidFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                 </div>
             </div>
 
@@ -263,7 +272,7 @@ export default function AdminFinancials() {
                     <h2 className="font-bold text-slate-700">Activations Ledger</h2>
                     <div className="flex items-center gap-3">
                         <div className="flex gap-2">
-                            {['all', 'pending', 'completed'].map(f => (
+                            {['all', 'pending', 'paid'].map(f => (
                                 <button
                                     key={f}
                                     onClick={(e) => { e.stopPropagation(); setActivationFilter(f); }}
@@ -287,14 +296,15 @@ export default function AdminFinancials() {
                                     <th className="px-6 py-3">Brand</th>
                                     <th className="px-6 py-3 text-right">Activation Fee</th>
                                     <th className="px-6 py-3 text-center">Status</th>
+                                    <th className="px-6 py-3 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {activations
                                     .filter(a => {
                                         if (activationFilter === 'all') return true;
-                                        if (activationFilter === 'completed') return a.status === 'completed' || a.status === 'paid';
-                                        return a.status === activationFilter;
+                                        if (activationFilter === 'paid') return a.status === 'paid';
+                                        return a.status !== 'paid';
                                     })
                                     .map(activation => (
                                         <tr key={activation.id} className="hover:bg-slate-50">
@@ -314,22 +324,32 @@ export default function AdminFinancials() {
                                                 })()}
                                             </td>
                                             <td className="px-6 py-3 text-center">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${activation.status === 'completed' || activation.status === 'paid'
+                                                <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${activation.status === 'paid'
                                                     ? 'bg-teal-100 text-teal-700'
                                                     : 'bg-amber-100 text-amber-700'
                                                     }`}>
-                                                    {activation.status || 'pending'}
+                                                    {activation.status === 'paid' ? 'paid' : 'pending'}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-3 text-right">
+                                                {activation.status !== 'paid' && (
+                                                    <button
+                                                        onClick={() => handleMarkActivationPaid(activation.id)}
+                                                        className="text-xs bg-teal-50 text-teal-600 px-2 py-1 rounded hover:bg-teal-100 font-medium"
+                                                    >
+                                                        Mark Paid
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
                                 {activations.filter(a => {
                                     if (activationFilter === 'all') return true;
-                                    if (activationFilter === 'completed') return a.status === 'completed' || a.status === 'paid';
-                                    return a.status === activationFilter;
+                                    if (activationFilter === 'paid') return a.status === 'paid';
+                                    return a.status !== 'paid';
                                 }).length === 0 && (
                                         <tr>
-                                            <td colSpan="5" className="p-8 text-center text-slate-400">No activations found.</td>
+                                            <td colSpan="6" className="p-8 text-center text-slate-400">No activations found.</td>
                                         </tr>
                                     )}
                             </tbody>
