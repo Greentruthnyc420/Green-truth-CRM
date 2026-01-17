@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { getSales, markRepAsPaid, updateSaleStatus, getAllShifts } from '../../../services/firestoreService';
-import { DollarSign, Users, Award, Download, Filter, Search, CheckCircle } from 'lucide-react';
+import { getSales, markRepAsPaid, updateSaleStatus, getAllShifts, getAllActivations } from '../../../services/firestoreService';
+import { DollarSign, Users, Award, Download, Filter, Search, CheckCircle, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { convertToCSV, downloadCSV } from '../../../utils/csvHelper';
 
 export default function AdminFinancials() {
     const [sales, setSales] = useState([]);
+    const [activations, setActivations] = useState([]);
     const [filter, setFilter] = useState('all'); // all, pending, paid
+    const [activationFilter, setActivationFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const { showNotification } = useNotification();
     const [stats, setStats] = useState({ totalRevenue: 0, companyCommission: 0, pendingRepCommissions: 0, paidRepCommissions: 0 });
+    const [activationStats, setActivationStats] = useState({ total: 0, totalFees: 0, pendingFees: 0, completedFees: 0 });
+
+    // Ledger collapse state
+    const [commissionsOpen, setCommissionsOpen] = useState(true);
+    const [activationsOpen, setActivationsOpen] = useState(true);
 
     useEffect(() => {
         loadFinancials();
@@ -18,12 +25,16 @@ export default function AdminFinancials() {
     const loadFinancials = async () => {
         setLoading(true);
         try {
-            const allSales = await getSales();
+            const [allSales, allActivations] = await Promise.all([
+                getSales(),
+                getAllActivations()
+            ]);
             setSales(allSales);
+            setActivations(allActivations);
 
-            // Calc Stats
+            // Calc Commission Stats
             const totalRev = allSales.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-            const companyComm = totalRev * 0.05; // Company earns 5%
+            const companyComm = totalRev * 0.05;
             const pendingRep = allSales.filter(s => s.status !== 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
             const paidRep = allSales.filter(s => s.status === 'paid').reduce((acc, curr) => acc + (parseFloat(curr.commissionEarned) || ((parseFloat(curr.amount) || 0) * 0.02)), 0);
 
@@ -32,6 +43,19 @@ export default function AdminFinancials() {
                 companyCommission: companyComm,
                 pendingRepCommissions: pendingRep,
                 paidRepCommissions: paidRep
+            });
+
+            // Calc Activation Stats
+            const totalActivations = allActivations.length;
+            const totalFees = allActivations.reduce((acc, a) => acc + (parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0), 0);
+            const pendingFees = allActivations.filter(a => a.status !== 'paid' && a.status !== 'completed').reduce((acc, a) => acc + (parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0), 0);
+            const completedFees = allActivations.filter(a => a.status === 'paid' || a.status === 'completed').reduce((acc, a) => acc + (parseFloat(a.activationFee) || parseFloat(a.activation_fee) || 0), 0);
+
+            setActivationStats({
+                total: totalActivations,
+                totalFees,
+                pendingFees,
+                completedFees
             });
 
         } catch (error) {
@@ -89,7 +113,10 @@ export default function AdminFinancials() {
                 </button>
             </div>
 
-            {/* Stats Cards */}
+            {/* Commission Stats Cards */}
+            <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2 mt-4">
+                <DollarSign size={20} className="text-indigo-600" /> Sales Commissions
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <p className="text-slate-500 text-sm font-medium mb-1">Total Sales Revenue</p>
@@ -112,70 +139,179 @@ export default function AdminFinancials() {
                 </div>
             </div>
 
-            {/* Main Table */}
+            {/* Commissions Ledger - Collapsible */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+                <button
+                    onClick={() => setCommissionsOpen(!commissionsOpen)}
+                    className="w-full p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 hover:bg-slate-100 transition-colors"
+                >
                     <h2 className="font-bold text-slate-700">Commissions Ledger</h2>
-                    <div className="flex gap-2">
-                        {['all', 'pending', 'paid'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${filter === f ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
-                            >
-                                {f}
-                            </button>
-                        ))}
+                    <div className="flex items-center gap-3">
+                        <div className="flex gap-2">
+                            {['all', 'pending', 'paid'].map(f => (
+                                <button
+                                    key={f}
+                                    onClick={(e) => { e.stopPropagation(); setFilter(f); }}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${filter === f ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                        {commissionsOpen ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                     </div>
-                </div>
+                </button>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-xs uppercase text-slate-400 font-medium">
-                            <tr>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3">Dispensary</th>
-                                <th className="px-6 py-3 text-right">Sale Amt</th>
-                                <th className="px-6 py-3 text-right">Rep Commission (2%)</th>
-                                <th className="px-6 py-3 text-center">Status</th>
-                                <th className="px-6 py-3 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {filteredSales.map(sale => {
-                                const commission = (parseFloat(sale.amount) || 0) * 0.02;
-                                return (
-                                    <tr key={sale.id} className="hover:bg-slate-50">
-                                        <td className="px-6 py-3 text-slate-600">{safeDate(sale.date)}</td>
-                                        <td className="px-6 py-3 font-medium text-slate-800">{sale.dispensaryName}</td>
-                                        <td className="px-6 py-3 text-right font-mono">${parseFloat(sale.amount).toFixed(2)}</td>
-                                        <td className="px-6 py-3 text-right font-bold text-emerald-600 font-mono">${commission.toFixed(2)}</td>
-                                        <td className="px-6 py-3 text-center">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${sale.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                {sale.status || 'pending'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 text-right">
-                                            {sale.status !== 'paid' && (
-                                                <button
-                                                    onClick={() => handleMarkPaid(sale.id)}
-                                                    className="text-xs text-brand-600 hover:text-brand-800 font-medium underline"
-                                                >
-                                                    Mark Paid
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {filteredSales.length === 0 && (
+                {commissionsOpen && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 text-xs uppercase text-slate-400 font-medium">
                                 <tr>
-                                    <td colSpan="6" className="p-8 text-center text-slate-400">No records found.</td>
+                                    <th className="px-6 py-3">Date</th>
+                                    <th className="px-6 py-3">Dispensary</th>
+                                    <th className="px-6 py-3 text-right">Sale Amt</th>
+                                    <th className="px-6 py-3 text-right">Rep Commission (2%)</th>
+                                    <th className="px-6 py-3 text-center">Status</th>
+                                    <th className="px-6 py-3 text-right">Action</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredSales.map(sale => {
+                                    const commission = (parseFloat(sale.amount) || 0) * 0.02;
+                                    return (
+                                        <tr key={sale.id} className="hover:bg-slate-50">
+                                            <td className="px-6 py-3 text-slate-600">{safeDate(sale.date)}</td>
+                                            <td className="px-6 py-3 font-medium text-slate-800">{sale.dispensaryName}</td>
+                                            <td className="px-6 py-3 text-right font-mono">${parseFloat(sale.amount).toFixed(2)}</td>
+                                            <td className="px-6 py-3 text-right font-bold text-emerald-600 font-mono">${commission.toFixed(2)}</td>
+                                            <td className="px-6 py-3 text-center">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${sale.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                    {sale.status || 'pending'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3 text-right">
+                                                {sale.status !== 'paid' && (
+                                                    <button
+                                                        onClick={() => handleMarkPaid(sale.id)}
+                                                        className="text-xs text-brand-600 hover:text-brand-800 font-medium underline"
+                                                    >
+                                                        Mark Paid
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {filteredSales.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" className="p-8 text-center text-slate-400">No records found.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Activation Stats Cards */}
+            <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2 mt-8">
+                <Calendar size={20} className="text-purple-600" /> Activations
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-slate-500 text-sm font-medium mb-1">Total Activations</p>
+                    <h3 className="text-3xl font-bold text-slate-900">{activationStats.total}</h3>
                 </div>
+                <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><Calendar size={64} className="text-purple-600" /></div>
+                    <p className="text-purple-600 text-sm font-medium mb-1">Total Fees Owed</p>
+                    <h3 className="text-3xl font-bold text-purple-700">${activationStats.totalFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                </div>
+                <div className="bg-white p-6 rounded-xl border border-amber-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><Calendar size={64} className="text-amber-600" /></div>
+                    <p className="text-amber-600 text-sm font-medium mb-1">Pending Activation Fees</p>
+                    <h3 className="text-3xl font-bold text-amber-700">${activationStats.pendingFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                </div>
+                <div className="bg-white p-6 rounded-xl border border-teal-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><CheckCircle size={64} className="text-teal-600" /></div>
+                    <p className="text-teal-600 text-sm font-medium mb-1">Completed/Paid</p>
+                    <h3 className="text-3xl font-bold text-teal-700">${activationStats.completedFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                </div>
+            </div>
+
+            {/* Activations Ledger - Collapsible */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <button
+                    onClick={() => setActivationsOpen(!activationsOpen)}
+                    className="w-full p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 hover:bg-slate-100 transition-colors"
+                >
+                    <h2 className="font-bold text-slate-700">Activations Ledger</h2>
+                    <div className="flex items-center gap-3">
+                        <div className="flex gap-2">
+                            {['all', 'pending', 'completed'].map(f => (
+                                <button
+                                    key={f}
+                                    onClick={(e) => { e.stopPropagation(); setActivationFilter(f); }}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${activationFilter === f ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                        {activationsOpen ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+                    </div>
+                </button>
+
+                {activationsOpen && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 text-xs uppercase text-slate-400 font-medium">
+                                <tr>
+                                    <th className="px-6 py-3">Date</th>
+                                    <th className="px-6 py-3">Dispensary</th>
+                                    <th className="px-6 py-3">Brand</th>
+                                    <th className="px-6 py-3 text-right">Activation Fee</th>
+                                    <th className="px-6 py-3 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {activations
+                                    .filter(a => {
+                                        if (activationFilter === 'all') return true;
+                                        if (activationFilter === 'completed') return a.status === 'completed' || a.status === 'paid';
+                                        return a.status === activationFilter;
+                                    })
+                                    .map(activation => (
+                                        <tr key={activation.id} className="hover:bg-slate-50">
+                                            <td className="px-6 py-3 text-slate-600">{safeDate(activation.date || activation.activation_date)}</td>
+                                            <td className="px-6 py-3 font-medium text-slate-800">{activation.dispensaryName || activation.dispensary_name || 'N/A'}</td>
+                                            <td className="px-6 py-3 text-slate-600">{activation.brandName || activation.brand_name || activation.brand || 'N/A'}</td>
+                                            <td className="px-6 py-3 text-right font-bold text-purple-600 font-mono">
+                                                ${(parseFloat(activation.activationFee) || parseFloat(activation.activation_fee) || 0).toFixed(2)}
+                                            </td>
+                                            <td className="px-6 py-3 text-center">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${activation.status === 'completed' || activation.status === 'paid'
+                                                        ? 'bg-teal-100 text-teal-700'
+                                                        : 'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                    {activation.status || 'pending'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                {activations.filter(a => {
+                                    if (activationFilter === 'all') return true;
+                                    if (activationFilter === 'completed') return a.status === 'completed' || a.status === 'paid';
+                                    return a.status === activationFilter;
+                                }).length === 0 && (
+                                        <tr>
+                                            <td colSpan="5" className="p-8 text-center text-slate-400">No activations found.</td>
+                                        </tr>
+                                    )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
