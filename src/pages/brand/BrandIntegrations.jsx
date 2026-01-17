@@ -110,11 +110,13 @@ export default function BrandIntegrations() {
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">Supported Systems & Formats</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {/* Monday integration hidden - code kept for future use
                             <MondayIntegrationCard
                                 getSettings={getBrandMondaySettings}
                                 saveSettings={saveBrandMondaySettings}
                                 testConnection={testBrandMondayConnection}
                             />
+                            */}
                             {SUPPORTED_SYSTEMS.map((system) => (
                                 <div
                                     key={system.id}
