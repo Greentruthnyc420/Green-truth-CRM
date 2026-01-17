@@ -143,7 +143,33 @@ export async function getUserActivations(userId, statusFilter = null) {
 export async function getAllActivations() {
     const { data, error } = await supabase.from('activations').select('*').order('activation_date', { ascending: false });
     if (error) return [];
-    return data;
+
+    // Map database fields to frontend expected format
+    return data.map(a => ({
+        id: a.id,
+        brandId: a.brand_id,
+        brandName: a.brand_name,
+        brand: a.brand_name, // Alias for compatibility
+        dispensaryName: a.dispensary_name || 'Store Visit',
+        dispensaryId: a.dispensary_id,
+        repId: a.rep_id,
+        repName: a.rep_name,
+        date: a.activation_date || a.created_at,
+        activationType: a.activation_type,
+        status: a.status || 'pending',
+        startTime: a.start_time,
+        endTime: a.end_time,
+        hoursWorked: a.total_hours || 0,
+        milesTraveled: a.miles_traveled || 0,
+        tollAmount: a.toll_amount || 0,
+        region: a.region || 'NYC',
+        hasVehicle: a.has_vehicle,
+        notes: a.notes,
+        tripLogImageUrl: a.trip_log_image_url,
+        tollReceiptUrl: a.toll_receipt_url,
+        createdAt: a.created_at,
+        updatedAt: a.updated_at
+    }));
 }
 
 // Deprecated: Use getUserActivations instead
