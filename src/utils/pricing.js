@@ -31,8 +31,8 @@ export const calculateAgencyShiftCost = (shift) => {
         baseFee = tiers[5] + (extraHours * 40);
     }
 
-    // Agency Mileage Rate: $0.70/mile
-    const mileageCost = (parseFloat(shift.milesTraveled) || 0) * MILEAGE_RATE;
+    // Agency Mileage Rate: $0.725/mile (round up to nearest penny)
+    const mileageCost = Math.ceil((parseFloat(shift.milesTraveled) || 0) * MILEAGE_RATE * 100) / 100;
 
     // Tolls (At Cost)
     const tollsCost = parseFloat(shift.tollAmount) || 0;
