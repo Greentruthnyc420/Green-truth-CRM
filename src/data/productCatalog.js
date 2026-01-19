@@ -4,6 +4,7 @@ export const PRODUCT_CATALOG = [
         id: 'honey-king',
         name: 'Honey King',
         logo: '/logos/partner-6.png',
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [
             // 2G ROYAL PALM Premium Oil ALL-IN-ONE ($34.95 / unit, 5ct pack)
             { id: 'hk-2g-white-widow', name: '2G Royal Palm - White Widow', description: '2G All-In-One | Hybrid', price: 34.95, caseSize: 5, unit: 'unit', thc: '81.33%', strainType: 'Hybrid', category: 'Vape', inStock: true },
@@ -76,6 +77,7 @@ export const PRODUCT_CATALOG = [
         id: 'bud-cracker',
         name: 'Bud Cracker Boulevard',
         logo: null,
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [
             // INDOOR Flower (3.5g)
             { id: 'bc-st-135-74', name: 'Sour Tangie', description: '3.5g Indoor Flower', price: 17.00, caseSize: 32, unit: 'unit', thc: '21.03%', strainType: 'Sativa', category: 'Flower', inStock: true },
@@ -88,6 +90,7 @@ export const PRODUCT_CATALOG = [
         id: 'canna-dots',
         name: 'Canna Dots',
         logo: null,
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [
             { id: 'cd-dots-unflavored', name: 'THC Dissolvable Dots - Unflavored', description: '2.5mg per dot, 100mg per unit | 3.79% CBD', price: 14.50, caseSize: 20, unit: 'unit', thc: '3.73%', strainType: 'Hybrid', category: 'Edible', inStock: true },
             { id: 'cd-dots-blueberry', name: 'THC Sublingual Dots - Blueberry', description: '5mg per dot, 100mg per unit | 7.17% CBD', price: 13.50, caseSize: 20, unit: 'unit', thc: '7.27%', strainType: 'Hybrid', category: 'Edible', inStock: true },
@@ -99,6 +102,7 @@ export const PRODUCT_CATALOG = [
         id: 'space-poppers',
         name: 'Space Poppers',
         logo: '/logos/space-poppers.png',
+        minimumOrder: { type: 'cases', value: 3 }, // 3 case minimum (per user request)
         products: [
             { id: 'sp-sweet-chili', name: 'Sweet Chili Popcorn', description: '100mg - Sweet caramel and spicy chili-coated kernels', price: 14.00, caseSize: 25, unit: 'unit', thc: '100mg', strainType: 'Hybrid', category: 'Edible', inStock: true },
             { id: 'sp-sea-salt', name: 'Sea Salt Caramel Popcorn', description: '100mg - Rich, buttery caramel-coated kernels with sea salt', price: 14.00, caseSize: 25, unit: 'unit', thc: '100mg', strainType: 'Hybrid', category: 'Edible', inStock: true },
@@ -109,6 +113,7 @@ export const PRODUCT_CATALOG = [
         id: 'smoothie-bar',
         name: 'Smoothie Bar',
         logo: '/logos/smoothie-bar.png',
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [
             { id: 'sb-mimosa', name: 'Mimosa x Dirty Shirley', description: 'Sativa x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Sativa', category: 'Vape', inStock: true },
             { id: 'sb-papaya', name: 'Papaya x Lemonade', description: 'Indica x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
@@ -123,6 +128,7 @@ export const PRODUCT_CATALOG = [
         id: 'waferz',
         name: 'Waferz NY',
         logo: null,
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [
             { id: 'wz-flower-rb', name: 'Glacierz Infused Flower - Rainbow Belts (7G)', description: 'Premium Infused Flower', price: 50.00, caseSize: 20, unit: 'unit', thc: '32%', strainType: 'Hybrid', category: 'Flower', inStock: true },
             { id: 'wz-flower-loc', name: 'Glacierz Infused Flower - Lemon Orange Cake (7G)', description: 'Premium Infused Flower', price: 50.00, caseSize: 20, unit: 'unit', thc: '31%', strainType: 'Sativa', category: 'Flower', inStock: true },
@@ -147,6 +153,7 @@ export const PRODUCT_CATALOG = [
         id: 'pines',
         name: 'Pines',
         logo: '/logos/flx-extracts.png',
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [
             // Greenhouse Flower (3.5g)
             { id: 'pines-flower-pines-og', name: 'Pines OG', description: 'Mixed-Light Greenhouse Jars (3.5g) - Chemdawg x Hindu Kush', price: 10.00, caseSize: 32, unit: 'unit', thc: '20.66%', strainType: 'Indica', category: 'Flower', inStock: true },
@@ -184,6 +191,7 @@ export const PRODUCT_CATALOG = [
         logo: '/logos/flx-extracts.png',
         isProcessor: true, // This is a processor, not a regular brand
         subBrands: ['pines', 'smoothie-bar', 'waferz'], // Brands under this processor
+        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [] // Processor doesn't have its own products - manages sub-brands
     }
 ];

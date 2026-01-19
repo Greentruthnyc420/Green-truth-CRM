@@ -92,7 +92,7 @@ export default function DispensaryIntegrations() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-white rounded-xl p-2 shadow-sm border border-slate-200">
+            <div style={{ background: 'var(--bg-card)' }} className="flex gap-2 rounded-xl p-2 shadow-sm border border-slate-200">
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'overview'
@@ -126,7 +126,7 @@ export default function DispensaryIntegrations() {
             {activeTab === 'overview' && (
                 <div className="space-y-6">
                     {/* Supported POS Systems */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">Supported POS Systems</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {SUPPORTED_POS.map((pos) => (
@@ -161,7 +161,8 @@ export default function DispensaryIntegrations() {
 
 
 
-                    {/* Monday.com Integration Card */}
+                    {/* Monday.com Integration Card - Hidden for now, code preserved */}
+                    {/* 
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -206,9 +207,10 @@ export default function DispensaryIntegrations() {
                             </div>
                         )}
                     </div>
+                    */}
 
                     {/* Quick Start Guide */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <FileText size={20} className="text-purple-600" />
                             Quick Start Guide
@@ -272,7 +274,7 @@ export default function DispensaryIntegrations() {
             {
                 activeTab === 'export' && (
                     <div className="space-y-6">
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <Download size={20} className="text-purple-600" />
                                 CSV Export Guide
@@ -341,7 +343,7 @@ export default function DispensaryIntegrations() {
             {
                 activeTab === 'import' && (
                     <div className="space-y-6">
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <Upload size={20} className="text-purple-600" />
                                 CSV Import Instructions

@@ -13,9 +13,9 @@ export default function DispensaryLayout() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+        <div className="min-h-screen flex flex-col md:flex-row" style={{ background: 'var(--bg-primary)' }}>
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-screen sticky top-0">
+            <aside className="hidden md:flex flex-col w-64 border-r h-screen sticky top-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="p-8 border-b border-slate-50">
                     <img src="/logos/logo-main.png" alt="Logo" className="h-12 w-auto object-contain" />
                 </div>
@@ -45,7 +45,7 @@ export default function DispensaryLayout() {
             </aside>
 
             {/* Mobile Nav */}
-            <header className="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-40">
+            <header className="md:hidden border-b p-4 flex items-center justify-between sticky top-0 z-40" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <img src="/logos/logo-main.png" alt="Logo" className="h-10 w-auto" />
                 <div className="flex items-center gap-3">
                     <button className="p-2 text-slate-400"><Bell size={20} /></button>
@@ -62,7 +62,7 @@ export default function DispensaryLayout() {
             </main>
 
             {/* Mobile Bottom Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-2 py-2 flex justify-around items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t pb-safe z-40 px-2 py-2 flex justify-around items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <MobileNavItem to="/dispensary" icon={<LayoutDashboard size={22} />} label="Dashboard" />
                 <MobileNavItem to="/dispensary/marketplace" icon={<ShoppingBag size={22} />} label="Shop" />
                 <MobileNavItem to="/dispensary/integrations" icon={<Plug size={22} />} label="Integrations" />
@@ -80,8 +80,12 @@ const DispensaryNavItem = ({ to, icon, label }) => (
     <NavLink
         to={to}
         end
+        style={({ isActive }) => ({
+            background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
+            color: isActive ? 'var(--accent-primary)' : undefined
+        })}
         className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-500 hover:bg-slate-50'
+            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${isActive ? 'shadow-lg' : 'text-slate-500 hover:bg-slate-50'
             }`
         }
     >

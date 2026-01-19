@@ -243,7 +243,7 @@ export default function NewLead() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="themed-card p-6 rounded-xl space-y-4">
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Dispensary Name</label>
@@ -321,7 +321,8 @@ export default function NewLead() {
                                         <div>
                                             <label className="block text-xs font-medium text-slate-500 mb-1">Role</label>
                                             <select
-                                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-2 border bg-white text-sm"
+                                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-2 border text-sm"
+                                                style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                                                 value={contact.role}
                                                 onChange={(e) => updateContact(index, 'role', e.target.value)}
                                             >
@@ -399,7 +400,8 @@ export default function NewLead() {
                                 <button
                                     type="button"
                                     onClick={() => { setLicenseImage(null); setLicensePreview(null); }}
-                                    className="absolute top-2 right-2 p-1 bg-white/90 rounded-full text-slate-600 hover:text-red-600 shadow-sm"
+                                    className="absolute top-2 right-2 p-1 rounded-full text-slate-600 hover:text-red-600 shadow-sm"
+                                    style={{ background: 'var(--bg-tertiary)' }}
                                 >
                                     <X size={16} />
                                 </button>
@@ -423,7 +425,7 @@ export default function NewLead() {
                 </div>
 
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4 mb-4">
+                    <div className="themed-card p-6 rounded-xl space-y-4 mb-4">
                         <h2 className="font-semibold text-slate-800">Lead Priority</h2>
                         <div className="grid grid-cols-3 gap-2 sm:gap-3">
                             {['Low', 'Normal', 'High'].map(p => (
@@ -444,7 +446,7 @@ export default function NewLead() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                    <div className="themed-card p-6 rounded-xl space-y-4">
                         <h2 className="font-semibold text-slate-800">Samples Requested</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {availableBrands.map(brand => (

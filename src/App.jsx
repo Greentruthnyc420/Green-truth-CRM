@@ -46,6 +46,8 @@ import AmbassadorOverview from './components/admin/AmbassadorOverview';
 import AdminLogistics from './components/admin/views/AdminLogistics';
 import AdminIntegrations from './pages/admin/AdminIntegrations';
 import AdminBrands from './components/admin/views/AdminBrands';
+import AdminCollections from './components/admin/views/AdminCollections';
+import DispensaryDetail from './pages/admin/DispensaryDetail';
 
 // Brand Portal Imports
 import BrandLogin from './pages/brand/BrandLogin';
@@ -111,6 +113,9 @@ function App() {
             <Route path="integrations" element={<AdminIntegrations />} />
             <Route path="logistics" element={<AdminLogistics />} />
             <Route path="brands" element={<AdminBrands />} />
+            <Route path="brands/:brandId" element={<AdminBrands />} />
+            <Route path="collections" element={<AdminCollections />} />
+            <Route path="dispensary/:id" element={<DispensaryDetail />} />
           </Route>
         </Route>
 

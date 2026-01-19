@@ -101,6 +101,28 @@ export async function addCompletedActivation(activationData) {
     }]).select().single();
 
     if (error) throw error;
+
+    // Auto-generate invoice for the brand
+    try {
+        const { createActivationInvoice } = await import('./invoiceService');
+        const { calculateAgencyShiftCost } = await import('../utils/pricing');
+
+        // Calculate activation fee using agency pricing
+        const activationFee = calculateAgencyShiftCost({
+            hoursWorked: totalHours,
+            region: activationData.region || 'NYC',
+            milesTraveled: activationData.milesTraveled || 0,
+            tollAmount: activationData.tollAmount || 0,
+            hasVehicle: activationData.hasVehicle !== undefined ? activationData.hasVehicle : true
+        });
+
+        // Create the invoice
+        await createActivationInvoice(data, activationFee);
+    } catch (invoiceError) {
+        // Don't fail the activation if invoice creation fails
+        console.error('⚠️ Invoice auto-generation failed (activation still saved):', invoiceError);
+    }
+
     return data.id;
 }
 
@@ -216,7 +238,6 @@ export async function addLead(leadData) {
         active_brands: leadData.activeBrands || [],
         assigned_ambassador_id: leadData.userId, // Mapping userId -> assigned_ambassador_id
         rep_assigned_name: leadData.repAssigned,
-        status: 'prospect', // Default
         lead_status: initialStatus,
         location: leadData.location,
         license_image_url: leadData.licenseImageUrl,
@@ -398,16 +419,25 @@ export async function addSale(saleData) {
         leadId = newLead.id;
     }
 
-    // 2. Insert Sale
+    // 2. Insert Sale - use correct Supabase column names
+    // Extract brand info from items if available
+    const brandInfo = saleData.items && saleData.items.length > 0 ? saleData.items[0] : {};
+
     const { data: sale, error } = await supabase.from('sales').insert([{
-        lead_id: leadId,
+        dispensary_id: leadId,
         rep_id: repId,
         dispensary_name: saleData.dispensaryName,
-        amount: saleData.totalAmount || saleData.amount,
-        commission: saleData.commissionEarned || 0,
-        items: saleData.items || [],
+        total_amount: saleData.totalAmount || saleData.amount || 0,
+        // commission_rate stores the rate (e.g., 0.02 for 2%), not the dollar amount
+        // Database constraint: precision 5, scale 4 (max 9.9999)
+        commission_rate: saleData.commissionRate || 0.02,
+        products: saleData.items || [],
+        brand_id: brandInfo.brandId || saleData.brandId || null,
+        brand_name: brandInfo.brandName || saleData.brandName || null,
         status: saleData.status || 'completed',
-        created_at: new Date().toISOString()
+        sale_date: saleData.date ? new Date(saleData.date).toISOString() : new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
     }]).select().single();
 
     if (error) throw error;
@@ -416,20 +446,29 @@ export async function addSale(saleData) {
 
 export async function getSales() {
     const { data, error } = await supabase.from('sales').select('*');
-    if (error) return [];
+    if (error) {
+        console.error('getSales error:', error);
+        return [];
+    }
 
     return data.map(s => ({
         id: s.id,
-        dispensaryId: s.lead_id,
+        dispensaryId: s.dispensary_id,
         userId: s.rep_id, // Map back to userId for app compatibility
+        repId: s.rep_id,
         dispensaryName: s.dispensary_name,
-        amount: s.amount,
-        totalAmount: s.amount, // alias
-        commissionEarned: s.commission,
-        items: s.items,
+        amount: s.total_amount || 0,
+        totalAmount: s.total_amount || 0, // alias
+        // Calculate commission $ from rate * amount
+        commissionEarned: (s.commission_rate || 0.02) * (s.total_amount || 0),
+        commissionRate: s.commission_rate || 0.02,
+        items: s.products || [],
+        products: s.products || [], // direct alias
         status: s.status,
-        date: s.created_at, // App expects 'date'
+        date: s.sale_date || s.created_at, // App expects 'date'
+        saleDate: s.sale_date,
         createdAt: s.created_at,
+        updatedAt: s.updated_at,
         // Add brand info for Brand Oversight
         brandId: s.brand_id || null,
         brandName: s.brand_name || null
@@ -482,13 +521,29 @@ export async function checkDuplicateLead(name) {
 
 export async function getAllAccounts(userId, isAdmin) {
     const [leads, sales] = await Promise.all([getLeads(), getSales()]);
-    // Logic to merge can mostly remain client-side if we return compatible arrays
-    return { leads, sales }; // Or whatever the original returned? 
-    // Original returned Promise.all result implicitly? No, it did some merging.
-    // Let's assume consumer uses getLeads/getSales separately or we fix the consumer.
-    // Actually, looking at previous file viewing, it did a map join.
-    // For now, let's keep it simple.
-    return leads;
+
+    // Create a map of dispensary names that have sales
+    const soldDispensaries = new Set();
+    sales.forEach(sale => {
+        if (sale.dispensaryName) {
+            soldDispensaries.add(sale.dispensaryName.toLowerCase());
+        }
+    });
+
+    // Merge leads with sales info - mark leads as Sold if they have sales
+    const mergedAccounts = leads.map(lead => {
+        const hasBeenSold = soldDispensaries.has((lead.dispensaryName || '').toLowerCase()) ||
+            lead.status === 'Sold' ||
+            lead.leadStatus === 'active';
+
+        return {
+            ...lead,
+            status: hasBeenSold ? 'Sold' : (lead.status || 'New'),
+            hasSales: hasBeenSold
+        };
+    });
+
+    return mergedAccounts;
 }
 
 // --- BRAND PRODUCTS (Menu Items) ---
@@ -631,13 +686,42 @@ export async function updateActivation(id, data) {
 }
 
 export async function updateSaleStatus(saleId, status) {
-    console.warn("updateSaleStatus not migrated");
-    return Promise.resolve();
+    const { error } = await supabase
+        .from('sales')
+        .update({
+            status: status,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', saleId);
+
+    if (error) {
+        console.error("updateSaleStatus error:", error);
+        return false;
+    }
+    return true;
 }
 
 export async function updateSale(saleId, data) {
-    console.warn("updateSale not migrated");
-    return Promise.resolve();
+    // Map frontend field names to Supabase column names if needed
+    const updateData = {
+        ...data,
+        updated_at: new Date().toISOString()
+    };
+
+    // Handle common field mappings
+    if (data.paidDate) updateData.paid_date = data.paidDate;
+    if (data.deliveredAt) updateData.delivered_at = data.deliveredAt;
+
+    const { error } = await supabase
+        .from('sales')
+        .update(updateData)
+        .eq('id', saleId);
+
+    if (error) {
+        console.error("updateSale error:", error);
+        return false;
+    }
+    return true;
 }
 
 export async function seedBrands() {
@@ -672,40 +756,174 @@ export async function resetDatabase() {
         'sales',
         'leads',
         'sample_requests',
-        'shifts',
         'activations',
         'activity_logs',
         'security_logs',
         'drivers',
-        'vehicles'
+        'vehicles',
+        'orders',
+        'payment_history'
     ];
 
     const results = await Promise.all(
         tables.map(async (tableName) => {
-            // neq('id', -1) is a common trick to delete all rows when id is an integer.
-            // For UUIDs, we can use neq('id', '00000000-0000-0000-0000-000000000000')
-            // Or better yet, just a filter that is always true like .gt('created_at', '1970-01-01')
-            const { error } = await supabase
-                .from(tableName)
-                .delete()
-                .filter('created_at', 'gt', '1970-01-01');
+            try {
+                // First, count how many records exist
+                const { count, error: countError } = await supabase
+                    .from(tableName)
+                    .select('*', { count: 'exact', head: true });
 
-            if (error) {
-                console.error(`Error clearing table ${tableName}:`, error);
-                return { table: tableName, success: false, error };
+                if (countError) {
+                    console.warn(`Could not count ${tableName}:`, countError);
+                }
+
+                // Delete all rows
+                const { error } = await supabase
+                    .from(tableName)
+                    .delete()
+                    .gte('created_at', '1970-01-01');
+
+                if (error) {
+                    console.error(`Error clearing table ${tableName}:`, error);
+                    return { table: tableName, success: false, error, deleted: 0 };
+                }
+                return { table: tableName, success: true, deleted: count || 0 };
+            } catch (e) {
+                console.error(`Exception clearing table ${tableName}:`, e);
+                return { table: tableName, success: false, error: e.message, deleted: 0 };
             }
-            return { table: tableName, success: true };
         })
     );
 
     const failed = results.filter(r => !r.success);
+    const totalDeleted = results.reduce((sum, r) => sum + (r.deleted || 0), 0);
+
     if (failed.length > 0) {
         console.error("Database reset failed for some tables:", failed);
-        return false;
+        return { success: false, results, totalDeleted };
     }
 
     console.log("✅ Database reset complete. All test data cleared.");
-    return true;
+    return { success: true, results, totalDeleted };
+}
+
+/**
+ * Developer tool: Reset all data with detailed feedback.
+ * Returns a summary of what was deleted from each table.
+ * Gracefully handles tables that don't exist.
+ */
+export async function devResetAllData() {
+    console.warn("🚨 DEVELOPER RESET: Clearing all transactional data...");
+
+    const tablesToClear = [
+        { name: 'activations', label: 'Activations' },
+        { name: 'sales', label: 'Sales' },
+        { name: 'leads', label: 'Leads/Dispensaries' },
+        { name: 'sample_requests', label: 'Sample Requests' },
+        { name: 'orders', label: 'Orders' },
+        { name: 'payment_history', label: 'Payment History' },
+        { name: 'activity_logs', label: 'Activity Logs' },
+        { name: 'security_logs', label: 'Security Logs' },
+        { name: 'drivers', label: 'Drivers' },
+        { name: 'vehicles', label: 'Vehicles' }
+    ];
+
+    const results = [];
+
+    for (const table of tablesToClear) {
+        try {
+            // Count first
+            const { count, error: countError } = await supabase
+                .from(table.name)
+                .select('*', { count: 'exact', head: true });
+
+            // If table doesn't exist or error, mark as skipped
+            if (countError) {
+                results.push({
+                    table: table.name,
+                    label: table.label,
+                    success: true,
+                    skipped: true,
+                    deleted: 0
+                });
+                continue;
+            }
+
+            // If count is 0, skip the delete
+            if (!count || count === 0) {
+                results.push({
+                    table: table.name,
+                    label: table.label,
+                    success: true,
+                    deleted: 0
+                });
+                continue;
+            }
+
+            // Delete all
+            const { error } = await supabase
+                .from(table.name)
+                .delete()
+                .gte('created_at', '1970-01-01');
+
+            if (error) {
+                // Mark as skipped, not error (table might not exist)
+                results.push({
+                    table: table.name,
+                    label: table.label,
+                    success: true,
+                    skipped: true,
+                    deleted: 0
+                });
+            } else {
+                results.push({
+                    table: table.name,
+                    label: table.label,
+                    success: true,
+                    deleted: count || 0
+                });
+            }
+        } catch (e) {
+            // Handle gracefully - mark as skipped
+            results.push({
+                table: table.name,
+                label: table.label,
+                success: true,
+                skipped: true,
+                deleted: 0
+            });
+        }
+    }
+
+    const totalDeleted = results.reduce((sum, r) => sum + (r.deleted || 0), 0);
+    const skipped = results.filter(r => r.skipped);
+
+    // Also clear localStorage to reset milestone celebrations and other cached state
+    try {
+        // Clear all milestone celebration keys
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('milestone_celebrated_') ||
+                key.startsWith('last_') ||
+                key.startsWith('cached_'))) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`🧹 Cleared ${keysToRemove.length} localStorage items`);
+    } catch (e) {
+        console.warn('Could not clear localStorage:', e);
+    }
+
+    return {
+        success: true,
+        totalDeleted,
+        results,
+        message: `✅ Deleted ${totalDeleted} records` +
+            (skipped.length > 0 ? ` (${skipped.length} tables skipped)` : '') +
+            ' + cleared localStorage'
+    };
 }
 
 // --- LOGISTICS (DRIVERS & VEHICLES) ---
@@ -856,11 +1074,122 @@ export async function getAllBrandProfiles() {
 
 // --- PAYROLL ---
 
+/**
+ * Mark a sale as "collected" - brand has paid us for this sale.
+ * Rep commission cannot be paid until the sale is collected.
+ * Only uses existing 'status' column - no schema changes required.
+ */
+export async function markSaleCollected(saleId) {
+    const { error } = await supabase
+        .from('sales')
+        .update({
+            status: 'collected',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', saleId);
+
+    if (error) {
+        console.error("markSaleCollected error:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Mark all collected sales for a rep as "paid" - rep has received their 2% commission.
+ * Only sales with status='collected' can be marked as paid.
+ */
 export async function markRepAsPaid(repId) {
-    console.warn("markRepAsPaid not yet fully implemented");
-    // This would update the payroll/commission records for a rep
-    // Placeholder implementation:
-    return { success: true, count: 0 };
+    // First, find all collected (but not yet paid) sales for this rep
+    const { data: collectedSales, error: fetchError } = await supabase
+        .from('sales')
+        .select('id')
+        .eq('rep_id', repId)
+        .eq('status', 'collected');
+
+    if (fetchError) {
+        console.error("markRepAsPaid fetch error:", fetchError);
+        return { success: false, count: 0 };
+    }
+
+    if (!collectedSales || collectedSales.length === 0) {
+        return { success: true, count: 0, message: 'No collected sales to pay out' };
+    }
+
+    // Update all collected sales to paid
+    const saleIds = collectedSales.map(s => s.id);
+    const { error: updateError } = await supabase
+        .from('sales')
+        .update({
+            status: 'paid',
+            updated_at: new Date().toISOString()
+        })
+        .in('id', saleIds);
+
+    if (updateError) {
+        console.error("markRepAsPaid update error:", updateError);
+        return { success: false, count: 0 };
+    }
+
+    return { success: true, count: saleIds.length };
+}
+
+/**
+ * Mark a single sale as paid to rep (for individual payouts)
+ */
+export async function markSaleRepPaid(saleId) {
+    const { error } = await supabase
+        .from('sales')
+        .update({
+            status: 'paid',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', saleId);
+
+    if (error) {
+        console.error("markSaleRepPaid error:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Mark an activation as paid by brand (we received the fee)
+ */
+export async function markActivationBrandPaid(activationId) {
+    const { error } = await supabase
+        .from('activations')
+        .update({
+            status: 'paid',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', activationId);
+
+    if (error) {
+        console.error("markActivationBrandPaid error:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Mark an activation's rep wages as paid
+ * Uses status='rep_paid' to indicate both brand has paid AND rep has been paid
+ */
+export async function markActivationRepPaid(activationId) {
+    const { error } = await supabase
+        .from('activations')
+        .update({
+            status: 'rep_paid',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', activationId);
+
+    if (error) {
+        console.error("markActivationRepPaid error:", error);
+        return false;
+    }
+    return true;
 }
 
 // --- ADMIN BRANDS (Managed via Admin Panel) ---
@@ -970,3 +1299,266 @@ export async function markBrandPasswordChanged(brandId) {
         temp_password: null
     });
 }
+
+// --- DUPLICATE CLEANUP TOOLS ---
+
+/**
+ * Find duplicate activations (same brand, dispensary, and date)
+ * Returns an object with duplicate groups and total count
+ */
+export async function findDuplicateActivations() {
+    const activations = await getActivations();
+
+    // Group by brand + dispensary + date
+    const groups = {};
+    activations.forEach(act => {
+        const key = `${act.brandId || 'unknown'}_${act.dispensaryId || 'unknown'}_${act.dateOfActivation || 'unknown'}`;
+        if (!groups[key]) {
+            groups[key] = [];
+        }
+        groups[key].push(act);
+    });
+
+    // Find groups with more than 1 activation (duplicates)
+    const duplicates = {};
+    let totalDuplicates = 0;
+
+    for (const [key, group] of Object.entries(groups)) {
+        if (group.length > 1) {
+            duplicates[key] = group;
+            totalDuplicates += group.length - 1; // Keep one, count rest as duplicates
+        }
+    }
+
+    return {
+        totalActivations: activations.length,
+        duplicateGroups: Object.keys(duplicates).length,
+        totalDuplicates,
+        duplicates
+    };
+}
+
+/**
+ * Delete duplicate activations (keeps the first one in each group)
+ * Returns count of deleted activations
+ */
+export async function cleanupDuplicateActivations() {
+    const { duplicates, totalDuplicates } = await findDuplicateActivations();
+
+    if (totalDuplicates === 0) {
+        return { success: true, deleted: 0, message: 'No duplicates found' };
+    }
+
+    let deleted = 0;
+    const errors = [];
+
+    for (const [key, group] of Object.entries(duplicates)) {
+        // Keep the first activation (index 0), delete the rest
+        const toDelete = group.slice(1);
+
+        for (const act of toDelete) {
+            try {
+                const { error } = await supabase
+                    .from('activations')
+                    .delete()
+                    .eq('id', act.id);
+
+                if (error) {
+                    errors.push({ id: act.id, error: error.message });
+                } else {
+                    deleted++;
+                }
+            } catch (e) {
+                errors.push({ id: act.id, error: e.message });
+            }
+        }
+    }
+
+    return {
+        success: errors.length === 0,
+        deleted,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Deleted ${deleted} duplicate activations`
+    };
+}
+
+// --- PAYMENT HISTORY ---
+
+/**
+ * Log a payment to the payment_history table.
+ * Called when marking wages or commissions as paid.
+ * @param {Object} paymentData - Payment details
+ * @returns {Object} Created payment record
+ */
+export async function logPayment(paymentData) {
+    const { data, error } = await supabase
+        .from('payment_history')
+        .insert([{
+            type: paymentData.type, // 'wage', 'commission', 'brand_payout'
+            recipient_id: paymentData.recipientId,
+            recipient_name: paymentData.recipientName,
+            amount: paymentData.amount,
+            period_start: paymentData.periodStart,
+            period_end: paymentData.periodEnd,
+            period_label: paymentData.periodLabel,
+            paid_at: new Date().toISOString(),
+            paid_by: paymentData.paidBy,
+            related_records: paymentData.relatedRecords || [],
+            notes: paymentData.notes || '',
+            created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error logging payment:', error);
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Get payment history with optional filters.
+ * @param {Object} filters - Optional filters { recipientId, type, startDate, endDate }
+ * @returns {Array} Payment records
+ */
+export async function getPaymentHistory(filters = {}) {
+    let query = supabase
+        .from('payment_history')
+        .select('*')
+        .order('paid_at', { ascending: false });
+
+    if (filters.recipientId) {
+        query = query.eq('recipient_id', filters.recipientId);
+    }
+    if (filters.type) {
+        query = query.eq('type', filters.type);
+    }
+    if (filters.startDate) {
+        query = query.gte('paid_at', filters.startDate);
+    }
+    if (filters.endDate) {
+        query = query.lte('paid_at', filters.endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error fetching payment history:', error);
+        return [];
+    }
+
+    return (data || []).map(p => ({
+        id: p.id,
+        type: p.type,
+        recipientId: p.recipient_id,
+        recipientName: p.recipient_name,
+        amount: p.amount,
+        periodStart: p.period_start,
+        periodEnd: p.period_end,
+        periodLabel: p.period_label,
+        paidAt: p.paid_at,
+        paidBy: p.paid_by,
+        relatedRecords: p.related_records || [],
+        notes: p.notes,
+        createdAt: p.created_at
+    }));
+}
+
+/**
+ * Get payment history for a specific rep.
+ * @param {string} repId - Rep user ID
+ * @returns {Array} Payment records for the rep
+ */
+export async function getRepPaymentHistory(repId) {
+    return getPaymentHistory({ recipientId: repId });
+}
+
+/**
+ * Mark wages as paid and log the payment.
+ * @param {string} repId - Rep user ID
+ * @param {string} repName - Rep display name
+ * @param {Array} activationIds - List of activation IDs being paid
+ * @param {number} totalAmount - Total amount paid
+ * @param {string} periodLabel - Pay period label
+ * @param {string} paidBy - Admin user ID who processed payment
+ */
+export async function markWagesPaidWithHistory(repId, repName, activationIds, totalAmount, periodLabel, paidBy) {
+    // 1. Update all activations to rep_paid status
+    const { error: updateError } = await supabase
+        .from('activations')
+        .update({
+            status: 'rep_paid',
+            updated_at: new Date().toISOString()
+        })
+        .in('id', activationIds);
+
+    if (updateError) {
+        console.error('Error marking activations as paid:', updateError);
+        throw updateError;
+    }
+
+    // 2. Log the payment
+    const paymentRecord = await logPayment({
+        type: 'wage',
+        recipientId: repId,
+        recipientName: repName,
+        amount: totalAmount,
+        periodLabel: periodLabel,
+        paidBy: paidBy,
+        relatedRecords: activationIds,
+        notes: `Biweekly wages for ${activationIds.length} activations`
+    });
+
+    return {
+        success: true,
+        activationsUpdated: activationIds.length,
+        paymentRecordId: paymentRecord?.id
+    };
+}
+
+/**
+ * Mark commissions as paid and log the payment.
+ * @param {string} repId - Rep user ID
+ * @param {string} repName - Rep display name
+ * @param {Array} saleIds - List of sale IDs being paid
+ * @param {number} totalAmount - Total commission amount
+ * @param {string} quarterLabel - Quarter label (e.g., "Q1 2025")
+ * @param {string} paidBy - Admin user ID who processed payment
+ */
+export async function markCommissionsPaidWithHistory(repId, repName, saleIds, totalAmount, quarterLabel, paidBy) {
+    // 1. Update all sales to paid status
+    const { error: updateError } = await supabase
+        .from('sales')
+        .update({
+            status: 'paid',
+            updated_at: new Date().toISOString()
+        })
+        .in('id', saleIds);
+
+    if (updateError) {
+        console.error('Error marking sales as paid:', updateError);
+        throw updateError;
+    }
+
+    // 2. Log the payment
+    const paymentRecord = await logPayment({
+        type: 'commission',
+        recipientId: repId,
+        recipientName: repName,
+        amount: totalAmount,
+        periodLabel: quarterLabel,
+        paidBy: paidBy,
+        relatedRecords: saleIds,
+        notes: `${quarterLabel} commission for ${saleIds.length} sales`
+    });
+
+    return {
+        success: true,
+        salesUpdated: saleIds.length,
+        paymentRecordId: paymentRecord?.id
+    };
+}
+
+

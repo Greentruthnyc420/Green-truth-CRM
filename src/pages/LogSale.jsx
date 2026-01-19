@@ -190,6 +190,79 @@ export default function LogSale() {
             const totalAmount = calculateTotal();
             const commission = totalAmount * 0.02; // 2% Commission
 
+            // Minimum Order Validation (warning for reps, not blocking)
+            const brandTotals = {};
+            const brandCases = {};
+
+            Object.entries(cart).forEach(([brandId, products]) => {
+                const productsList = brandProductsMap[brandId] || [];
+
+                Object.entries(products).forEach(([productId, qty]) => {
+                    const product = productsList.find(p => p.id === productId);
+                    if (product) {
+                        // Track total amount per brand
+                        if (!brandTotals[brandId]) brandTotals[brandId] = 0;
+                        brandTotals[brandId] += product.price * qty;
+
+                        // Track cases: if qty is evenly divisible by caseSize, count as cases
+                        const caseSize = product.caseSize || 1;
+                        const cases = Math.floor(qty / caseSize);
+                        if (!brandCases[brandId]) brandCases[brandId] = 0;
+                        brandCases[brandId] += cases;
+                    }
+                });
+            });
+
+            // Check minimums
+            const failedMinimums = [];
+            for (const brandId of selectedBrandIds) {
+                const brand = PRODUCT_CATALOG.find(b => b.id === brandId);
+                if (!brand?.minimumOrder) continue;
+
+                const minimum = brand.minimumOrder;
+
+                if (minimum.type === 'cases') {
+                    const totalCases = brandCases[brandId] || 0;
+                    if (totalCases < minimum.value) {
+                        failedMinimums.push({
+                            brandName: brand.name,
+                            type: 'cases',
+                            required: minimum.value,
+                            current: totalCases
+                        });
+                    }
+                } else if (minimum.type === 'amount') {
+                    const totalAmt = brandTotals[brandId] || 0;
+                    if (totalAmt < minimum.value) {
+                        failedMinimums.push({
+                            brandName: brand.name,
+                            type: 'amount',
+                            required: minimum.value,
+                            current: totalAmt
+                        });
+                    }
+                }
+            }
+
+            if (failedMinimums.length > 0) {
+                const messages = failedMinimums.map(f => {
+                    if (f.type === 'cases') {
+                        return `${f.brandName}: ${f.required} cases minimum (you have ${f.current})`;
+                    } else {
+                        return `${f.brandName}: $${f.required.toLocaleString()} minimum (you have $${f.current.toFixed(2)})`;
+                    }
+                });
+
+                const confirmProceed = window.confirm(
+                    `⚠️ Order does not meet minimum requirements:\n\n${messages.join('\n')}\n\nProceed anyway?`
+                );
+
+                if (!confirmProceed) {
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // Flatten cart for storage
             const flatItems = [];
             Object.entries(cart).forEach(([brandId, products]) => {
@@ -297,7 +370,8 @@ export default function LogSale() {
                             <Store size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             <select
                                 required
-                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all bg-white appearance-none"
+                                style={{ background: 'var(--bg-card)' }}
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all appearance-none"
                                 value={basicInfo.dispensaryName}
                                 onChange={(e) => {
                                     if (e.target.value === 'new_store_redirect') {
@@ -384,7 +458,8 @@ export default function LogSale() {
                             <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             <select
                                 required
-                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all bg-white appearance-none"
+                                style={{ background: 'var(--bg-card)' }}
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all appearance-none"
                                 value={basicInfo.paymentTerms}
                                 onChange={(e) => setBasicInfo({ ...basicInfo, paymentTerms: e.target.value })}
                             >
@@ -564,7 +639,7 @@ export default function LogSale() {
                                             const stepSize = mode === 'case' ? caseSize : 1;
 
                                             return (
-                                                <div key={product.id} className={`product-card bg-white border p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 ${!product.inStock ? 'opacity-70 border-slate-100 bg-slate-50' : 'border-slate-100'}`}>
+                                                <div key={product.id} style={{ background: !product.inStock ? 'var(--bg-tertiary)' : 'var(--bg-card)' }} className={`product-card border p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 ${!product.inStock ? 'opacity-70 border-slate-100' : 'border-slate-100'}`}>
                                                     <div className="flex-1">
                                                         <div className="flex items-start justify-between">
                                                             <h3 className="font-bold text-slate-800">
@@ -608,13 +683,15 @@ export default function LogSale() {
                                                         <div className="flex bg-slate-100 p-0.5 rounded-lg">
                                                             <button
                                                                 onClick={() => setPricingModes(prev => ({ ...prev, [product.id]: 'unit' }))}
-                                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${mode === 'unit' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                                style={{ background: mode === 'unit' ? 'var(--bg-card)' : 'transparent' }}
+                                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${mode === 'unit' ? 'text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                                             >
                                                                 Unit
                                                             </button>
                                                             <button
                                                                 onClick={() => setPricingModes(prev => ({ ...prev, [product.id]: 'case' }))}
-                                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${mode === 'case' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                                style={{ background: mode === 'case' ? 'var(--bg-card)' : 'transparent' }}
+                                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${mode === 'case' ? 'text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                                             >
                                                                 Case
                                                             </button>
@@ -714,7 +791,7 @@ export default function LogSale() {
                     <div className="space-y-3">
                         <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider">Order Summary</h3>
                         {flatCart.length === 0 ? (
-                            <div className="text-slate-400 text-center py-4 bg-white border border-dashed rounded-xl">No items selected</div>
+                            <div style={{ background: 'var(--bg-card)' }} className="text-slate-400 text-center py-4 border border-dashed rounded-xl">No items selected</div>
                         ) : (
                             flatCart.map((item, i) => {
                                 const caseSize = item.caseSize || 1;
@@ -769,7 +846,7 @@ export default function LogSale() {
                 <h1 className="text-2xl font-bold text-slate-800 mt-4">{steps[step]}</h1>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[400px] flex flex-col justify-between">
+            <div style={{ background: 'var(--bg-card)' }} className="p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[400px] flex flex-col justify-between">
                 <div>
                     {renderStepContent()}
                 </div>

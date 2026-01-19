@@ -103,19 +103,19 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
+            <div className="themed-card w-full max-w-md rounded-2xl overflow-hidden">
 
-                {/* Header Section */}
-                <div className="bg-slate-900 p-8 text-center relative overflow-hidden">
+                {/* Header Section - Reduced padding on mobile */}
+                <div className="bg-slate-900 p-6 md:p-8 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full bg-brand-600/10 z-0"></div>
                     <NavLink to="/gateway" className="absolute top-4 left-4 z-20 text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium">
                         <ArrowLeft size={16} />
                         Back
                     </NavLink>
                     <div className="relative z-10">
-                        {/* Increased size by ~100% from w-48 h-24 to w-80 h-40 */}
-                        <div className="w-80 h-40 mx-auto flex items-center justify-center mb-6 transition-transform hover:scale-105 duration-300">
+                        {/* Responsive logo - smaller on mobile */}
+                        <div className="w-48 h-24 md:w-80 md:h-40 mx-auto flex items-center justify-center mb-4 md:mb-6 transition-transform hover:scale-105 duration-300">
                             <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="w-full h-full object-contain filter drop-shadow-lg" />
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">
@@ -148,7 +148,7 @@ export default function Login() {
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address</label>
+                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Email Address</label>
                             <div className="relative">
                                 <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
@@ -163,7 +163,7 @@ export default function Login() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Password</label>
                             <div className="relative">
                                 <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
@@ -220,7 +220,12 @@ export default function Login() {
                         type="button"
                         onClick={handleGoogleLogin}
                         disabled={loading}
-                        className="w-full bg-white text-slate-700 border border-slate-200 py-3.5 rounded-xl font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-3.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                        style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--border-primary)'
+                        }}
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -255,6 +260,44 @@ export default function Login() {
                                 <Users size={16} />
                                 <span>Log in as <span className="text-slate-700 font-bold">Sales Rep</span> (Dev)</span>
                             </button>
+
+                            {/* Developer Reset Button */}
+                            <div className="pt-4 border-t border-red-100 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!window.confirm('🚨 DANGER: This will DELETE ALL test data (sales, activations, leads, etc.).\n\nAre you absolutely sure?')) return;
+                                        if (!window.confirm('⚠️ FINAL WARNING: This action cannot be undone.\n\nType "DELETE" and click OK to proceed...')) return;
+
+                                        setLoading(true);
+                                        setError('');
+                                        try {
+                                            const { devResetAllData } = await import('../services/firestoreService');
+                                            const result = await devResetAllData();
+                                            if (result.success) {
+                                                setSuccess(result.message);
+                                            } else {
+                                                setError(result.message);
+                                            }
+                                        } catch (err) {
+                                            setError('Failed to reset data: ' + err.message);
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }}
+                                    disabled={loading}
+                                    className="w-full bg-red-50 text-red-600 border-2 border-dashed border-red-300 py-3 rounded-xl font-bold text-sm hover:bg-red-100 hover:border-red-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {loading ? (
+                                        <Loader size={16} className="animate-spin" />
+                                    ) : (
+                                        <>
+                                            🗑️ Reset All Test Data
+                                        </>
+                                    )}
+                                </button>
+                                <p className="text-[10px] text-center text-red-400 mt-2">Deletes: Sales, Activations, Leads, Orders, Payments</p>
+                            </div>
                         </div>
                     )}
 

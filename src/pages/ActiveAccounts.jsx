@@ -84,11 +84,11 @@ export default function ActiveAccounts() {
                     <Loader className="animate-spin mx-auto text-brand-500" />
                 </div>
             ) : accounts.length === 0 ? (
-                <div className="bg-white p-12 text-center rounded-2xl border border-dashed border-slate-200">
+                <div style={{ background: 'var(--bg-card)' }} className="p-12 text-center rounded-2xl border border-dashed border-slate-200">
                     <p className="text-slate-500">No active accounts found.</p>
                 </div>
             ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>

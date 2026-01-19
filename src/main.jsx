@@ -6,19 +6,21 @@ import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
 import { BrandAuthProvider } from './contexts/BrandAuthContext'
 import { CartProvider } from './contexts/CartContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <BrandAuthProvider>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </BrandAuthProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrandAuthProvider>
+            <CartProvider>
+              <App />
+            </CartProvider>
+          </BrandAuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 )
-

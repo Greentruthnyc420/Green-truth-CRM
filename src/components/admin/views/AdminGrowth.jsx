@@ -148,7 +148,12 @@ export default function AdminGrowth() {
                                 {filteredLeads.map((lead) => (
                                     <tr key={lead.id} className="hover:bg-slate-50">
                                         <td className="py-3 px-6 text-sm font-medium text-slate-800">
-                                            {lead.dispensaryName}
+                                            <Link
+                                                to={`/admin/dispensary/${lead.id}`}
+                                                className="hover:text-brand-600 hover:underline transition-colors"
+                                            >
+                                                {lead.dispensaryName}
+                                            </Link>
                                             {lead.licenseNumber && <span className="block text-[10px] text-slate-400 font-mono">{lead.licenseNumber}</span>}
                                         </td>
                                         <td className="py-3 px-6">

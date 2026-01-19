@@ -42,17 +42,19 @@ export default function LogShift() {
         dispensaryName: '',
         region: 'NYC',
         hasVehicle: true,
-        brand: ''
+        brand: '',
+        brandId: ''
     });
 
     const availableBrands = [
-        '🍯 Honey King',
-        'Bud Cracker Boulevard',
-        'Canna Dots',
-        'Space Poppers!',
-        'Smoothie Bar',
-        'Waferz NY',
-        'Pines'
+        { id: 'honey-king', name: '🍯 Honey King' },
+        { id: 'bud-cracker', name: 'Bud Cracker Boulevard' },
+        { id: 'canna-dots', name: 'Canna Dots' },
+        { id: 'space-poppers', name: 'Space Poppers!' },
+        { id: 'smoothie-bar', name: 'Smoothie Bar' },
+        { id: 'waferz', name: 'Waferz NY' },
+        { id: 'pines', name: 'Pines' },
+        { id: 'flx-extracts', name: 'FLX Extracts' }
     ];
 
     // Fetch scheduled activations for this user
@@ -178,6 +180,7 @@ export default function LogShift() {
 
             const activationData = {
                 userId: currentUser?.uid || 'demo-user',
+                brandId: formData.brandId, // Use the actual brand ID for invoicing
                 brand: formData.brand,
                 brandName: formData.brand,
                 dispensaryName: formData.dispensaryName,
@@ -238,7 +241,7 @@ export default function LogShift() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="themed-card p-6 rounded-xl space-y-4">
                     <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                         <MapPin size={20} className="text-brand-600" />
                         Location & Brand
@@ -260,7 +263,8 @@ export default function LogShift() {
                         <select
                             value={formData.region}
                             onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                            className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border bg-white"
+                            className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
+                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                         >
                             <option value="NYC">Five Boroughs (NYC)</option>
                             <option value="LI">LI & Downstate/Westchester</option>
@@ -273,24 +277,25 @@ export default function LogShift() {
                         <div className="grid grid-cols-2 gap-2">
                             {availableBrands.map(b => (
                                 <button
-                                    key={b}
+                                    key={b.id}
                                     type="button"
-                                    onClick={() => setFormData({ ...formData, brand: b })}
+                                    onClick={() => setFormData({ ...formData, brand: b.name, brandId: b.id })}
                                     className={`
                                         p-2 text-sm rounded-lg border text-left transition-all
-                                        ${formData.brand === b
+                                        ${formData.brandId === b.id
                                             ? 'bg-brand-50 border-brand-500 text-brand-700 font-medium ring-1 ring-brand-500'
-                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}
+                                            : 'border-slate-200 text-slate-600'}
                                     `}
+                                    style={formData.brandId !== b.id ? { background: 'var(--bg-secondary)', color: 'var(--text-primary)' } : {}}
                                 >
-                                    {b}
+                                    {b.name}
                                 </button>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="themed-card p-6 rounded-xl space-y-4">
                     <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                         <Clock size={20} className="text-brand-600" />
                         Time & Date
@@ -302,9 +307,10 @@ export default function LogShift() {
                             type="button"
                             onClick={() => setInputMode('scheduled')}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${inputMode === 'scheduled'
-                                ? 'bg-white text-slate-900 shadow-sm'
+                                ? 'shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
                                 }`}
+                            style={inputMode === 'scheduled' ? { background: 'var(--bg-tertiary)', color: 'var(--text-inverse)' } : {}}
                         >
                             <Calendar size={16} className="inline mr-1.5" />
                             From Schedule
@@ -313,9 +319,10 @@ export default function LogShift() {
                             type="button"
                             onClick={() => setInputMode('manual')}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${inputMode === 'manual'
-                                ? 'bg-white text-slate-900 shadow-sm'
+                                ? 'shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
                                 }`}
+                            style={inputMode === 'manual' ? { background: 'var(--bg-tertiary)', color: 'var(--text-inverse)' } : {}}
                         >
                             <Clock size={16} className="inline mr-1.5" />
                             Enter Manually
@@ -435,69 +442,14 @@ export default function LogShift() {
                         </div>
                     )}
 
-                    {/* Transport Mode Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Transportation Method</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {/* Personal Vehicle Option */}
-                            <label className={`
-                                flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all
-                                ${formData.hasVehicle
-                                    ? 'border-brand-500 bg-brand-50 text-brand-800'
-                                    : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}
-                            `}>
-                                <input
-                                    type="radio"
-                                    name="transportMethod"
-                                    className="hidden"
-                                    checked={formData.hasVehicle === true}
-                                    onChange={() => setFormData({ ...formData, hasVehicle: true })}
-                                />
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.hasVehicle ? 'border-brand-600' : 'border-slate-300'}`}>
-                                            {formData.hasVehicle && <div className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
-                                        </div>
-                                        <span className="font-bold text-sm">Personal Vehicle</span>
-                                    </div>
-                                    <span className="text-xs opacity-80 block ml-7">$0.35/mile reimbursement</span>
-                                </div>
-                            </label>
-
-                            {/* Public Transportation Option */}
-                            <label className={`
-                                flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all
-                                ${formData.hasVehicle === false
-                                    ? 'border-brand-500 bg-brand-50 text-brand-800'
-                                    : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}
-                            `}>
-                                <input
-                                    type="radio"
-                                    name="transportMethod"
-                                    className="hidden"
-                                    checked={formData.hasVehicle === false}
-                                    onChange={() => setFormData({ ...formData, hasVehicle: false })}
-                                />
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${!formData.hasVehicle ? 'border-brand-600' : 'border-slate-300'}`}>
-                                            {!formData.hasVehicle && <div className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
-                                        </div>
-                                        <span className="font-bold text-sm">Public Transportation</span>
-                                    </div>
-                                    <span className="text-xs opacity-80 block ml-7">$0.20/mile reimbursement</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
+                    {/* Mileage Entry - Auto-calculated at $0.725/mile */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Miles Traveled</label>
                         <div className="relative mb-2">
                             <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="number"
-                                placeholder="420"
+                                placeholder="0"
                                 step="0.1"
                                 min="0"
                                 className="w-full pl-10 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
@@ -505,6 +457,15 @@ export default function LogShift() {
                                 onChange={(e) => setFormData({ ...formData, miles: e.target.value })}
                             />
                         </div>
+
+                        {/* Show calculated reimbursement */}
+                        {parseFloat(formData.miles) > 0 && (
+                            <div className="bg-emerald-50 rounded-lg p-3 text-sm text-emerald-700 mb-3">
+                                <span className="font-medium">Mileage Reimbursement:</span>{' '}
+                                <span className="font-bold">${(parseFloat(formData.miles) * 0.725).toFixed(2)}</span>
+                                <span className="text-emerald-600 text-xs ml-1">(@ $0.725/mi)</span>
+                            </div>
+                        )}
 
                         {!odometerPreview ? (
                             <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors text-slate-500 text-sm">
@@ -518,7 +479,8 @@ export default function LogShift() {
                                 <button
                                     type="button"
                                     onClick={() => { setOdometerImage(null); setOdometerPreview(null); }}
-                                    className="absolute top-2 right-2 p-1 bg-white/90 rounded-full text-slate-600 hover:text-red-600 shadow-sm"
+                                    className="absolute top-2 right-2 p-1 rounded-full text-slate-600 hover:text-red-600 shadow-sm"
+                                    style={{ background: 'var(--bg-tertiary)' }}
                                 >
                                     <X size={16} />
                                 </button>
@@ -527,7 +489,7 @@ export default function LogShift() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="themed-card p-6 rounded-xl space-y-4">
                     <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                         <DollarSign size={20} className="text-brand-600" />
                         Expenses (Tolls)
@@ -569,7 +531,8 @@ export default function LogShift() {
                                 <button
                                     type="button"
                                     onClick={() => { setReceipt(null); setPreviewUrl(null); }}
-                                    className="absolute top-2 right-2 p-1 bg-white/90 rounded-full text-slate-600 hover:text-red-600 shadow-sm"
+                                    className="absolute top-2 right-2 p-1 rounded-full text-slate-600 hover:text-red-600 shadow-sm"
+                                    style={{ background: 'var(--bg-tertiary)' }}
                                 >
                                     <X size={20} />
                                 </button>
@@ -585,28 +548,30 @@ export default function LogShift() {
                 >
                     {loading ? 'Submitting...' : 'Log Shift'}
                 </button>
-            </form>
+            </form >
 
             {/* Validation Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl scale-100 flex flex-col gap-4">
-                        <div className="p-3 bg-yellow-50 text-yellow-600 w-12 h-12 rounded-full flex items-center justify-center">
-                            <UploadCloud size={24} />
+            {
+                showModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="themed-card rounded-2xl p-6 max-w-sm w-full scale-100 flex flex-col gap-4">
+                            <div className="p-3 bg-yellow-50 text-yellow-600 w-12 h-12 rounded-full flex items-center justify-center">
+                                <UploadCloud size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 mb-2">{modalMessage.title}</h3>
+                                <p className="text-slate-600 text-sm leading-relaxed">{modalMessage.body}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="w-full py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
+                            >
+                                Got It, Uploading Now
+                            </button>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">{modalMessage.title}</h3>
-                            <p className="text-slate-600 text-sm leading-relaxed">{modalMessage.body}</p>
-                        </div>
-                        <button
-                            onClick={() => setShowModal(false)}
-                            className="w-full py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
-                        >
-                            Got It, Uploading Now
-                        </button>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

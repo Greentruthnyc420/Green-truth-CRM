@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 
 export default function DispensaryMarketplace() {
-    const { cart, addToCart, removeFromCart, cartTotal, clearCart } = useCart();
+    const { cart, addToCart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
 
     // UI State
     const [searchTerm, setSearchTerm] = useState('');
@@ -17,6 +17,7 @@ export default function DispensaryMarketplace() {
     const [profile, setProfile] = useState(null);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [paymentTerms, setPaymentTerms] = useState('COD'); // New state for payment terms
+    const [editingQuantity, setEditingQuantity] = useState({}); // Track values while user is editing
 
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -82,7 +83,79 @@ export default function DispensaryMarketplace() {
             return;
         }
 
-        // Validate Space Poppers Restriction
+        // Minimum Order Validation
+        const brandTotals = {};
+        const brandCases = {};
+
+        cart.forEach(item => {
+            const brandId = item.brandId;
+            const itemPrice = item.orderType === 'case'
+                ? item.price * (item.caseSize || 1)
+                : item.price;
+
+            // Track total amount per brand
+            if (!brandTotals[brandId]) brandTotals[brandId] = 0;
+            brandTotals[brandId] += itemPrice * item.quantity;
+
+            // Track total cases per brand (for Space Poppers)
+            if (item.orderType === 'case') {
+                if (!brandCases[brandId]) brandCases[brandId] = 0;
+                brandCases[brandId] += item.quantity;
+            }
+        });
+
+        // Check minimums for each brand in the cart
+        const failedMinimums = [];
+        for (const item of cart) {
+            const brand = PRODUCT_CATALOG.find(b => b.id === item.brandId);
+            if (!brand?.minimumOrder) continue;
+
+            // Skip if we've already checked this brand
+            if (failedMinimums.some(f => f.brandId === item.brandId)) continue;
+
+            const minimum = brand.minimumOrder;
+
+            if (minimum.type === 'cases') {
+                // Case-based minimum (Space Poppers)
+                const totalCases = brandCases[item.brandId] || 0;
+                if (totalCases < minimum.value) {
+                    failedMinimums.push({
+                        brandId: item.brandId,
+                        brandName: brand.name,
+                        type: 'cases',
+                        required: minimum.value,
+                        current: totalCases
+                    });
+                }
+            } else if (minimum.type === 'amount') {
+                // Amount-based minimum ($1,000)
+                const totalAmount = brandTotals[item.brandId] || 0;
+                if (totalAmount < minimum.value) {
+                    failedMinimums.push({
+                        brandId: item.brandId,
+                        brandName: brand.name,
+                        type: 'amount',
+                        required: minimum.value,
+                        current: totalAmount
+                    });
+                }
+            }
+        }
+
+        if (failedMinimums.length > 0) {
+            // Build error message
+            const messages = failedMinimums.map(f => {
+                if (f.type === 'cases') {
+                    return `${f.brandName}: Requires ${f.required} cases minimum (you have ${f.current})`;
+                } else {
+                    return `${f.brandName}: Requires $${f.required.toLocaleString()} minimum (you have $${f.current.toFixed(2)})`;
+                }
+            });
+            showNotification(`Order does not meet minimum requirements:\n${messages.join('\n')}`, 'error');
+            return;
+        }
+
+        // Validate Space Poppers Restriction (payment terms)
         const hasSpacePoppers = cart.some(item => item.brandId === 'space-poppers');
         if (hasSpacePoppers && paymentTerms === 'Net 30') {
             showNotification('Space Poppers products are restricted to COD or Net 14.', 'error');
@@ -162,7 +235,7 @@ export default function DispensaryMarketplace() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Marketplace</h1>
+                    <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>Marketplace</h1>
                     <p className="text-slate-500 mt-1 font-medium">Browse verified brands and order directly.</p>
                 </div>
 
@@ -170,7 +243,8 @@ export default function DispensaryMarketplace() {
                 <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide no-scrollbar">
                     <button
                         onClick={() => setSelectedBrand('All')}
-                        className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${selectedBrand === 'All' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+                        className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${selectedBrand === 'All' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+                        style={selectedBrand !== 'All' ? { background: 'var(--bg-card)' } : {}}
                     >
                         All Brands
                     </button>
@@ -178,7 +252,8 @@ export default function DispensaryMarketplace() {
                         <button
                             key={brand.id}
                             onClick={() => setSelectedBrand(brand.name)}
-                            className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${selectedBrand === brand.name ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+                            className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${selectedBrand === brand.name ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+                            style={selectedBrand !== brand.name ? { background: 'var(--bg-card)' } : {}}
                         >
                             {brand.name}
                         </button>
@@ -195,14 +270,15 @@ export default function DispensaryMarketplace() {
                         <input
                             type="text"
                             placeholder="Search products or brands..."
-                            className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-100 bg-white shadow-sm focus:border-emerald-500 outline-none transition-all"
+                            className="w-full pl-12 pr-4 py-4 rounded-2xl border shadow-sm focus:border-emerald-500 outline-none transition-all"
+                            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
                     {filteredProducts.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-100 border-dashed">
+                        <div className="text-center py-20 rounded-[2rem] border border-dashed" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                             <Store className="mx-auto text-slate-300 mb-4" size={48} />
                             <h3 className="text-lg font-bold text-slate-700">No products found</h3>
                             <p className="text-slate-400">Try adjusting your filters.</p>
@@ -216,7 +292,7 @@ export default function DispensaryMarketplace() {
                                 const displayPrice = selectedType === 'case' ? casePrice : product.price;
 
                                 return (
-                                    <div key={product.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full">
+                                    <div key={product.id} className="p-5 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                                         <div>
                                             {product.imageUrl && (
                                                 <div className="w-full h-40 mb-4 rounded-xl overflow-hidden bg-slate-50 border border-slate-50">
@@ -282,7 +358,7 @@ export default function DispensaryMarketplace() {
 
                 {/* Cart Sidebar (Desktop Sticky) */}
                 <div className="w-full lg:w-80 shrink-0">
-                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 sticky top-24 overflow-hidden">
+                    <div className="rounded-[2rem] border shadow-xl shadow-slate-200/50 sticky top-24 overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
                             <h3 className="font-bold flex items-center gap-2"><ShoppingBag size={20} /> Cart</h3>
                             <span className="bg-emerald-500 text-white text-xs font-black px-2 py-1 rounded-full">{cart.reduce((a, b) => a + b.quantity, 0)} items</span>
@@ -309,8 +385,56 @@ export default function DispensaryMarketplace() {
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-slate-100">
-                                                    <button onClick={() => removeFromCart(item.cartItemId)} className="p-1 hover:text-red-500"><Minus size={14} /></button>
-                                                    <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (item.quantity > 1) {
+                                                                updateQuantity(item.cartItemId, item.quantity - 1);
+                                                            } else {
+                                                                removeFromCart(item.cartItemId);
+                                                            }
+                                                        }}
+                                                        className="p-1 hover:text-red-500"
+                                                    >
+                                                        <Minus size={14} />
+                                                    </button>
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={editingQuantity[item.cartItemId] !== undefined ? editingQuantity[item.cartItemId] : item.quantity}
+                                                        onFocus={() => {
+                                                            // Start editing with current value
+                                                            setEditingQuantity(prev => ({ ...prev, [item.cartItemId]: String(item.quantity) }));
+                                                        }}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            // Allow empty string or numbers only while typing
+                                                            if (value === '' || /^\d+$/.test(value)) {
+                                                                setEditingQuantity(prev => ({ ...prev, [item.cartItemId]: value }));
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const value = e.target.value;
+                                                            const numValue = parseInt(value, 10);
+                                                            // Clear editing state
+                                                            setEditingQuantity(prev => {
+                                                                const newState = { ...prev };
+                                                                delete newState[item.cartItemId];
+                                                                return newState;
+                                                            });
+                                                            // Update cart with valid value or default to 1
+                                                            if (value === '' || isNaN(numValue) || numValue < 1) {
+                                                                updateQuantity(item.cartItemId, 1);
+                                                            } else {
+                                                                updateQuantity(item.cartItemId, numValue);
+                                                            }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.target.blur();
+                                                            }
+                                                        }}
+                                                        className="text-xs font-bold w-8 text-center bg-transparent border-none outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1"
+                                                    />
                                                     <button onClick={() => addToCart(item, item.orderType)} className="p-1 hover:text-emerald-600"><Plus size={14} /></button>
                                                 </div>
                                             </div>
@@ -341,7 +465,7 @@ export default function DispensaryMarketplace() {
             {/* Checkout Modal */}
             {isCheckoutOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" style={{ background: 'var(--bg-card)' }}>
                         <div className="p-8 border-b border-slate-100 flex justify-between items-center">
                             <h2 className="text-2xl font-extrabold text-slate-900">Confirm Order</h2>
                             <button onClick={() => setIsCheckoutOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">

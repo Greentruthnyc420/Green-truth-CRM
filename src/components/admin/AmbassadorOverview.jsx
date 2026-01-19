@@ -137,13 +137,28 @@ export default function AmbassadorOverview({ currentUserOverride, showHourlyRate
 
                 setEstimatedPay(grandTotal);
 
-                // 4. Milestone Check (Animation)
-                const currentBonus = getMilestoneBonus(count);
-                if (currentBonus > 0) {
-                    // Start Confetti!
-                    triggerConfetti();
-                    setMilestoneMessage(`🎉 Congrats! You hit ${count} stores! $${currentBonus} bonus unlocked!`);
-                    setShowMilestoneParams({ count, bonus: currentBonus });
+                // 4. Milestone Check (Animation) - Only show once per milestone
+                // Calculate which milestone tier the user is at (10, 20, 30, etc.)
+                const currentMilestone = Math.floor(count / 10) * 10;
+
+                if (currentMilestone > 0) {
+                    // Get the last celebrated milestone from localStorage (persists across sessions)
+                    const storageKey = `milestone_celebrated_${userId}`;
+                    const lastCelebratedMilestone = parseInt(localStorage.getItem(storageKey) || '0', 10);
+
+                    // Only show celebration if this milestone tier is NEW (higher than last celebrated)
+                    if (currentMilestone > lastCelebratedMilestone) {
+                        // Check if there's a bonus for this milestone
+                        const currentBonus = getMilestoneBonus(currentMilestone);
+
+                        // Show celebration!
+                        triggerConfetti();
+                        setMilestoneMessage(`🎉 Congrats! You hit ${currentMilestone} stores! $${currentBonus || currentMilestone * 10} bonus unlocked!`);
+                        setShowMilestoneParams({ count: currentMilestone, bonus: currentBonus || currentMilestone * 10 });
+
+                        // IMMEDIATELY save this milestone as celebrated (before any refresh can happen)
+                        localStorage.setItem(storageKey, currentMilestone.toString());
+                    }
                 }
 
                 // 5. Recent Activity (Top 5 Sales)

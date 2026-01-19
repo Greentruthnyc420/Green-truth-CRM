@@ -67,6 +67,9 @@ export default function DispensaryRegistration() {
                 showNotification(`Linked to existing lead: ${dispensaryName}`, 'success');
             } else {
                 // Create a new lead for this dispensary
+                // Use referral rep if available, otherwise self-service
+                const referralRepId = verifiedData.referralRepId;
+
                 const leadRef = await addLead({
                     dispensaryName: dispensaryName,
                     address: formData.address,
@@ -80,11 +83,12 @@ export default function DispensaryRegistration() {
                         phone: ''
                     }],
                     status: 'Sold', // Self-registered dispensaries are considered converted
-                    leadStatus: 'self_service_registered',
-                    userId: 'self-service', // No specific rep assigned
-                    repAssigned: 'Self-Service Registration',
+                    leadStatus: referralRepId ? 'referred_signup' : 'self_service_registered',
+                    userId: referralRepId || 'self-service', // Attribute to referring rep if available
+                    repAssigned: referralRepId ? null : 'Self-Service Registration', // Lookup rep name later or leave null
                     createdAt: new Date().toISOString(),
                     selfRegistered: true,
+                    referredBy: referralRepId || null, // Store referral attribution
                     registrationDate: new Date().toISOString()
                 });
                 leadId = leadRef.id;
@@ -102,10 +106,13 @@ export default function DispensaryRegistration() {
                 address: formData.address,
                 location: locationData,
                 leadId: leadId, // Link to lead
+                referredBy: verifiedData.referralRepId || null, // Store referral for commission tracking
                 createdAt: new Date().toISOString()
             });
 
+            // Clean up session storage
             sessionStorage.removeItem('verified_license');
+            sessionStorage.removeItem('dispensary_referral_rep');
             showNotification('Account created successfully!', 'success');
             navigate('/dispensary');
         } catch (error) {

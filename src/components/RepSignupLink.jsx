@@ -8,7 +8,7 @@ export default function RepSignupLink() {
 
     if (!currentUser) return null;
 
-    const signupLink = `${window.location.origin}/login?ref=${currentUser.uid}`;
+    const signupLink = `${window.location.origin}/dispensary/verify?ref=${currentUser.uid}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(signupLink);
@@ -17,7 +17,7 @@ export default function RepSignupLink() {
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+        <div className="themed-card p-6 rounded-xl">
             <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
                 <LinkIcon size={20} className="text-brand-600" />
                 Referral Signup Link
@@ -33,8 +33,9 @@ export default function RepSignupLink() {
                 <button
                     onClick={handleCopy}
                     className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1
-                        ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'}
+                        ${copied ? 'bg-emerald-100 text-emerald-700' : 'border transition-all'}
                     `}
+                    style={!copied ? { background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' } : {}}
                 >
                     <Copy size={14} />
                     {copied ? 'Copied!' : 'Copy'}

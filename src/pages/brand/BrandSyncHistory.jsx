@@ -83,7 +83,7 @@ export default function BrandSyncHistory() {
 
     return (
         <div className="max-w-5xl mx-auto">
-             <div className="mb-8">
+            <div className="mb-8">
                 <Link to="/brand/integrations" className="text-slate-500 hover:text-slate-700 flex items-center gap-2 mb-4 text-sm font-medium">
                     <ArrowLeft size={16} /> Back to Integrations
                 </Link>
@@ -92,20 +92,20 @@ export default function BrandSyncHistory() {
             </div>
 
             {/* Filter Controls */}
-            <div className="flex gap-4 mb-6 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex gap-4 mb-6 p-4 rounded-xl border border-slate-200 shadow-sm" style={{ background: 'var(--bg-card)' }}>
                 <Filter size={20} className="text-slate-500" />
                 <div>
                     <label className="text-sm font-bold text-slate-700 mr-2">Type:</label>
-                    <select onChange={(e) => setFilters(f => ({...f, type: e.target.value}))} className="p-2 rounded-md border-slate-300">
+                    <select onChange={(e) => setFilters(f => ({ ...f, type: e.target.value }))} className="p-2 rounded-md border-slate-300">
                         <option value="all">All</option>
                         <option value="syncLead">Lead</option>
                         <option value="syncOrder">Order</option>
                         <option value="syncInvoice">Invoice</option>
                     </select>
                 </div>
-                 <div>
+                <div>
                     <label className="text-sm font-bold text-slate-700 mr-2">Status:</label>
-                    <select onChange={(e) => setFilters(f => ({...f, status: e.target.value}))} className="p-2 rounded-md border-slate-300">
+                    <select onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))} className="p-2 rounded-md border-slate-300">
                         <option value="all">All</option>
                         <option value="success">Success</option>
                         <option value="error">Error</option>
@@ -114,11 +114,11 @@ export default function BrandSyncHistory() {
             </div>
 
             {/* Log Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="rounded-xl shadow-sm border border-slate-200 overflow-hidden" style={{ background: 'var(--bg-card)' }}>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
+                            <tr className="border-b border-slate-100" style={{ background: 'var(--bg-secondary)' }}>
                                 <th className="p-4 text-xs font-bold text-slate-400 uppercase">Status</th>
                                 <th className="p-4 text-xs font-bold text-slate-400 uppercase">Item</th>
                                 <th className="p-4 text-xs font-bold text-slate-400 uppercase">Type</th>

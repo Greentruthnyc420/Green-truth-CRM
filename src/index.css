@@ -1,3 +1,792 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================
+   THEME SYSTEM - CSS Custom Properties
+   ============================================ */
+
+:root {
+    /* Transition for smooth theme switching */
+    --theme-transition: 0.3s ease;
+}
+
+/* ============================================
+   CLASSIC THEME (Default - Light Green)
+   ============================================ */
+.theme-classic {
+    /* Backgrounds */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-sidebar: linear-gradient(180deg, #065f46 0%, #047857 50%, #059669 100%);
+    --bg-sidebar-hover: rgba(255, 255, 255, 0.1);
+    --bg-sidebar-active: rgba(255, 255, 255, 0.2);
+
+    /* Text */
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+    --text-inverse: #ffffff;
+    --text-sidebar: #ffffff;
+
+    /* Accent Colors */
+    --accent-primary: #059669;
+    --accent-secondary: #10b981;
+    --accent-tertiary: #34d399;
+    --accent-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+
+    /* Borders */
+    --border-primary: #e2e8f0;
+    --border-secondary: #cbd5e1;
+    --border-accent: #059669;
+
+    /* Cards */
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --card-border-radius: 1rem;
+
+    /* Status Colors */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --info: #3b82f6;
+
+    /* Charts */
+    --chart-primary: #059669;
+    --chart-secondary: #10b981;
+    --chart-tertiary: #34d399;
+    --chart-grid: #e2e8f0;
+
+    /* Input Fields - Premium Styling */
+    --input-bg: #ffffff;
+    --input-text: #0f172a;
+    --input-placeholder: #94a3b8;
+    --input-border: #e2e8f0;
+    --input-border-focus: #059669;
+    --input-shadow-focus: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+/* ============================================
+   DARK GOLD THEME (Luxury)
+   ============================================ */
+.theme-dark-gold {
+    /* Backgrounds */
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #121212;
+    --bg-tertiary: #1a1a1a;
+    --bg-card: rgba(26, 26, 26, 0.8);
+    --bg-sidebar: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+    --bg-sidebar-hover: rgba(212, 175, 55, 0.1);
+    --bg-sidebar-active: rgba(212, 175, 55, 0.2);
+
+    /* Text */
+    --text-primary: #f5f5f5;
+    --text-secondary: #a3a3a3;
+    --text-tertiary: #737373;
+    --text-inverse: #0a0a0a;
+    --text-sidebar: #f5f5f5;
+
+    /* Accent Colors */
+    --accent-primary: #D4AF37;
+    --accent-secondary: #E6C558;
+    --accent-tertiary: #F5D67B;
+    --accent-gradient: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+
+    /* Borders */
+    --border-primary: rgba(212, 175, 55, 0.2);
+    --border-secondary: rgba(212, 175, 55, 0.3);
+    --border-accent: #D4AF37;
+
+    /* Cards */
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --card-shadow-hover: 0 8px 30px rgba(212, 175, 55, 0.2);
+    --card-border-radius: 1rem;
+
+    /* Status Colors */
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --info: #60a5fa;
+
+    /* Charts */
+    --chart-primary: #D4AF37;
+    --chart-secondary: #E6C558;
+    --chart-tertiary: #F5D67B;
+    --chart-grid: rgba(212, 175, 55, 0.1);
+
+    /* Special Effects */
+    --glow-accent: 0 0 20px rgba(212, 175, 55, 0.3);
+
+    /* Input Fields - Premium Dark with Gold Accents */
+    --input-bg: #1a1a1a;
+    --input-text: #f5f5f5;
+    --input-placeholder: #888888;
+    --input-border: rgba(212, 175, 55, 0.3);
+    --input-border-focus: #D4AF37;
+    --input-shadow-focus: 0 0 0 3px rgba(212, 175, 55, 0.25);
+}
+
+/* ============================================
+   MIDNIGHT TEAL THEME (Futuristic)
+   ============================================ */
+.theme-midnight-teal {
+    /* Backgrounds */
+    --bg-primary: #0a192f;
+    --bg-secondary: #112240;
+    --bg-tertiary: #1d3557;
+    --bg-card: rgba(17, 34, 64, 0.9);
+    --bg-sidebar: linear-gradient(180deg, #0a192f 0%, #112240 100%);
+    --bg-sidebar-hover: rgba(100, 255, 218, 0.1);
+    --bg-sidebar-active: rgba(100, 255, 218, 0.2);
+
+    /* Text */
+    --text-primary: #e6f1ff;
+    --text-secondary: #8892b0;
+    --text-tertiary: #495670;
+    --text-inverse: #0a192f;
+    --text-sidebar: #e6f1ff;
+
+    /* Accent Colors */
+    --accent-primary: #64ffda;
+    --accent-secondary: #4dd9c0;
+    --accent-tertiary: #36b3a6;
+    --accent-gradient: linear-gradient(135deg, #64ffda 0%, #00bcd4 100%);
+
+    /* Borders */
+    --border-primary: rgba(100, 255, 218, 0.1);
+    --border-secondary: rgba(100, 255, 218, 0.2);
+    --border-accent: #64ffda;
+
+    /* Cards */
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --card-shadow-hover: 0 8px 30px rgba(100, 255, 218, 0.15);
+    --card-border-radius: 1rem;
+
+    /* Status Colors */
+    --success: #64ffda;
+    --warning: #ffd93d;
+    --error: #ff6b6b;
+    --info: #74b9ff;
+
+    /* Charts */
+    --chart-primary: #64ffda;
+    --chart-secondary: #4dd9c0;
+    --chart-tertiary: #36b3a6;
+    --chart-grid: rgba(100, 255, 218, 0.1);
+
+    /* Special Effects */
+    --glow-accent: 0 0 25px rgba(100, 255, 218, 0.4);
+
+    /* Input Fields - Deep Navy with Teal Accents */
+    --input-bg: #1d3557;
+    --input-text: #e6f1ff;
+    --input-placeholder: #8892b0;
+    --input-border: rgba(100, 255, 218, 0.25);
+    --input-border-focus: #64ffda;
+    --input-shadow-focus: 0 0 0 3px rgba(100, 255, 218, 0.2);
+}
+
+/* ============================================
+   NOIR EMERALD THEME (Premium)
+   ============================================ */
+.theme-noir-emerald {
+    /* Backgrounds */
+    --bg-primary: #050505;
+    --bg-secondary: #0d0d0d;
+    --bg-tertiary: #151515;
+    --bg-card: rgba(13, 13, 13, 0.95);
+    --bg-sidebar: linear-gradient(180deg, #050505 0%, #0d0d0d 100%);
+    --bg-sidebar-hover: rgba(0, 208, 132, 0.1);
+    --bg-sidebar-active: rgba(0, 208, 132, 0.2);
+
+    /* Text */
+    --text-primary: #f0f0f0;
+    --text-secondary: #888888;
+    --text-tertiary: #555555;
+    --text-inverse: #050505;
+    --text-sidebar: #f0f0f0;
+
+    /* Accent Colors */
+    --accent-primary: #00d084;
+    --accent-secondary: #00b874;
+    --accent-tertiary: #009f64;
+    --accent-gradient: linear-gradient(135deg, #00d084 0%, #00b874 100%);
+
+    /* Borders */
+    --border-primary: rgba(0, 208, 132, 0.15);
+    --border-secondary: rgba(0, 208, 132, 0.25);
+    --border-accent: #00d084;
+
+    /* Cards */
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    --card-shadow-hover: 0 8px 30px rgba(0, 208, 132, 0.2);
+    --card-border-radius: 1rem;
+
+    /* Status Colors */
+    --success: #00d084;
+    --warning: #ffb347;
+    --error: #ff6b6b;
+    --info: #5dadec;
+
+    /* Charts */
+    --chart-primary: #00d084;
+    --chart-secondary: #00b874;
+    --chart-tertiary: #009f64;
+    --chart-grid: rgba(0, 208, 132, 0.1);
+
+    /* Special Effects */
+    --glow-accent: 0 0 20px rgba(0, 208, 132, 0.35);
+
+    /* Input Fields - Pure Dark with Emerald Accents */
+    --input-bg: #151515;
+    --input-text: #f0f0f0;
+    --input-placeholder: #888888;
+    --input-border: rgba(0, 208, 132, 0.25);
+    --input-border-focus: #00d084;
+    --input-shadow-focus: 0 0 0 3px rgba(0, 208, 132, 0.2);
+}
+
+/* ============================================
+   THEME-AWARE UTILITY CLASSES
+   ============================================ */
+
+/* Base body styling that responds to theme */
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background var(--theme-transition), color var(--theme-transition);
+}
+
+/* Themed card class with glassmorphism */
+.themed-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--card-border-radius);
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.themed-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transition: left 0.5s ease;
+    pointer-events: none;
+}
+
+.themed-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+}
+
+.themed-card:hover::before {
+    left: 100%;
+}
+
+/* ============================================
+   GLASSMORPHISM - UNIQUE THEME IDENTITIES
+   Each theme has its own distinct color palette
+   ============================================ */
+
+/* Dark Gold Theme - Warm sepia/amber glass */
+.theme-dark-gold .themed-card {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: linear-gradient(135deg, rgba(45, 35, 15, 0.85), rgba(30, 25, 10, 0.9));
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(212, 175, 55, 0.1);
+}
+
+.theme-dark-gold .themed-card:hover {
+    background: linear-gradient(135deg, rgba(55, 45, 20, 0.9), rgba(40, 32, 15, 0.95));
+    border-color: rgba(212, 175, 55, 0.6);
+    box-shadow:
+        0 8px 32px rgba(212, 175, 55, 0.25),
+        inset 0 1px 0 rgba(212, 175, 55, 0.2);
+}
+
+/* Midnight Teal Theme - Deep oceanic navy glass */
+.theme-midnight-teal .themed-card {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: linear-gradient(135deg, rgba(10, 25, 50, 0.85), rgba(15, 35, 65, 0.9));
+    border: 1px solid rgba(100, 255, 218, 0.25);
+    box-shadow:
+        0 4px 24px rgba(0, 20, 40, 0.5),
+        inset 0 1px 0 rgba(100, 255, 218, 0.08);
+}
+
+.theme-midnight-teal .themed-card:hover {
+    background: linear-gradient(135deg, rgba(15, 35, 70, 0.9), rgba(20, 45, 80, 0.95));
+    border-color: rgba(100, 255, 218, 0.5);
+    box-shadow:
+        0 8px 32px rgba(100, 255, 218, 0.2),
+        inset 0 1px 0 rgba(100, 255, 218, 0.15);
+}
+
+/* Noir Emerald Theme - Pure black with neon emerald accents */
+.theme-noir-emerald .themed-card {
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    background: linear-gradient(135deg, rgba(5, 10, 5, 0.9), rgba(8, 15, 8, 0.95));
+    border: 1px solid rgba(0, 208, 132, 0.3);
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(0, 208, 132, 0.05);
+}
+
+.theme-noir-emerald .themed-card:hover {
+    background: linear-gradient(135deg, rgba(10, 20, 10, 0.95), rgba(12, 25, 12, 0.98));
+    border-color: rgba(0, 208, 132, 0.6);
+    box-shadow:
+        0 8px 32px rgba(0, 208, 132, 0.3),
+        0 0 40px rgba(0, 208, 132, 0.1),
+        inset 0 1px 0 rgba(0, 208, 132, 0.1);
+}
+
+/* Themed sidebar */
+.themed-sidebar {
+    background: var(--bg-sidebar);
+    color: var(--text-sidebar);
+    transition: background var(--theme-transition);
+}
+
+.themed-sidebar-item {
+    color: var(--text-sidebar);
+    transition: background var(--theme-transition);
+}
+
+.themed-sidebar-item:hover {
+    background: var(--bg-sidebar-hover);
+}
+
+.themed-sidebar-item.active {
+    background: var(--bg-sidebar-active);
+}
+
+/* Themed buttons */
+.themed-btn-primary {
+    background: var(--accent-gradient);
+    color: var(--text-inverse);
+    border: none;
+    transition: all var(--theme-transition);
+}
+
+.themed-btn-primary:hover {
+    box-shadow: var(--glow-accent, var(--card-shadow-hover));
+    transform: translateY(-1px);
+}
+
+/* Themed text */
+.themed-text-primary {
+    color: var(--text-primary);
+}
+
+.themed-text-secondary {
+    color: var(--text-secondary);
+}
+
+.themed-text-accent {
+    color: var(--accent-primary);
+}
+
+/* Themed backgrounds */
+.themed-bg-primary {
+    background: var(--bg-primary);
+}
+
+.themed-bg-secondary {
+    background: var(--bg-secondary);
+}
+
+.themed-bg-card {
+    background: var(--bg-card);
+}
+
+/* Themed borders */
+.themed-border {
+    border-color: var(--border-primary);
+}
+
+.themed-border-accent {
+    border-color: var(--border-accent);
+}
+
+/* Glassmorphism effect for dark themes */
+.theme-dark-gold .glass-effect,
+.theme-midnight-teal .glass-effect,
+.theme-noir-emerald .glass-effect {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Glow effects for dark themes */
+.theme-dark-gold .glow-accent,
+.theme-midnight-teal .glow-accent,
+.theme-noir-emerald .glow-accent {
+    box-shadow: var(--glow-accent);
+}
+
+/* Stat card styling */
+.themed-stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all var(--theme-transition);
+}
+
+.themed-stat-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: var(--card-shadow-hover);
+}
+
+/* Premium accent card */
+.themed-accent-card {
+    background: var(--accent-gradient);
+    color: var(--text-inverse);
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+
+.theme-dark-gold .themed-accent-card,
+.theme-midnight-teal .themed-accent-card,
+.theme-noir-emerald .themed-accent-card {
+    color: var(--text-inverse);
+}
+
+/* ============================================
+   PREMIUM INPUT FIELD STYLING
+   ============================================ */
+
+/* Base themed input - Premium look */
+.themed-input {
+    background: var(--input-bg);
+    border: 1.5px solid var(--input-border);
+    color: var(--input-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: -0.01em;
+}
+
+.themed-input::placeholder {
+    color: var(--input-placeholder);
+    font-weight: 400;
+}
+
+.themed-input:hover:not(:focus) {
+    border-color: var(--input-border-focus);
+}
+
+.themed-input:focus {
+    border-color: var(--input-border-focus);
+    outline: none;
+    box-shadow: var(--input-shadow-focus);
+}
+
+/* Global input styling - Applies to all inputs and textareas */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+select {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark theme specific input enhancements */
+.theme-dark-gold input,
+.theme-dark-gold textarea,
+.theme-dark-gold select,
+.theme-midnight-teal input,
+.theme-midnight-teal textarea,
+.theme-midnight-teal select,
+.theme-noir-emerald input,
+.theme-noir-emerald textarea,
+.theme-noir-emerald select {
+    background: var(--input-bg);
+    color: var(--input-text);
+    border-color: var(--input-border);
+    caret-color: var(--input-border-focus);
+}
+
+.theme-dark-gold input::placeholder,
+.theme-dark-gold textarea::placeholder,
+.theme-midnight-teal input::placeholder,
+.theme-midnight-teal textarea::placeholder,
+.theme-noir-emerald input::placeholder,
+.theme-noir-emerald textarea::placeholder {
+    color: var(--input-placeholder);
+}
+
+.theme-dark-gold input:focus,
+.theme-dark-gold textarea:focus,
+.theme-dark-gold select:focus,
+.theme-midnight-teal input:focus,
+.theme-midnight-teal textarea:focus,
+.theme-midnight-teal select:focus,
+.theme-noir-emerald input:focus,
+.theme-noir-emerald textarea:focus,
+.theme-noir-emerald select:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: var(--input-shadow-focus);
+    outline: none;
+}
+
+/* Table styling */
+.themed-table {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+}
+
+.themed-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.themed-table td {
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-primary);
+}
+
+.themed-table tr:hover {
+    background: var(--bg-tertiary);
+}
+
+/* ============================================
+   ICON BACKGROUND UTILITIES
+   ============================================ */
+.icon-bg-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.icon-bg-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
+.icon-bg-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error);
+}
+
+.icon-bg-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info);
+}
+
+.icon-bg-accent {
+    background: rgba(5, 150, 105, 0.15);
+    color: var(--accent-primary);
+}
+
+.icon-bg-accent-secondary {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-secondary);
+}
+
+.icon-bg-accent-tertiary {
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--accent-tertiary);
+}
+
+/* Dark theme adjustments for icon backgrounds */
+.theme-dark-gold .icon-bg-success {
+    background: rgba(74, 222, 128, 0.15);
+}
+
+.theme-dark-gold .icon-bg-warning {
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.theme-dark-gold .icon-bg-error {
+    background: rgba(248, 113, 113, 0.15);
+}
+
+.theme-dark-gold .icon-bg-info {
+    background: rgba(96, 165, 250, 0.15);
+}
+
+.theme-dark-gold .icon-bg-accent {
+    background: rgba(212, 175, 55, 0.15);
+}
+
+.theme-dark-gold .icon-bg-accent-secondary {
+    background: rgba(230, 197, 88, 0.15);
+}
+
+.theme-dark-gold .icon-bg-accent-tertiary {
+    background: rgba(245, 214, 123, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-success {
+    background: rgba(100, 255, 218, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-warning {
+    background: rgba(255, 217, 61, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-error {
+    background: rgba(255, 107, 107, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-info {
+    background: rgba(116, 185, 255, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-accent {
+    background: rgba(100, 255, 218, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-accent-secondary {
+    background: rgba(77, 217, 192, 0.15);
+}
+
+.theme-midnight-teal .icon-bg-accent-tertiary {
+    background: rgba(54, 179, 166, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-success {
+    background: rgba(0, 208, 132, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-warning {
+    background: rgba(255, 179, 71, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-error {
+    background: rgba(255, 107, 107, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-info {
+    background: rgba(93, 173, 236, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-accent {
+    background: rgba(0, 208, 132, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-accent-secondary {
+    background: rgba(0, 184, 116, 0.15);
+}
+
+.theme-noir-emerald .icon-bg-accent-tertiary {
+    background: rgba(0, 159, 100, 0.15);
+}
+
+/* Interactive card with enhanced motion */
+.themed-card-interactive {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--card-border-radius);
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.themed-card-interactive::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.themed-card-interactive:hover {
+    border-color: var(--accent-primary);
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-4px) scale(1.02);
+}
+
+.themed-card-interactive:hover::after {
+    opacity: 1;
+}
+
+.themed-card-interactive:active {
+    transform: translateY(-2px) scale(1.01);
+}
+
+/* Unique theme identities for interactive cards */
+.theme-dark-gold .themed-card-interactive {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: linear-gradient(135deg, rgba(40, 30, 10, 0.8), rgba(25, 20, 5, 0.85));
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.theme-dark-gold .themed-card-interactive:hover {
+    background: linear-gradient(135deg, rgba(50, 40, 15, 0.9), rgba(35, 28, 10, 0.95));
+    box-shadow: 0 8px 32px rgba(212, 175, 55, 0.35);
+}
+
+.theme-midnight-teal .themed-card-interactive {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: linear-gradient(135deg, rgba(8, 20, 45, 0.8), rgba(12, 30, 55, 0.85));
+    border: 1px solid rgba(100, 255, 218, 0.2);
+}
+
+.theme-midnight-teal .themed-card-interactive:hover {
+    background: linear-gradient(135deg, rgba(12, 30, 60, 0.9), rgba(18, 40, 75, 0.95));
+    box-shadow: 0 8px 32px rgba(100, 255, 218, 0.25);
+}
+
+.theme-noir-emerald .themed-card-interactive {
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    background: linear-gradient(135deg, rgba(3, 8, 3, 0.85), rgba(6, 12, 6, 0.9));
+    border: 1px solid rgba(0, 208, 132, 0.25);
+}
+
+.theme-noir-emerald .themed-card-interactive:hover {
+    background: linear-gradient(135deg, rgba(8, 18, 8, 0.9), rgba(10, 22, 10, 0.95));
+    box-shadow:
+        0 8px 32px rgba(0, 208, 132, 0.3),
+        0 0 50px rgba(0, 208, 132, 0.15);
+}
+
+/* Default theme for non-JS or initial load */
+html:not(.theme-classic):not(.theme-dark-gold):not(.theme-midnight-teal):not(.theme-noir-emerald) {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --accent-primary: #059669;
+    --border-primary: #e2e8f0;
+}

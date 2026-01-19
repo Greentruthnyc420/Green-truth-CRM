@@ -145,7 +145,8 @@ export default function MyDispensaries() {
             setMarkSoldModal({ isOpen: false, lead: null, revenue: '', saleType: '', submitting: false, error: '' });
 
             // Refresh Data
-            setDispensaries(data);
+            const refreshedData = await getMyDispensaries(currentUser?.uid || 'test-user-123');
+            setDispensaries(refreshedData);
 
             confetti({
                 particleCount: 100,
@@ -173,7 +174,8 @@ export default function MyDispensaries() {
             logActivity('SAMPLES_DELIVERED', disp.name, currentUser?.uid, {});
 
             // Refresh Data
-            setDispensaries(data);
+            const refreshedData = await getMyDispensaries(currentUser?.uid || 'test-user-123');
+            setDispensaries(refreshedData);
 
             showNotification("Samples marked as delivered!", 'success');
         } catch (e) {
@@ -267,7 +269,7 @@ export default function MyDispensaries() {
             {loading ? (
                 <div className="text-center py-10 text-slate-500">Loading your territory...</div>
             ) : dispensaries.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-xl border border-slate-100 border-dashed">
+                <div style={{ background: 'var(--bg-card)' }} className="text-center py-16 rounded-xl border border-slate-100 border-dashed">
                     <Store size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-lg font-medium text-slate-700">No Dispensaries Found</h3>
                     <p className="text-slate-500 mb-6">Log a shift or a sale to add a dispensary to your list.</p>
@@ -276,7 +278,7 @@ export default function MyDispensaries() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {dispensaries.map((disp, index) => (
-                        <div key={index} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                        <div key={index} style={{ background: 'var(--bg-card)' }} className="p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-lg">
@@ -377,7 +379,7 @@ export default function MyDispensaries() {
             {/* Mark Sold Modal (Task 1) */}
             {markSoldModal.isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
                         <div className="bg-purple-600 p-6 text-white text-center">
                             <DollarSign size={48} className="mx-auto mb-2 opacity-90" />
                             <h3 className="text-xl font-black uppercase tracking-wide">Mark as Sold</h3>
@@ -457,7 +459,7 @@ export default function MyDispensaries() {
             {/* Email Modal */}
             {emailModal.isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
                         {/* Header */}
                         <div className="p-4 border-b border-slate-100 flex justify-between items-center">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
@@ -601,7 +603,7 @@ export default function MyDispensaries() {
             {/* Google "Unverified App" Guide Modal */}
             {emailModal.showGmailGuide && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border-2 border-amber-400">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border-2 border-amber-400">
                         <div className="bg-amber-50 p-6">
                             <div className="flex items-start gap-4">
                                 <div className="p-3 bg-amber-100 rounded-full text-amber-600">

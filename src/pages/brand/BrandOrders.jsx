@@ -210,13 +210,13 @@ export default function BrandOrders() {
             {/* Orders List */}
             <div className="space-y-4">
                 {filteredOrders.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-xl border border-slate-100">
+                    <div style={{ background: 'var(--bg-card)' }} className="text-center py-12 rounded-xl border border-slate-100">
                         <ShoppingCart size={48} className="mx-auto text-slate-300 mb-4" />
                         <p className="text-slate-500">No orders found</p>
                     </div>
                 ) : (
                     filteredOrders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div key={order.id} style={{ background: 'var(--bg-card)' }} className="rounded-xl border border-slate-100 shadow-sm overflow-hidden">
                             <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
@@ -310,7 +310,7 @@ export default function BrandOrders() {
                                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-medium">Products</p>
                                 <div className="flex flex-wrap gap-2">
                                     {order.products.map((p, i) => (
-                                        <span key={i} className="px-3 py-1 bg-white border border-slate-200 rounded-full text-sm text-slate-700">
+                                        <span key={i} style={{ background: 'var(--bg-card)' }} className="px-3 py-1 border border-slate-200 rounded-full text-sm text-slate-700">
                                             {p.quantity}x {p.name} @ ${p.price}
                                         </span>
                                     ))}
@@ -330,7 +330,7 @@ export default function BrandOrders() {
             {/* Delivery Date Modal */}
             {deliveryModal.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl w-full max-w-md shadow-2xl">
                         <div className="p-6">
                             <h3 className="text-lg font-bold text-slate-800 mb-2">Set Delivery Date</h3>
                             <p className="text-sm text-slate-500 mb-4">When will this order be delivered?</p>

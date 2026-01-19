@@ -21,7 +21,7 @@ export default function BrandIntegrations() {
     // Admin Fallback / Safety Check
     if (!brandUser) {
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+            <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-8 text-center">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Plug size={32} className="text-slate-400" />
                 </div>
@@ -73,7 +73,7 @@ export default function BrandIntegrations() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-white rounded-xl p-2 shadow-sm border border-slate-200">
+            <div style={{ background: 'var(--bg-card)' }} className="flex gap-2 rounded-xl p-2 shadow-sm border border-slate-200">
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'overview'
@@ -107,7 +107,7 @@ export default function BrandIntegrations() {
             {activeTab === 'overview' && (
                 <div className="space-y-6">
                     {/* Supported Systems */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">Supported Systems & Formats</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {/* Monday integration hidden - code kept for future use
@@ -148,7 +148,7 @@ export default function BrandIntegrations() {
                     </div>
 
                     {/* Quick Start Guide */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <FileText size={20} className="text-amber-600" />
                             Quick Start Guide
@@ -209,7 +209,7 @@ export default function BrandIntegrations() {
 
             {activeTab === 'export' && (
                 <div className="space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <Download size={20} className="text-amber-600" />
                             CSV Export Guide
@@ -270,7 +270,7 @@ export default function BrandIntegrations() {
 
             {activeTab === 'import' && (
                 <div className="space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <Upload size={20} className="text-amber-600" />
                             CSV Import Instructions

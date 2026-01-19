@@ -15,30 +15,72 @@ L.Icon.Default.mergeOptions({
     shadowUrl: null,
 });
 
+// Import getMockCoordinates from geocoding service
+// Real geocoding (geocodeAddress) can be used when batch processing leads with addresses
+import { getMockCoordinates } from '../services/geocodingService';
+
 // Custom Pin Factory
-const createCustomIcon = (status) => {
+// Rep-specific colors for admin map view
+const REP_COLORS = {
+    'amber': '#f59e0b',      // Amber - Orange/Yellow
+    'alyssa': '#ec4899',     // Alyssa - Pink
+    'omar': '#10b981',       // Omar - Green (Owner)
+    'dev tester': '#10b981', // Dev Tester - Green (same as owner for testing)
+    'unassigned': '#64748b', // Unassigned - Grey
+    // Add more reps as needed with distinct colors
+};
+
+// Generate a color from rep name (fallback for unknown reps)
+const getRepColor = (repName) => {
+    if (!repName) return REP_COLORS.unassigned;
+
+    const normalizedName = repName.toLowerCase().trim();
+
+    // Check for exact or partial matches
+    for (const [key, color] of Object.entries(REP_COLORS)) {
+        if (normalizedName.includes(key)) {
+            return color;
+        }
+    }
+
+    // Generate consistent color from name hash for unknown reps
+    let hash = 0;
+    for (let i = 0; i < normalizedName.length; i++) {
+        hash = normalizedName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 50%)`;
+};
+
+const createCustomIcon = (status, repName = null, useRepColor = false) => {
     let color = '#64748b'; // Default Grey (Prospect)
 
-    switch (status) {
-        case LEAD_STATUS.ACTIVE:
-        case 'active':
-        case 'client':
-            color = '#10b981'; // Green
-            break;
-        case LEAD_STATUS.SAMPLES_DELIVERED:
-        case 'samples_delivered':
-            color = '#3b82f6'; // Blue
-            break;
-        case LEAD_STATUS.SAMPLES_REQUESTED:
-        case 'samples_requested':
-        case 'sampled':
-            color = '#f59e0b'; // Orange
-            break;
-        case LEAD_STATUS.PROSPECT:
-        case 'prospect':
-        default:
-            color = '#64748b'; // Grey
-            break;
+    // If using rep-based coloring (admin mode), use rep color
+    if (useRepColor && repName) {
+        color = getRepColor(repName);
+    } else {
+        // Status-based coloring
+        switch (status) {
+            case LEAD_STATUS.ACTIVE:
+            case 'active':
+            case 'client':
+                color = '#10b981'; // Green
+                break;
+            case LEAD_STATUS.SAMPLES_DELIVERED:
+            case 'samples_delivered':
+                color = '#3b82f6'; // Blue
+                break;
+            case LEAD_STATUS.SAMPLES_REQUESTED:
+            case 'samples_requested':
+            case 'sampled':
+                color = '#f59e0b'; // Orange
+                break;
+            case LEAD_STATUS.PROSPECT:
+            case 'prospect':
+            default:
+                color = '#64748b'; // Grey
+                break;
+        }
     }
 
     return L.divIcon({
@@ -58,38 +100,53 @@ const createCustomIcon = (status) => {
     });
 };
 
-// Mock Geocoding Helper
-const getMockCoordinates = (str) => {
-    if (!str) return [40.7128, -74.0060];
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const latOffset = (hash % 1000) / 7000;
-    const lngOffset = ((hash >> 16) % 1000) / 7000;
-    return [40.7128 + latOffset, -74.0060 + lngOffset];
-};
-
-const Legend = () => (
+const Legend = ({ useRepColors = false }) => (
     <div className="absolute bottom-6 right-6 z-[1000] bg-white/90 backdrop-blur-md p-4 rounded-xl border border-slate-200 shadow-xl max-w-[200px]">
-        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Map Legend</h4>
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+            {useRepColors ? 'Sales Reps' : 'Map Legend'}
+        </h4>
         <div className="space-y-2.5">
-            <div className="flex items-center gap-3 group">
-                <div className="w-3 h-3 rounded-full bg-[#10b981] shadow-sm shadow-emerald-200 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700">Active Accounts</span>
-            </div>
-            <div className="flex items-center gap-3 group">
-                <div className="w-3 h-3 rounded-full bg-[#3b82f6] shadow-sm shadow-blue-200 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700">Samples Delivered</span>
-            </div>
-            <div className="flex items-center gap-3 group">
-                <div className="w-3 h-3 rounded-full bg-[#f59e0b] shadow-sm shadow-amber-200 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700">Samples Requested</span>
-            </div>
-            <div className="flex items-center gap-3 group">
-                <div className="w-3 h-3 rounded-full bg-slate-400 shadow-sm shadow-slate-200 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700">Prospects</span>
-            </div>
+            {useRepColors ? (
+                // Rep-based legend
+                <>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-[#10b981] shadow-sm shadow-emerald-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Omar (Owner)</span>
+                    </div>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-[#f59e0b] shadow-sm shadow-amber-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Amber</span>
+                    </div>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-[#ec4899] shadow-sm shadow-pink-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Alyssa</span>
+                    </div>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-slate-400 shadow-sm shadow-slate-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Unassigned</span>
+                    </div>
+                </>
+            ) : (
+                // Status-based legend
+                <>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-[#10b981] shadow-sm shadow-emerald-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Active Accounts</span>
+                    </div>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-[#3b82f6] shadow-sm shadow-blue-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Samples Delivered</span>
+                    </div>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-[#f59e0b] shadow-sm shadow-amber-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Samples Requested</span>
+                    </div>
+                    <div className="flex items-center gap-3 group">
+                        <div className="w-3 h-3 rounded-full bg-slate-400 shadow-sm shadow-slate-200 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-slate-700">Prospects</span>
+                    </div>
+                </>
+            )}
         </div>
     </div>
 );
@@ -173,7 +230,7 @@ export default function CRMMap({ leads = [], viewMode = 'admin', currentBrandId 
                 </button>
             </div>
 
-            <Legend />
+            <Legend useRepColors={false} />
             <MapContainer
                 center={[40.7128, -74.0060]}
                 zoom={11}
@@ -190,15 +247,24 @@ export default function CRMMap({ leads = [], viewMode = 'admin', currentBrandId 
                         ? [lead.location.lat, lead.location.lng]
                         : (lead.coords || getMockCoordinates(lead.dispensaryName || lead.name));
 
-                    const icon = createCustomIcon(lead.mapStatus);
+                    // Use status-based coloring
+                    const icon = createCustomIcon(lead.mapStatus, null, false);
 
                     return (
                         <Marker key={idx} position={position} icon={icon}>
                             <Popup className="custom-popup">
-                                <div className="min-w-[220px] p-2">
+                                <div className="min-w-[260px] p-2">
                                     <h3 className="font-bold text-slate-900 text-base leading-tight mb-1">
                                         {lead.dispensaryName || lead.name}
                                     </h3>
+
+                                    {/* Address */}
+                                    {lead.address && (
+                                        <p className="text-xs text-slate-500 mb-2 flex items-start gap-1">
+                                            <Navigation size={10} className="mt-0.5 shrink-0" />
+                                            <span className="line-clamp-2">{lead.address}</span>
+                                        </p>
+                                    )}
 
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${(lead.mapStatus === 'active' || lead.mapStatus === 'client' || lead.mapStatus === LEAD_STATUS.ACTIVE)
@@ -210,64 +276,107 @@ export default function CRMMap({ leads = [], viewMode = 'admin', currentBrandId 
                                             {(lead.mapStatus || 'prospect').replace('_', ' ')}
                                         </span>
                                         <span className="text-xs text-slate-400">
-                                            {lead.repAssigned?.split(' ')[0] || 'Unassigned'}
+                                            Rep: {lead.repAssigned || 'Unassigned'}
                                         </span>
                                     </div>
 
+                                    {/* Contact Info */}
+                                    {(lead.contactName || lead.phone || lead.email) && (
+                                        <div className="text-xs text-slate-600 mb-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                            {lead.contactName && (
+                                                <div className="font-medium mb-1">{lead.contactName}</div>
+                                            )}
+                                            <div className="flex items-center gap-3">
+                                                {lead.phone && (
+                                                    <a href={`tel:${lead.phone}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700">
+                                                        <Phone size={12} /> {lead.phone}
+                                                    </a>
+                                                )}
+                                                {lead.email && (
+                                                    <a href={`mailto:${lead.email}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 truncate max-w-[130px]">
+                                                        <Mail size={12} /> <span className="truncate">{lead.email}</span>
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
                                         <div>
-                                            <div className="text-[10px] text-slate-400 font-medium">LIFETIME</div>
+                                            <div className="text-[10px] text-slate-400 font-medium">LIFETIME REVENUE</div>
                                             <div className="text-sm font-bold text-slate-700 flex items-center gap-1">
                                                 <DollarSign size={12} className="text-emerald-500" />
                                                 {lead.totalRevenue ? lead.totalRevenue.toLocaleString() : '0'}
                                             </div>
                                         </div>
                                         <div>
-                                            <div className="text-[10px] text-slate-400 font-medium">LAST VISIT</div>
+                                            <div className="text-[10px] text-slate-400 font-medium">LAST ORDER</div>
                                             <div className="text-sm font-bold text-slate-700 flex items-center gap-1">
                                                 <Calendar size={12} className="text-blue-500" />
-                                                {lead.lastActivation ? new Date(lead.lastActivation).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'}
+                                                {lead.lastSaleDate || lead.lastActivation
+                                                    ? new Date(lead.lastSaleDate || lead.lastActivation).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                                    : '-'}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                                        <div className="flex gap-1">
-                                            {lead.phone && (
-                                                <a href={`tel:${lead.phone}`} className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-md transition-colors" title="Call">
-                                                    <Phone size={14} />
-                                                </a>
-                                            )}
-                                            {lead.email && (
-                                                <a href={`mailto:${lead.email}`} className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-md transition-colors" title="Email">
-                                                    <Mail size={14} />
-                                                </a>
-                                            )}
+                                    {/* Active Brands */}
+                                    {lead.activeBrands && lead.activeBrands.length > 0 && (
+                                        <div className="mb-3">
+                                            <div className="text-[10px] text-slate-400 font-medium mb-1">BRANDS CARRIED</div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {lead.activeBrands.slice(0, 4).map((brand, i) => (
+                                                    <span key={i} className="text-[10px] bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded border border-brand-100">
+                                                        {brand}
+                                                    </span>
+                                                ))}
+                                                {lead.activeBrands.length > 4 && (
+                                                    <span className="text-[10px] text-slate-400">+{lead.activeBrands.length - 4} more</span>
+                                                )}
+                                            </div>
                                         </div>
+                                    )}
 
-                                        <div className="flex flex-col gap-2">
-                                            {lead.mapStatus === LEAD_STATUS.SAMPLES_REQUESTED && (
-                                                <button
-                                                    onClick={() => handleDeliverSamples(lead.id)}
-                                                    disabled={updating}
-                                                    className={`w-full py-1.5 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1.5 ${updating
-                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                        : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200 hover:border-amber-300'
-                                                        }`}
-                                                >
-                                                    <Package size={12} />
-                                                    {updating ? 'Updating...' : 'Mark Delivered'}
-                                                </button>
-                                            )}
-
-                                            <Link
-                                                to="/log-sale"
-                                                state={{ prefill: { dispensary: lead.dispensaryName || lead.name } }}
-                                                className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center justify-center gap-1 py-1"
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                                        {lead.mapStatus === LEAD_STATUS.SAMPLES_REQUESTED && (
+                                            <button
+                                                onClick={() => handleDeliverSamples(lead.id)}
+                                                disabled={updating}
+                                                className={`w-full py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1.5 ${updating
+                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200 hover:border-amber-300'
+                                                    }`}
                                             >
-                                                Log Sale <Navigation size={12} />
+                                                <Package size={14} />
+                                                {updating ? 'Updating...' : 'Mark Samples Delivered'}
+                                            </button>
+                                        )}
+
+                                        <Link
+                                            to="/app/log-sale"
+                                            state={{
+                                                prefill: {
+                                                    dispensary: lead.dispensaryName || lead.name,
+                                                    dispensaryId: lead.id,
+                                                    licenseNumber: lead.licenseNumber || lead.license_number
+                                                }
+                                            }}
+                                            className="w-full py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                                        >
+                                            <DollarSign size={14} />
+                                            Log Sale
+                                        </Link>
+
+                                        {/* View Details Link */}
+                                        {lead.id && (
+                                            <Link
+                                                to={`/admin/dispensary/${lead.id}`}
+                                                className="w-full py-2 px-3 rounded-lg text-xs font-bold text-brand-600 hover:text-brand-700 hover:bg-brand-50 flex items-center justify-center gap-1 border border-brand-200 transition-all"
+                                            >
+                                                View Full Details →
                                             </Link>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             </Popup>

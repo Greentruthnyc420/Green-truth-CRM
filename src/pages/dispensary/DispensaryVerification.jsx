@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ArrowRight, Loader, Building2, MapPin, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Loader, Building2, MapPin, ArrowLeft, UserCheck } from 'lucide-react';
 import { verifyLicense } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
 
@@ -9,8 +9,24 @@ export default function DispensaryVerification() {
     const [dispensaryName, setDispensaryName] = useState('');
     const [address, setAddress] = useState('');
     const [loading, setLoading] = useState(false);
+    const [referralRep, setReferralRep] = useState(null);
     const navigate = useNavigate();
     const { showNotification } = useNotification();
+
+    // Capture referral code from URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        if (ref) {
+            sessionStorage.setItem('dispensary_referral_rep', ref);
+            setReferralRep(ref);
+            showNotification('You were referred by one of our sales representatives!', 'success');
+        } else {
+            // Check if already stored from previous visit
+            const storedRef = sessionStorage.getItem('dispensary_referral_rep');
+            if (storedRef) setReferralRep(storedRef);
+        }
+    }, []);
 
     const handleVerify = async (e) => {
         e.preventDefault();
@@ -31,10 +47,13 @@ export default function DispensaryVerification() {
             if (verified) {
                 showNotification(`License verified for ${verified.data.dispensaryName || verified.data.name}!`, 'success');
                 // Store verified license AND user-entered info in session for registration
+                // Include referral rep ID if present
+                const referralRepId = sessionStorage.getItem('dispensary_referral_rep');
                 sessionStorage.setItem('verified_license', JSON.stringify({
                     ...verified.data,
                     userEnteredName: dispensaryName,
-                    userEnteredAddress: address
+                    userEnteredAddress: address,
+                    referralRepId: referralRepId || null
                 }));
                 navigate('/dispensary/register');
             } else {
@@ -50,6 +69,19 @@ export default function DispensaryVerification() {
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full">
+                {/* Referral Banner */}
+                {referralRep && (
+                    <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center">
+                            <UserCheck size={20} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-emerald-800 text-sm">Referred by Sales Rep</p>
+                            <p className="text-emerald-600 text-xs">Your account will be linked to your rep for priority support</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Back to Gateway Button */}
                 <button
                     onClick={() => navigate('/gateway')}

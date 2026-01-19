@@ -19,10 +19,13 @@ import {
     PlusCircle,
     Settings,
     ShieldCheck,
-    Car
+    Car,
+    Palette
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import ThemeSwitcher from '../ThemeSwitcher';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -61,9 +64,11 @@ class ErrorBoundary extends React.Component {
 export default function AdminLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { logout, currentUser } = useAuth();
+    const { theme, isDark } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+    const [isThemeOpen, setIsThemeOpen] = useState(false);
 
     const handleLogout = async () => {
         console.log("Logout button clicked");
@@ -80,17 +85,17 @@ export default function AdminLayout() {
         { path: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
         { path: '/admin/workflow', label: 'Workflow', icon: CheckSquare },
         { path: '/admin/financials', label: 'Financials', icon: DollarSign },
+        { path: '/admin/collections', label: 'Collections', icon: FileText },
         { path: '/admin/invoices', label: 'Invoices', icon: FileText },
         { path: '/admin/logistics', label: 'Logistics', icon: Car },
         { path: '/admin/territory', label: 'Territory', icon: Map },
         { path: '/admin/team', label: 'Team', icon: Users },
         { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch },
-        { path: '/admin/growth', label: 'Growth', icon: TrendingUp },
-        { path: '/admin/integrations', label: 'Integrations', icon: GitBranch }, // Reusing GitBranch or similar for integrations
+        { path: '/admin/integrations', label: 'Integrations', icon: GitBranch },
     ];
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -102,7 +107,7 @@ export default function AdminLayout() {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed lg:static top-0 left-0 z-50 h-full w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out flex flex-col
+                    themed-sidebar fixed lg:static top-0 left-0 z-50 h-full w-64 transition-transform duration-300 ease-in-out flex flex-col
                     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                 `}
             >
@@ -131,11 +136,13 @@ export default function AdminLayout() {
                             to={item.path}
                             end={item.end}
                             onClick={() => setIsSidebarOpen(false)}
+                            style={({ isActive }) => ({
+                                background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
+                                color: isActive ? 'var(--text-sidebar)' : 'var(--text-tertiary)'
+                            })}
                             className={({ isActive }) => `
                                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
-                                ${isActive
-                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-900/20'
-                                    : 'text-slate-400 hover:bg-white/5 hover:text-white'}
+                                ${isActive ? 'shadow-lg' : 'hover:bg-white/5 hover:text-white'}
                             `}
                         >
                             <item.icon size={20} />
@@ -145,16 +152,33 @@ export default function AdminLayout() {
                 </nav>
 
                 {/* User Profile / Logout */}
-                <div className="p-4 border-t border-white/10 bg-slate-950/50">
+                <div className="p-4 border-t" style={{ borderColor: 'var(--border-primary)', background: 'rgba(0,0,0,0.2)' }}>
                     <div className="flex items-center gap-3 mb-4 px-2">
-                        <div className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white shadow-inner">
+                        <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-inner"
+                            style={{ background: 'var(--accent-primary)', color: 'var(--text-inverse)' }}
+                        >
                             {currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'AD'}
                         </div>
                         <div className="overflow-hidden">
-                            <p className="text-sm font-medium text-white truncate">{currentUser?.email}</p>
-                            <p className="text-xs text-slate-500">Administrator</p>
+                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-sidebar)' }}>{currentUser?.email}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Administrator</p>
                         </div>
                     </div>
+
+                    {/* Theme Switcher */}
+                    <div className="relative mb-2">
+                        <button
+                            onClick={() => setIsThemeOpen(!isThemeOpen)}
+                            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors text-sm font-medium"
+                            style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
+                        >
+                            <Palette size={16} />
+                            Theme
+                        </button>
+                        <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
+                    </div>
+
                     <button
                         onClick={() => navigate('/app')}
                         className="w-full flex items-center justify-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-purple-200 py-2 rounded-lg transition-colors text-sm font-medium mb-2"
@@ -164,7 +188,8 @@ export default function AdminLayout() {
                     </button>
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors text-sm font-medium"
+                        style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
                     >
                         <LogOut size={16} />
                         Sign Out
@@ -251,7 +276,6 @@ export default function AdminLayout() {
                                     <MoreMenuItem to="/admin/team" icon={<Users className="text-blue-500" />} label="Team" onClick={() => setIsMoreMenuOpen(false)} />
                                     <MoreMenuItem to="/admin/invoices" icon={<FileText className="text-emerald-500" />} label="Billables" onClick={() => setIsMoreMenuOpen(false)} />
                                     <MoreMenuItem to="/admin/pipeline" icon={<GitBranch className="text-orange-500" />} label="Pipeline" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/admin/growth" icon={<TrendingUp className="text-pink-500" />} label="Growth" onClick={() => setIsMoreMenuOpen(false)} />
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-6 mt-2 flex flex-col gap-3">

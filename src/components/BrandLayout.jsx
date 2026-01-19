@@ -1,14 +1,18 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeSwitcher from './ThemeSwitcher';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BrandLayout() {
     const { brandUser, logoutBrand, switchBrand } = useBrandAuth();
+    const { theme } = useTheme();
     const navigate = useNavigate();
 
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
+    const [isThemeOpen, setIsThemeOpen] = React.useState(false);
 
     const handleLogout = () => {
         logoutBrand();
@@ -78,9 +82,10 @@ export default function BrandLayout() {
     const brandLogo = assets?.icon || null;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex">
+        <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
             {/* Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 overflow-y-auto border-r border-slate-800">
+            <aside className="hidden md:flex flex-col w-64 themed-sidebar h-screen fixed left-0 top-0 overflow-y-auto"
+                style={{ borderRight: '1px solid var(--border-primary)' }}>
                 {/* Brand Logo Area - Personalized */}
                 <div className="h-48 flex items-center justify-center bg-slate-950 overflow-hidden relative border-b border-slate-800 shrink-0 p-8">
                     {topSidebarLogo ? (
@@ -167,26 +172,41 @@ export default function BrandLayout() {
                 </nav>
 
                 {/* User Section */}
-                <div className="p-4 border-t border-slate-800 space-y-3">
-                    <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50">
+                <div className="p-4 border-t space-y-3" style={{ borderColor: 'var(--border-primary)' }}>
+                    <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: 'var(--bg-sidebar-hover)' }}>
                         {brandLogo ? (
                             <div className="w-8 h-8 rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
                                 <img src={brandLogo} alt="" className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-sm font-bold shadow-sm">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm"
+                                style={{ background: 'var(--accent-primary)', color: 'var(--text-inverse)' }}>
                                 {initials}
                             </div>
                         )}
                         <div className="text-sm overflow-hidden whitespace-nowrap">
-                            <p className="font-medium text-white max-w-[120px] truncate">{brandUser?.brandName}</p>
-                            <p className="text-slate-400 text-xs truncate max-w-[120px]">{brandUser?.email}</p>
+                            <p className="font-medium max-w-[120px] truncate" style={{ color: 'var(--text-sidebar)' }}>{brandUser?.brandName}</p>
+                            <p className="text-xs truncate max-w-[120px]" style={{ color: 'var(--text-tertiary)' }}>{brandUser?.email}</p>
                         </div>
+                    </div>
+
+                    {/* Theme Switcher */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsThemeOpen(!isThemeOpen)}
+                            className="w-full flex items-center gap-3 p-2 rounded-lg transition-colors"
+                            style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
+                        >
+                            <Palette size={20} />
+                            <span className="font-medium text-sm">Theme</span>
+                        </button>
+                        <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
                     </div>
 
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-red-400 transition-colors"
+                        className="w-full flex items-center gap-3 p-2 rounded-lg transition-colors"
+                        style={{ color: 'var(--text-sidebar)' }}
                     >
                         <LogOut size={20} />
                         <span className="font-medium text-sm">Sign Out</span>
@@ -226,7 +246,7 @@ export default function BrandLayout() {
                 </header>
 
                 {/* Mobile Navigation */}
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                     <MobileNavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
                     <MobileNavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />
                     <MobileNavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={20} />} label="Disp. Inv" />
@@ -256,12 +276,13 @@ export default function BrandLayout() {
                                 animate={{ y: 0 }}
                                 exit={{ y: '100%' }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] z-[70] md:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                                className="fixed bottom-0 left-0 right-0 rounded-t-[2.5rem] z-[70] md:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                                style={{ background: 'var(--bg-card)' }}
                             >
                                 <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
 
                                 <div className="flex justify-between items-center mb-8">
-                                    <h2 className="text-xl font-bold text-slate-800">Brand Menu</h2>
+                                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Brand Menu</h2>
                                     <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
                                         <X size={20} />
                                     </button>
@@ -308,21 +329,24 @@ export default function BrandLayout() {
     );
 }
 
-const NavItem = ({ to, icon, label, end }) => (
-    <NavLink
-        to={to}
-        end={end}
-        className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${isActive
-                ? 'bg-orange-600 text-white shadow-md shadow-orange-900/20'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`
-        }
-    >
-        <div className="min-w-[20px]">{icon}</div>
-        <span className="font-medium whitespace-nowrap overflow-hidden">{label}</span>
-    </NavLink>
-);
+const NavItem = ({ to, icon, label, end }) => {
+    return (
+        <NavLink
+            to={to}
+            end={end}
+            style={({ isActive }) => ({
+                background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
+                color: isActive ? 'var(--text-sidebar)' : 'var(--text-tertiary)'
+            })}
+            className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${isActive ? 'shadow-md' : 'hover:bg-slate-800 hover:text-white'}`
+            }
+        >
+            <div className="min-w-[20px]">{icon}</div>
+            <span className="font-medium whitespace-nowrap overflow-hidden">{label}</span>
+        </NavLink>
+    );
+};
 
 const MobileNavItem = ({ to, icon, label, end }) => (
     <NavLink
@@ -345,9 +369,10 @@ const MoreMenuItem = ({ to, icon, label, onClick }) => (
         className={({ isActive }) =>
             `flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${isActive
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                : 'bg-white border-slate-100 text-slate-600 active:bg-slate-50'
+                : 'border-slate-100 text-slate-600 active:bg-slate-50'
             }`
         }
+        style={({ isActive }) => ({ background: isActive ? undefined : 'var(--bg-card)' })}
     >
         {React.cloneElement(icon, { size: 24 })}
         <span className="text-[11px] font-bold text-center leading-tight">{label}</span>

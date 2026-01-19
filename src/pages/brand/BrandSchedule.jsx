@@ -161,7 +161,7 @@ const BrandSchedule = () => {
             </div>
 
             {loading ? (
-                <div className="h-96 flex items-center justify-center bg-white rounded-xl border border-slate-200">
+                <div style={{ background: 'var(--bg-card)' }} className="h-96 flex items-center justify-center rounded-xl border border-slate-200">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
                 </div>
             ) : (
@@ -175,7 +175,7 @@ const BrandSchedule = () => {
             {/* Event Details Modal */}
             {selectedEvent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="bg-brand-50 p-6 border-b border-brand-100 flex justify-between items-start">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900">Activation Details</h3>
@@ -283,7 +283,8 @@ const BrandSchedule = () => {
                             </button>
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                                style={{ background: 'var(--bg-secondary)' }}
                             >
                                 Close
                             </button>

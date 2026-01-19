@@ -170,7 +170,7 @@ export default function BrandNewLead() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 pb-12">
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="p-6 rounded-xl border border-slate-100 shadow-sm space-y-4" style={{ background: 'var(--bg-card)' }}>
 
                     {/* Status Categorization */}
                     <div>
@@ -239,7 +239,7 @@ export default function BrandNewLead() {
                         </div>
 
                         {formData.contacts.map((contact, index) => (
-                            <div key={index} className="p-4 bg-slate-50 rounded-lg border border-slate-100 relative">
+                            <div key={index} className="p-4 rounded-lg border border-slate-100 relative" style={{ background: 'var(--bg-secondary)' }}>
                                 {formData.contacts.length > 1 && (
                                     <button
                                         type="button"
@@ -338,7 +338,7 @@ export default function BrandNewLead() {
                 </div>
 
                 {mondayIntegration.connected && mondayIntegration.accountsBoardId && (
-                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="p-6 rounded-xl border border-slate-100 shadow-sm" style={{ background: 'var(--bg-card)' }}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />

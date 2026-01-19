@@ -4,9 +4,13 @@ export const STORES_PER_DOLLAR = 10;
 export const REP_COMMISSION_RATE = 0.02;
 export const COMPANY_COMMISSION_RATE = 0.05; // Company makes 5% on gross revenue
 
-export const MILEAGE_RATE_VEHICLE = 0.35;
+// Owner email - flat rate of $35/hr, no bonus structure for hours
+export const OWNER_EMAIL = 'omar@thegreentruthnyc.com';
+export const OWNER_HOURLY_RATE = 35;
+
+export const MILEAGE_RATE_VEHICLE = 0.725; // Full IRS mileage rate
 export const MILEAGE_RATE_NO_VEHICLE = 0.20;
-export const CLIENT_MILEAGE_RATE = 0.70;
+export const CLIENT_MILEAGE_RATE = 0.725;
 
 // Pricing Tiers (2hr, 3hr, 4hr, 5hr)
 export const PRICING_TIERS = {
@@ -24,6 +28,76 @@ export function getCurrentQuarterLabel() {
     const year = now.getFullYear();
     const quarter = Math.ceil(month / 3);
     return `Q${quarter} ${year}`;
+}
+
+/**
+ * Returns the current biweekly pay period dates.
+ * Period 1: 1st - 15th (paid around 20th)
+ * Period 2: 16th - end of month (paid around 5th of next month)
+ * @returns {{ start: Date, end: Date, label: string, periodNumber: 1 | 2 }}
+ */
+export function getCurrentPayPeriod() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const day = now.getDate();
+
+    if (day <= 15) {
+        // First half of month (1st - 15th)
+        return {
+            start: new Date(year, month, 1),
+            end: new Date(year, month, 15, 23, 59, 59),
+            label: `${new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(year, month, 15).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+            periodNumber: 1
+        };
+    } else {
+        // Second half of month (16th - end)
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return {
+            start: new Date(year, month, 16),
+            end: new Date(year, month, lastDay, 23, 59, 59),
+            label: `${new Date(year, month, 16).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(year, month, lastDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+            periodNumber: 2
+        };
+    }
+}
+
+/**
+ * Checks if a date falls within the current pay period.
+ * @param {Date|string} dateInput - The date to check
+ * @returns {boolean}
+ */
+export function isInCurrentPayPeriod(dateInput) {
+    if (!dateInput) return false;
+
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(date.getTime())) return false;
+
+    const period = getCurrentPayPeriod();
+    return date >= period.start && date <= period.end;
+}
+
+/**
+ * Returns the pay period label for a given date.
+ * @param {Date|string} dateInput - The date to get period for
+ * @returns {string}
+ */
+export function getPayPeriodLabel(dateInput) {
+    if (!dateInput) return 'Unknown';
+
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+
+    if (day <= 15) {
+        return `${date.toLocaleDateString('en-US', { month: 'short' })} 1-15, ${year}`;
+    } else {
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return `${date.toLocaleDateString('en-US', { month: 'short' })} 16-${lastDay}, ${year}`;
+    }
 }
 
 /**
@@ -72,8 +146,19 @@ export function calculateReimbursement(miles, tolls, hasVehicle = true) {
 /**
  * Calculates the hourly rate based on active stores.
  * Starts at $20, +$1 per 10 stores, max $30.
+ * 
+ * OWNER EXCEPTION: omar@thegreentruthnyc.com gets flat $30/hr with no bonus structure.
+ * 
+ * @param {number} activeStoreCount - Number of active stores
+ * @param {string} email - Optional email to check for owner rate
  */
-export function calculateHourlyRate(activeStoreCount) {
+export function calculateHourlyRate(activeStoreCount, email = null) {
+    // Owner gets flat $30/hr - no bonus structure for hours
+    if (email && email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+        return OWNER_HOURLY_RATE;
+    }
+
+    // Standard reps: $20 base + $1 per 10 stores, max $30
     const count = Math.max(0, activeStoreCount || 0);
     const increase = Math.floor(count / STORES_PER_DOLLAR);
     return Math.min(HOURLY_CAP, HOURLY_BASE + increase);
@@ -109,6 +194,7 @@ export function calculateTotalLifetimeBonuses(activeStoreCount) {
 /**
  * Calculates the total revenue invoiced to the client for a shift.
  * Based on Region + Duration + Mileage + Tolls.
+ * NOW ALIGNED with pricing.js calculateAgencyShiftCost
  */
 export function calculateShiftClientRevenue(shift) {
     const hours = parseFloat(shift.hoursWorked) || 0;
@@ -127,8 +213,15 @@ export function calculateShiftClientRevenue(shift) {
         baseRate = PRICING_TIERS.NYC[billableHours]; // Fallback
     }
 
-    const mileageCharge = (parseFloat(shift.milesTraveled) || 0) * CLIENT_MILEAGE_RATE;
-    const tollCharge = parseFloat(shift.tollAmount) || 0; // Reimbursed at cost
+    // Aligned with pricing.js MILEAGE_RATE (0.725)
+    const AGENCY_MILEAGE_RATE = 0.725;
+
+    // Only add mileage/tolls if hasVehicle is true (aligned with pricing.js)
+    const hasVehicle = shift.hasVehicle !== undefined ? shift.hasVehicle : true;
+    const mileageCharge = hasVehicle
+        ? Math.ceil((parseFloat(shift.milesTraveled) || 0) * AGENCY_MILEAGE_RATE * 100) / 100
+        : 0;
+    const tollCharge = hasVehicle ? (parseFloat(shift.tollAmount) || 0) : 0;
 
     return baseRate + mileageCharge + tollCharge;
 }

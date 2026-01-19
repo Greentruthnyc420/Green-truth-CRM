@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
-import { getActivations, getAllBrandProfiles, updateActivation, getLeads } from '../services/firestoreService';
+import { getActivations, getAllBrandProfiles, updateActivation, getLeads, findDuplicateActivations, cleanupDuplicateActivations } from '../services/firestoreService';
 import CalendarView from '../components/CalendarView';
-import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, Plus, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, Plus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import ActivationFormModal from '../components/ActivationFormModal';
+import { useNotification } from '../contexts/NotificationContext';
+
 
 const Schedule = () => {
     const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [filterBrand, setFilterBrand] = useState('all');
     const [brands, setBrands] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [duplicateInfo, setDuplicateInfo] = useState(null);
+    const [cleaningUp, setCleaningUp] = useState(false);
 
     const isAdmin = currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 
@@ -108,6 +113,45 @@ const Schedule = () => {
         setSelectedEvent(event);
     };
 
+    // Scan for duplicate activations
+    const handleScanDuplicates = async () => {
+        setCleaningUp(true);
+        try {
+            const result = await findDuplicateActivations();
+            setDuplicateInfo(result);
+            if (result.totalDuplicates === 0) {
+                showNotification('No duplicate activations found', 'success');
+            }
+        } catch (error) {
+            console.error('Error scanning duplicates:', error);
+            showNotification('Failed to scan for duplicates', 'error');
+        } finally {
+            setCleaningUp(false);
+        }
+    };
+
+    // Clean up duplicate activations
+    const handleCleanupDuplicates = async () => {
+        if (!duplicateInfo?.totalDuplicates) return;
+
+        if (!window.confirm(`This will delete ${duplicateInfo.totalDuplicates} duplicate activations. This cannot be undone. Continue?`)) {
+            return;
+        }
+
+        setCleaningUp(true);
+        try {
+            const result = await cleanupDuplicateActivations();
+            showNotification(result.message, result.success ? 'success' : 'error');
+            setDuplicateInfo(null);
+            loadData(); // Refresh the schedule
+        } catch (error) {
+            console.error('Error cleaning up duplicates:', error);
+            showNotification('Failed to clean up duplicates', 'error');
+        } finally {
+            setCleaningUp(false);
+        }
+    };
+
     const filteredEvents = filterBrand === 'all'
         ? events
         : events.filter(e => e.resource.brandId === filterBrand);
@@ -137,22 +181,68 @@ const Schedule = () => {
                     </button>
 
                     {isAdmin && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-slate-700">Filter by Brand:</span>
-                            <select
-                                value={filterBrand}
-                                onChange={(e) => setFilterBrand(e.target.value)}
-                                className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                        <>
+                            <button
+                                onClick={handleScanDuplicates}
+                                disabled={cleaningUp}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-medium rounded-lg hover:bg-amber-100 transition-colors"
                             >
-                                <option value="all">All Brands</option>
-                                {brands.map(b => (
-                                    <option key={b.id} value={b.id}>{b.name || b.id}</option>
-                                ))}
-                            </select>
-                        </div>
+                                {cleaningUp ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
+                                {cleaningUp ? 'Scanning...' : 'Scan Duplicates'}
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-700">Filter by Brand:</span>
+                                <select
+                                    value={filterBrand}
+                                    onChange={(e) => setFilterBrand(e.target.value)}
+                                    className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                                >
+                                    <option value="all">All Brands</option>
+                                    {brands.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name || b.id}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>
+
+            {/* Duplicate Warning Banner */}
+            {duplicateInfo && duplicateInfo.totalDuplicates > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                            <AlertTriangle size={20} className="text-amber-600" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-amber-800">
+                                Found {duplicateInfo.totalDuplicates} duplicate activations
+                            </p>
+                            <p className="text-sm text-amber-600">
+                                {duplicateInfo.duplicateGroups} groups with multiple entries for the same brand/store/date
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setDuplicateInfo(null)}
+                            className="px-4 py-2 text-slate-600 hover:bg-white rounded-lg transition-colors"
+                        >
+                            Dismiss
+                        </button>
+                        <button
+                            onClick={handleCleanupDuplicates}
+                            disabled={cleaningUp}
+                            className="px-4 py-2 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-2"
+                        >
+                            {cleaningUp ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                            {cleaningUp ? 'Cleaning...' : 'Clean Up Duplicates'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="h-96 flex items-center justify-center bg-white rounded-xl border border-slate-200">
@@ -278,9 +368,11 @@ const Schedule = () => {
                             {isAdmin && (
                                 <button
                                     onClick={async () => {
-                                        const activationId = selectedEvent?.resource?.id;
+                                        // Use selectedEvent.id directly (more reliable than resource.id)
+                                        const activationId = selectedEvent?.id || selectedEvent?.resource?.id;
                                         if (!activationId) {
-                                            alert('Error: Could not find activation ID.');
+                                            showNotification('Error: Could not find activation ID', 'error');
+                                            console.error('Delete failed: No activation ID found', { selectedEvent });
                                             return;
                                         }
 
@@ -291,12 +383,12 @@ const Schedule = () => {
                                         try {
                                             const { deleteActivation } = await import('../services/firestoreService');
                                             await deleteActivation(activationId);
-                                            alert("Activation deleted successfully!");
+                                            showNotification('Activation deleted successfully', 'success');
                                             setSelectedEvent(null);
                                             loadData();
                                         } catch (error) {
                                             console.error('Delete failed:', error);
-                                            alert(`Delete failed: ${error.message}`);
+                                            showNotification(`Delete failed: ${error.message}`, 'error');
                                         }
                                     }}
                                     className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg font-medium hover:bg-red-100 transition-colors flex items-center gap-2"

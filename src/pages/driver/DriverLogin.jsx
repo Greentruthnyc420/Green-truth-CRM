@@ -21,8 +21,13 @@ export default function DriverLogin() {
             const driver = allDrivers.find(d => d.license === license || d.licenseNumber === license); // Handle inconsistent naming convention if any
 
             if (driver) {
-                // Login Success
-                localStorage.setItem('driver_session', JSON.stringify(driver));
+                // Login Success - store with timestamp for session expiry
+                const session = {
+                    ...driver,
+                    loginTimestamp: Date.now(),
+                    expiresAt: Date.now() + (12 * 60 * 60 * 1000) // 12 hour session
+                };
+                localStorage.setItem('driver_session', JSON.stringify(session));
                 navigate('/driver/dashboard');
             } else {
                 setError('Invalid Driver License Number');

@@ -98,8 +98,8 @@ export default function MondayCallback() {
     // Error State
     if (status === 'error') {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+            <div className="flex flex-col items-center justify-center min-h-screen p-6" style={{ background: 'var(--bg-secondary)' }}>
+                <div className="rounded-2xl shadow-xl p-8 max-w-md w-full text-center" style={{ background: 'var(--bg-card)' }}>
                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl">❌</span>
                     </div>
@@ -120,7 +120,7 @@ export default function MondayCallback() {
     if (status === 'success') {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-green-50 to-white p-6">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+                <div className="rounded-2xl shadow-xl p-8 max-w-md w-full text-center" style={{ background: 'var(--bg-card)' }}>
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle size={40} className="text-green-600" />
                     </div>
@@ -151,8 +151,8 @@ export default function MondayCallback() {
 
     // Loading States
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="flex flex-col items-center justify-center min-h-screen p-6" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="rounded-2xl shadow-xl p-8 max-w-md w-full text-center" style={{ background: 'var(--bg-card)' }}>
                 <div className="w-16 h-16 bg-gradient-to-br from-[#ff3d57] to-[#ff6849] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-200">
                     <span className="text-3xl">📅</span>
                 </div>

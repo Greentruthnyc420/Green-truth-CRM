@@ -137,7 +137,7 @@ export default function BrandInvoicesDispensary() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Unpaid Invoices */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="rounded-xl border border-slate-100 shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)' }}>
                     <div className="p-4 border-b border-slate-100 bg-amber-50/50 flex items-center justify-between">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2">
                             <Clock size={18} className="text-amber-500" />
@@ -178,7 +178,7 @@ export default function BrandInvoicesDispensary() {
                 </div>
 
                 {/* Paid Invoices */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="rounded-xl border border-slate-100 shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)' }}>
                     <div className="p-4 border-b border-slate-100 bg-emerald-50/50 flex items-center justify-between">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2">
                             <CheckCircle size={18} className="text-amber-600" />

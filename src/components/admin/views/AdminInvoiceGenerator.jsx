@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, FileText, Download, Import, Upload, CheckCircle, Eye, RefreshCw, Mail } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Import, Upload, CheckCircle, Eye, RefreshCw, Mail, ChevronDown, ChevronRight } from 'lucide-react';
 import { useBrandAuth, AVAILABLE_BRANDS } from '../../../contexts/BrandAuthContext';
 import { createInvoice, getUnbilledActivations } from '../../../services/invoiceService';
 import { getBrandUsers } from '../../../services/firestoreService';
@@ -55,8 +55,13 @@ const AdminInvoiceGenerator = () => {
     const [uploading, setUploading] = useState(null); // track which item is uploading
     const [showPreview, setShowPreview] = useState(false);
     const [lineItems, setLineItems] = useState([]); // Local state for builder
+    const [expandedRows, setExpandedRows] = useState({}); // Track which rows are expanded
     const [notes, setNotes] = useState('');
     const [dueDate, setDueDate] = useState('');
+
+    const toggleRowExpand = (idx) => {
+        setExpandedRows(prev => ({ ...prev, [idx]: !prev[idx] }));
+    };
 
     // Auto-generate Due Date (Net 30)
     useEffect(() => {
@@ -157,60 +162,86 @@ const AdminInvoiceGenerator = () => {
         }
     };
 
-    // Handle Import Sales logic (New Feature)
+    // Handle Import Sales logic - supports both brand and dispensary modes
     const handleImportSales = async () => {
-        if (!selectedBrand) {
+        // Validate selection based on invoice type
+        if (invoiceType === 'brand' && !selectedBrand) {
             alert("Please select a brand first");
             return;
         }
+        if (invoiceType === 'dispensary' && !selectedDispensary) {
+            alert("Please select a dispensary first");
+            return;
+        }
+
         setImportLoading(true);
         try {
-            // We need to fetch sales for this brand. 
-            // Currently getSales returns all sales, we need to filter client-side or add server-side filter.
-            // Importing getSales from filtered service
             const { getSales } = await import('../../../services/firestoreService');
             const allSales = await getSales();
 
-            // Filter by brand (assuming sales have brand info or we check items)
-            // Sales schema: items: [{ brandName... }]
-            // Or matches selectedBrand.name
+            let filteredSales = [];
 
-            // This is a bit tricky because sales are by Dispnsary, but might contain various brands.
-            // We'll filter sales where ANY item matches the selected brand name or ID.
+            if (invoiceType === 'dispensary') {
+                // Filter by dispensary ID or name
+                const selectedDisp = dispensaries.find(d => d.id === selectedDispensary);
+                const dispName = selectedDisp?.dispensaryName || '';
 
-            const brandName = brandList.find(b => b.id === selectedBrand)?.name || selectedBrand;
+                filteredSales = allSales.filter(sale => {
+                    // Match by dispensary ID or name
+                    return sale.dispensaryId === selectedDispensary ||
+                        (sale.dispensaryName && sale.dispensaryName.toLowerCase() === dispName.toLowerCase());
+                });
+            } else {
+                // Filter by brand (original logic)
+                const brandName = brandList.find(b => b.id === selectedBrand)?.name || selectedBrand;
 
-            const brandSales = allSales.filter(sale => {
-                // Check items
-                if (sale.items && sale.items.length > 0) {
-                    return sale.items.some(item =>
-                        (item.brandId === selectedBrand) ||
-                        (item.brandName && item.brandName.toLowerCase().includes(brandName.toLowerCase()))
-                    );
-                }
-                return false;
+                filteredSales = allSales.filter(sale => {
+                    if (sale.items && sale.items.length > 0) {
+                        return sale.items.some(item =>
+                            (item.brandId === selectedBrand) ||
+                            (item.brandName && item.brandName.toLowerCase().includes(brandName.toLowerCase()))
+                        );
+                    }
+                    // Also check sale-level brand info
+                    return sale.brandId === selectedBrand ||
+                        (sale.brandName && sale.brandName.toLowerCase().includes(brandName.toLowerCase()));
+                });
+            }
+
+            const newItems = filteredSales.map(sale => {
+                const products = sale.items || sale.products || [];
+                const productSummary = products.length > 0
+                    ? products.map(p => `${p.name || p.productId} x${p.quantity || 1}`).join(', ')
+                    : '';
+
+                return {
+                    id: `sale-${sale.id}`,
+                    description: invoiceType === 'dispensary'
+                        ? `Sale: ${new Date(sale.date).toLocaleDateString()} - ${products.length} items`
+                        : `Wholesale: ${sale.dispensaryName} - ${new Date(sale.date).toLocaleDateString()}`,
+                    quantity: 1,
+                    rate: sale.totalAmount || sale.amount || 0,
+                    amount: sale.totalAmount || sale.amount || 0,
+                    sourceType: 'sale',
+                    sourceId: sale.id,
+                    attachmentUrl: null,
+                    products: products, // Include full product details for expansion
+                    meta: {
+                        repName: 'Sales Rep',
+                        date: sale.date,
+                        dispensaryName: sale.dispensaryName,
+                        productSummary: productSummary
+                    }
+                };
             });
 
-            const newItems = brandSales.map(sale => ({
-                id: `sale-${sale.id}`,
-                description: `Wholesale: ${sale.dispensaryName} - ${new Date(sale.date).toLocaleDateString()}`,
-                quantity: 1,
-                rate: sale.totalAmount,
-                amount: sale.totalAmount,
-                sourceType: 'sale',
-                sourceId: sale.id,
-                attachmentUrl: null,
-                meta: {
-                    repName: 'Sales Rep', // Ideally fetch from user ID
-                    date: sale.date
-                }
-            }));
-
             if (newItems.length === 0) {
-                alert("No sales found for this brand.");
+                alert(invoiceType === 'dispensary'
+                    ? "No sales found for this dispensary."
+                    : "No sales found for this brand.");
             } else {
                 setLineItems(prev => [...prev, ...newItems]);
-                alert(`Imported ${brandSales.length} sales records.`);
+                alert(`Imported ${filteredSales.length} sales records.`);
             }
 
         } catch (error) {
@@ -462,7 +493,7 @@ const AdminInvoiceGenerator = () => {
                                 </button>
                                 <button
                                     onClick={handleImportSales}
-                                    disabled={!selectedBrand || importLoading}
+                                    disabled={(invoiceType === 'brand' ? !selectedBrand : !selectedDispensary) || importLoading}
                                     className="px-3 py-1.5 text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
                                 >
                                     {importLoading ? <RefreshCw className="animate-spin" size={16} /> : <Import size={16} />}
@@ -492,61 +523,107 @@ const AdminInvoiceGenerator = () => {
                                         </tr>
                                     ) : (
                                         lineItems.map((item, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50 group">
-                                                <td className="px-4 py-2">
-                                                    <input
-                                                        className="w-full bg-transparent outline-none"
-                                                        value={item.description}
-                                                        onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
-                                                        placeholder="Item description"
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-full bg-transparent outline-none text-right"
-                                                        value={item.quantity}
-                                                        onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-full bg-transparent outline-none text-right"
-                                                        value={item.rate}
-                                                        onChange={(e) => updateLineItem(idx, 'rate', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-2 text-right font-bold text-slate-700">
-                                                    ${parseFloat(item.amount || 0).toFixed(2)}
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <label className="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors">
+                                            <React.Fragment key={idx}>
+                                                <tr className="hover:bg-slate-50 group">
+                                                    <td className="px-4 py-2">
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Expand button for items with products */}
+                                                            {item.products && item.products.length > 0 && (
+                                                                <button
+                                                                    onClick={() => toggleRowExpand(idx)}
+                                                                    className="p-1 text-slate-400 hover:text-brand-600 transition-colors"
+                                                                    title="View products"
+                                                                >
+                                                                    {expandedRows[idx] ? (
+                                                                        <ChevronDown size={14} />
+                                                                    ) : (
+                                                                        <ChevronRight size={14} />
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                            <input
+                                                                className="w-full bg-transparent outline-none"
+                                                                value={item.description}
+                                                                onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
+                                                                placeholder="Item description"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-2">
                                                         <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            onChange={(e) => handleFileUpload(idx, e.target.files[0])}
+                                                            type="number"
+                                                            className="w-full bg-transparent outline-none text-right"
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
                                                         />
-                                                        {item.attachmentUrl ? (
-                                                            <div className="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg">
-                                                                <FileText size={16} />
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <input
+                                                            type="number"
+                                                            className="w-full bg-transparent outline-none text-right"
+                                                            value={item.rate}
+                                                            onChange={(e) => updateLineItem(idx, 'rate', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right font-bold text-slate-700">
+                                                        ${parseFloat(item.amount || 0).toFixed(2)}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        <label className="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors">
+                                                            <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                onChange={(e) => handleFileUpload(idx, e.target.files[0])}
+                                                            />
+                                                            {item.attachmentUrl ? (
+                                                                <div className="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg">
+                                                                    <FileText size={16} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="hover:bg-slate-100 p-1.5 rounded-lg">
+                                                                    <Import size={16} className="rotate-90" />
+                                                                </div>
+                                                            )}
+                                                        </label>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        <button
+                                                            onClick={() => removeLineItem(idx)}
+                                                            className="text-slate-300 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {/* Expanded product details row */}
+                                                {expandedRows[idx] && item.products && item.products.length > 0 && (
+                                                    <tr className="bg-slate-50">
+                                                        <td colSpan="6" className="px-6 py-3">
+                                                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                                                Products Purchased
                                                             </div>
-                                                        ) : (
-                                                            <div className="hover:bg-slate-100 p-1.5 rounded-lg">
-                                                                <Import size={16} className="rotate-90" />
+                                                            <div className="space-y-1">
+                                                                {item.products.map((product, pIdx) => (
+                                                                    <div key={pIdx} className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-slate-100">
+                                                                        <div>
+                                                                            <span className="font-medium text-slate-700">{product.name || product.productId || 'Unknown'}</span>
+                                                                            {product.brandName && (
+                                                                                <span className="text-slate-400 ml-2 text-xs">({product.brandName})</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-sm">
+                                                                            <span className="text-slate-500">{product.quantity || 1}x @ ${(product.price || 0).toFixed(2)}</span>
+                                                                            <span className="font-bold text-slate-700 ml-3">
+                                                                                ${((product.quantity || 1) * (product.price || 0)).toFixed(2)}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        )}
-                                                    </label>
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <button
-                                                        onClick={() => removeLineItem(idx)}
-                                                        className="text-slate-300 hover:text-red-500 transition-colors"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
                                         ))
                                     )}
                                 </tbody>

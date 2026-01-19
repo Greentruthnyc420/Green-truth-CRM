@@ -92,7 +92,7 @@ export default function DispensarySchedule() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <CalendarView
                         events={events}
                         onEventClick={setSelectedEvent}
@@ -104,7 +104,7 @@ export default function DispensarySchedule() {
             {/* Event Details Modal */}
             {selectedEvent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-emerald-50 p-6 border-b border-emerald-100 flex justify-between items-start">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900">Activation Details</h3>
@@ -187,7 +187,8 @@ export default function DispensarySchedule() {
                         <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                                style={{ background: 'var(--bg-secondary)' }}
                             >
                                 Close
                             </button>

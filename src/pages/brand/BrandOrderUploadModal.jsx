@@ -141,7 +141,7 @@ export default function BrandOrderUploadModal({ isOpen, onClose, brandId, onOrde
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl animate-in fade-in zoom-in duration-200">
+            <div className="rounded-2xl w-full max-w-2xl shadow-xl animate-in fade-in zoom-in duration-200" style={{ background: 'var(--bg-card)' }}>
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <FileSpreadsheet className="text-emerald-600" />
@@ -171,7 +171,7 @@ export default function BrandOrderUploadModal({ isOpen, onClose, brandId, onOrde
 
                     {step === 'preview' && (
                         <div className="space-y-6">
-                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div className="p-4 rounded-lg border border-slate-200" style={{ background: 'var(--bg-secondary)' }}>
                                 <h3 className="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wide">Map Columns</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -248,7 +248,7 @@ export default function BrandOrderUploadModal({ isOpen, onClose, brandId, onOrde
                     )}
                 </div>
 
-                <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                <div className="p-6 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl" style={{ background: 'var(--bg-secondary)' }}>
                     <button
                         onClick={handleClose}
                         className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"

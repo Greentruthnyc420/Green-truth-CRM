@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, User, LogOut, Store, Menu, X, ArrowLeftRight, Settings, ShieldCheck, Map, Calendar, History, PlusCircle } from 'lucide-react';
+import { LayoutDashboard, Users, User, LogOut, Store, Menu, X, ArrowLeftRight, Settings, ShieldCheck, Map, Calendar, History, PlusCircle, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-
+import { useTheme, THEMES } from '../contexts/ThemeContext';
+import ThemeSwitcher, { ThemeToggleButton } from './ThemeSwitcher';
 export default function AdminLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
     const { logout, currentUser } = useAuth();
+    const { theme, isDark } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+    const [isThemeOpen, setIsThemeOpen] = useState(false);
 
     // Close sidebar on navigation on mobile
     useEffect(() => {
@@ -28,7 +31,7 @@ export default function AdminLayout() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 flex font-sans">
+        <div className="min-h-screen flex font-sans" style={{ background: 'var(--bg-primary)' }}>
             {/* Mobile Overlay */}
             {isSidebarOpen && window.innerWidth <= 768 && (
                 <div
@@ -39,11 +42,11 @@ export default function AdminLayout() {
 
             {/* Sidebar */}
             <aside
-                className={`bg-slate-900 text-slate-300 transition-all duration-300 ease-in-out fixed inset-y-0 left-0 z-50
+                className={`themed-sidebar transition-all duration-300 ease-in-out fixed inset-y-0 left-0 z-50
                 ${isSidebarOpen ? 'w-64' : 'w-0 md:w-20'} flex flex-col overflow-hidden`}
             >
                 {/* Logo Area */}
-                <div className="h-20 flex items-center justify-between border-b border-slate-800 p-4">
+                <div className="h-20 flex items-center justify-between border-b p-4" style={{ borderColor: 'var(--border-primary)' }}>
                     <div className="flex items-center justify-center flex-1">
                         {isSidebarOpen ? (
                             <span className="text-xl font-bold text-white tracking-wider">ADMIN PORTAL</span>
@@ -106,22 +109,39 @@ export default function AdminLayout() {
                 </nav>
 
                 {/* User Footer */}
-                <div className="p-4 border-t border-slate-800">
+                <div className="p-4 border-t" style={{ borderColor: 'var(--border-primary)' }}>
                     <div className={`flex items-center gap-3 ${(!isSidebarOpen && window.innerWidth > 768) && 'justify-center'}`}>
-                        <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0">
+                        <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg flex-shrink-0"
+                            style={{ background: 'var(--accent-primary)', color: 'var(--text-inverse)' }}
+                        >
                             {currentUser?.email?.[0].toUpperCase() || 'A'}
                         </div>
                         {isSidebarOpen && (
                             <div className="overflow-hidden">
-                                <p className="text-sm font-medium text-white truncate">{currentUser?.email}</p>
-                                <p className="text-xs text-slate-500">Administrator</p>
+                                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-sidebar)' }}>{currentUser?.email}</p>
+                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Administrator</p>
                             </div>
                         )}
                     </div>
 
+                    {/* Theme Switcher Button */}
+                    <div className="relative mt-4">
+                        <button
+                            onClick={() => setIsThemeOpen(!isThemeOpen)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/10 ${(!isSidebarOpen && window.innerWidth > 768) && 'justify-center'}`}
+                            style={{ color: 'var(--text-sidebar)' }}
+                        >
+                            <Palette size={20} />
+                            {isSidebarOpen && <span>Theme</span>}
+                        </button>
+                        <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
+                    </div>
+
                     <button
                         onClick={handleLogout}
-                        className={`mt-4 w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors ${(!isSidebarOpen && window.innerWidth > 768) && 'justify-center'}`}
+                        className={`mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/10 ${(!isSidebarOpen && window.innerWidth > 768) && 'justify-center'}`}
+                        style={{ color: 'var(--text-sidebar)' }}
                     >
                         <LogOut size={20} />
                         {isSidebarOpen && <span>Sign Out</span>}

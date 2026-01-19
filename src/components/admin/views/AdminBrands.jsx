@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
     Plus, Search, Filter, Edit2, Trash2, Eye, X, ChevronRight,
     DollarSign, Calendar, Users, Building2, Phone, Mail, FileText,
@@ -25,6 +25,7 @@ const DEFAULT_BRANDS = [
 ];
 
 export default function AdminBrands() {
+    const { brandId } = useParams(); // Get brandId from URL if present
     const [brands, setBrands] = useState([]);
     const [brandStats, setBrandStats] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +54,17 @@ export default function AdminBrands() {
     useEffect(() => {
         loadBrands();
     }, []);
+
+    // Auto-open brand detail if brandId is in URL
+    useEffect(() => {
+        if (brandId && brands.length > 0 && !loading) {
+            const brand = brands.find(b => b.id === brandId);
+            if (brand) {
+                setSelectedBrand(brand);
+                setIsDetailOpen(true);
+            }
+        }
+    }, [brandId, brands, loading]);
 
     const loadBrands = async () => {
         setLoading(true);
@@ -92,30 +104,52 @@ export default function AdminBrands() {
 
             const stats = {};
             brandList.forEach(brand => {
-                const brandActivations = allActivations.filter(a =>
-                    (a.brandName || a.brand_name || a.brand || '').toLowerCase().includes(brand.name.toLowerCase().replace(/[^a-z]/g, ''))
-                );
-                const brandSales = allSales.filter(s =>
-                    (s.brandName || s.brand_name || '').toLowerCase().includes(brand.name.toLowerCase().replace(/[^a-z]/g, ''))
-                );
+                // Match activations by brandId or brand name (case-insensitive)
+                const brandActivations = allActivations.filter(a => {
+                    const activationBrandId = (a.brandId || a.brand_id || '').toLowerCase();
+                    const activationBrandName = (a.brandName || a.brand_name || a.brand || '').toLowerCase();
+                    const thisBrandId = brand.id.toLowerCase();
+                    const thisBrandName = brand.name.toLowerCase().replace(/[^a-z]/g, '');
+                    return activationBrandId === thisBrandId ||
+                        activationBrandName.includes(thisBrandName) ||
+                        activationBrandName === thisBrandName;
+                });
+
+                // Match sales by brandId or brand name
+                const brandSales = allSales.filter(s => {
+                    const saleBrandId = (s.brandId || s.brand_id || '').toLowerCase();
+                    const saleBrandName = (s.brandName || s.brand_name || '').toLowerCase();
+                    const thisBrandId = brand.id.toLowerCase();
+                    const thisBrandName = brand.name.toLowerCase().replace(/[^a-z]/g, '');
+                    return saleBrandId === thisBrandId ||
+                        saleBrandName.includes(thisBrandName) ||
+                        saleBrandName === thisBrandName;
+                });
 
                 const activationRevenue = brandActivations.reduce((acc, a) => {
                     const fee = parseFloat(a.activationFee) || parseFloat(a.activation_fee) || calculateAgencyShiftCost({
                         hoursWorked: a.hoursWorked || a.total_hours || 0,
                         region: a.region || 'NYC',
                         milesTraveled: a.milesTraveled || a.miles_traveled || 0,
-                        tollAmount: a.tollAmount || a.toll_amount || 0
+                        tollAmount: a.tollAmount || a.toll_amount || 0,
+                        hasVehicle: a.hasVehicle !== undefined ? a.hasVehicle : a.has_vehicle
                     });
                     return acc + fee;
                 }, 0);
 
-                const salesRevenue = brandSales.reduce((acc, s) => acc + (parseFloat(s.amount) || 0) * 0.05, 0);
+                // Use totalAmount (our field) or amount as fallback, calculate 5% commission
+                const salesRevenue = brandSales.reduce((acc, s) => {
+                    const saleAmount = parseFloat(s.totalAmount) || parseFloat(s.total_amount) || parseFloat(s.amount) || 0;
+                    return acc + (saleAmount * 0.05);
+                }, 0);
 
                 stats[brand.id] = {
                     activations: brandActivations.length,
                     activationRevenue,
                     salesRevenue,
-                    totalRevenue: activationRevenue + salesRevenue
+                    totalRevenue: activationRevenue + salesRevenue,
+                    salesCount: brandSales.length,
+                    totalSalesAmount: brandSales.reduce((acc, s) => acc + (parseFloat(s.totalAmount) || parseFloat(s.total_amount) || parseFloat(s.amount) || 0), 0)
                 };
             });
             setBrandStats(stats);

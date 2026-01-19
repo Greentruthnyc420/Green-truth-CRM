@@ -1065,7 +1065,12 @@ export default function AdminDashboard() {
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-500 flex items-center gap-2"><Clock size={14} /> Time</span>
                                                 <span className="font-medium text-slate-700">
-                                                    {new Date(act.startISO).toLocaleDateString()} @ {new Date(act.startISO).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {act.startISO || act.date || act.scheduled_date
+                                                        ? `${new Date(act.startISO || act.date || act.scheduled_date).toLocaleDateString()} @ ${new Date(act.startISO || act.date || act.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                        : act.startTime
+                                                            ? `${act.startTime}`
+                                                            : 'TBD'
+                                                    }
                                                 </span>
                                             </div>
                                         </div>
@@ -1403,6 +1408,13 @@ function AmbassadorsTab({ usersMap, allShifts, allSales }) {
                                 </td>
                             </tr>
                         ))}
+                        {stats.length === 0 && (
+                            <tr>
+                                <td colSpan="6" className="p-8 text-center text-slate-400">
+                                    No team members found. Ambassadors will appear here once they log shifts or sales.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

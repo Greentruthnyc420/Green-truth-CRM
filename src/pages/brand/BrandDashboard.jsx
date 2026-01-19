@@ -60,16 +60,31 @@ export default function BrandDashboard() {
     const currentBrandName = brandUser?.brandName || 'Brand';
     const brandData = PRODUCT_CATALOG.find(b => b.id === activeBrandId);
 
-    // Get brand logo - check admin-uploaded logos first, then fallback to product catalog
-    const getBrandLogo = () => {
-        try {
-            const storedBrands = JSON.parse(localStorage.getItem('admin_brands') || '[]');
-            const adminBrand = storedBrands.find(b => b.id === activeBrandId);
-            if (adminBrand?.logo) return adminBrand.logo;
-        } catch (e) { console.warn('Error reading admin brands:', e); }
-        return brandData?.logo || null;
-    };
-    const brandLogo = getBrandLogo();
+    // Brand logo state - fetched from Supabase
+    const [brandLogo, setBrandLogo] = useState(null);
+
+    // Fetch brand logo from admin_brands table
+    useEffect(() => {
+        async function fetchBrandLogo() {
+            if (!activeBrandId) return;
+
+            try {
+                const { getAdminBrands } = await import('../../services/firestoreService');
+                const adminBrands = await getAdminBrands();
+                const adminBrand = adminBrands.find(b => b.id === activeBrandId);
+                if (adminBrand?.logo) {
+                    setBrandLogo(adminBrand.logo);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Error fetching admin brands from Supabase:', e);
+            }
+
+            // Fallback to product catalog logo
+            setBrandLogo(brandData?.logo || null);
+        }
+        fetchBrandLogo();
+    }, [activeBrandId, brandData]);
 
     // Fetch dashboard data
     useEffect(() => {
@@ -136,7 +151,7 @@ export default function BrandDashboard() {
                     <div className="flex items-center gap-4">
                         {/* Brand Logo */}
                         {brandLogo && (
-                            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center p-2 shrink-0">
+                            <div className="w-16 h-16 rounded-2xl themed-card flex items-center justify-center p-2 shrink-0">
                                 <img
                                     src={brandLogo}
                                     alt={currentBrandName}
@@ -144,8 +159,8 @@ export default function BrandDashboard() {
                                 />
                             </div>
                         )}
-                        <h1 className="text-3xl font-black text-slate-900 leading-tight">
-                            {currentBrandName} <span className="text-emerald-500">Portal</span>
+                        <h1 className="text-3xl font-black leading-tight" style={{ color: 'var(--text-primary)' }}>
+                            {currentBrandName} <span style={{ color: 'var(--accent-primary)' }}>Portal</span>
                         </h1>
 
                         {/* Brand Selector for Multi-Brand Users */}
@@ -154,7 +169,7 @@ export default function BrandDashboard() {
                                 <button className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors">
                                     Switch Brand <ArrowRight size={12} />
                                 </button>
-                                <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block z-50">
+                                <div className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block z-50" style={{ background: 'var(--bg-card)' }}>
                                     {brandUser.allowedBrands.map(b => (
                                         <button
                                             key={b.brandId}
@@ -173,9 +188,10 @@ export default function BrandDashboard() {
                 <div className="flex items-center gap-3">
                     <Link
                         to="/brand/new-lead"
-                        className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 transition-all shadow-sm"
+                        className="themed-card flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all hover:border-[var(--accent-primary)]"
+                        style={{ color: 'var(--text-primary)' }}
                     >
-                        <UserPlus size={18} className="text-emerald-500" />
+                        <UserPlus size={18} style={{ color: 'var(--accent-primary)' }} />
                         <span>Create Lead</span>
                     </Link>
                     <button
@@ -211,102 +227,95 @@ export default function BrandDashboard() {
                     </Link>
                 )}
                 {/* Revenue */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                            <DollarSign size={24} className="text-emerald-700" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-success">
+                            <DollarSign size={24} />
                         </div>
-                        <span className="flex items-center gap-1 text-sm font-medium text-emerald-700">
+                        <span className="flex items-center gap-1 text-sm font-medium" style={{ color: 'var(--success)' }}>
                             <ArrowUpRight size={16} />
                             Real-time
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{formatCurrency(financials.revenue)}</p>
-                    <p className="text-sm text-slate-500">Total Revenue</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.revenue)}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Revenue</p>
                 </div>
 
                 {/* Orders */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <ShoppingCart size={24} className="text-blue-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-info">
+                            <ShoppingCart size={24} />
                         </div>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ background: 'var(--info)', color: 'var(--text-inverse)', opacity: 0.8 }}>
                             {financials.pendingOrders} pending
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{financials.orderCount}</p>
-                    <p className="text-sm text-slate-500">Total orders</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.orderCount}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total orders</p>
                 </div>
 
                 {/* Average Order Value (AOV) */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-                            <TrendingUp size={24} className="text-indigo-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-accent">
+                            <TrendingUp size={24} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{formatCurrency(financials.aov)}</p>
-                    <p className="text-sm text-slate-500">Average Order Value</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.aov)}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Average Order Value</p>
                 </div>
 
                 {/* Outstanding Invoices */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                            <AlertCircle size={24} className="text-amber-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
+                            <AlertCircle size={24} />
                         </div>
-                        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100">
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: 'var(--warning)', background: 'rgba(245, 158, 11, 0.1)' }}>
                             Unpaid
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{formatCurrency(financials.outstandingInvoices)}</p>
-                    <p className="text-sm text-slate-500">Outstanding Invoices</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.outstandingInvoices)}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Outstanding Invoices</p>
                 </div>
 
                 {/* Top Selling Product */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                            {/* Star icon isn't imported, using CheckCircle or similar if Star not avail, or Trophy if avail. 
-                                Looking at imports: Package, ShoppingCart, DollarSign, TrendingUp, AlertCircle, CheckCircle, Clock... 
-                                Let's use TrendingUp or just CheckCircle for now, or Package. 
-                                Actually, I can import Star or Trophy. I'll just use Package for now to be safe or CheckCircle.
-                                The prompt said Trophy or Star. Let's see if I can add Trophy to imports or reuse.
-                                Trophy is NOT imported. I will use Package for now but styled properly.
-                             */}
-                            <Package size={24} className="text-yellow-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
+                            <Package size={24} />
                         </div>
-                        <span className="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-100">
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: 'var(--warning)', background: 'rgba(245, 158, 11, 0.1)' }}>
                             Best Seller
                         </span>
                     </div>
-                    <p className="text-xl font-bold text-slate-800 truncate" title={financials.topProduct}>{financials.topProduct}</p>
-                    <p className="text-sm text-slate-500">Top Selling Product</p>
+                    <p className="text-xl font-bold truncate" style={{ color: 'var(--text-primary)' }} title={financials.topProduct}>{financials.topProduct}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Top Selling Product</p>
                 </div>
 
-                {/* GreenTruth Owed (5% Commission) - Set to $0 */}
-                <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm relative overflow-hidden group hover:border-red-200 transition-all">
+                {/* GreenTruth Owed (5% Commission) */}
+                <div className="themed-card p-6 rounded-xl shadow-sm relative overflow-hidden group">
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <PieChart size={64} className="text-red-600" />
+                        <PieChart size={64} style={{ color: 'var(--error)' }} />
                     </div>
                     <div className="flex items-center justify-between mb-4 relative z-10">
-                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                            <PieChart size={24} className="text-red-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-error">
+                            <PieChart size={24} />
                         </div>
                         <div className="text-right">
-                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-100 block mb-1">
+                            <span className="text-xs font-bold px-2 py-1 rounded-full block mb-1" style={{ color: 'var(--error)', background: 'rgba(239, 68, 68, 0.1)' }}>
                                 5% Commission
                             </span>
-                            <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">Paid Quarterly</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tight" style={{ color: 'var(--error)' }}>Paid Quarterly</span>
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800 relative z-10">$0.00</p>
+                    <p className="text-2xl font-bold relative z-10" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.commissionOwed)}</p>
                     <div className="flex items-center gap-1 mt-1">
-                        <p className="text-sm text-slate-500 relative z-10">Owed to GreenTruth</p>
+                        <p className="text-sm relative z-10" style={{ color: 'var(--text-secondary)' }}>Owed to GreenTruth</p>
                         <div className="group/tip relative">
-                            <Clock size={12} className="text-slate-400" />
-                            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-50">
+                            <Clock size={12} style={{ color: 'var(--text-tertiary)' }} />
+                            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 text-[10px] rounded shadow-xl opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-50" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                                 Paid within 2 weeks after each quarter ends.
                             </div>
                         </div>
@@ -314,27 +323,27 @@ export default function BrandDashboard() {
                 </div>
 
                 {/* Activation Costs (Bi-Weekly Pay) */}
-                <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-all">
+                <div className="themed-card p-6 rounded-xl shadow-sm relative overflow-hidden group">
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <BarChart3 size={64} className="text-blue-600" />
+                        <BarChart3 size={64} style={{ color: 'var(--info)' }} />
                     </div>
                     <div className="flex items-center justify-between mb-4 relative z-10">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center p-2">
-                            <BarChart3 size={24} className="text-blue-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-info">
+                            <BarChart3 size={24} />
                         </div>
                         <div className="text-right">
-                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100 block mb-1">
+                            <span className="text-xs font-bold px-2 py-1 rounded-full block mb-1" style={{ color: 'var(--info)', background: 'rgba(59, 130, 246, 0.1)' }}>
                                 Outstanding
                             </span>
-                            <span className="text-[10px] text-blue-500 font-bold uppercase tracking-tight">Paid Biweekly</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tight" style={{ color: 'var(--info)' }}>Paid Biweekly</span>
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800 relative z-10">{formatCurrency(financials.activationCosts)}</p>
+                    <p className="text-2xl font-bold relative z-10" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.activationCosts)}</p>
                     <div className="flex items-center gap-1 mt-1">
-                        <p className="text-sm text-slate-500 relative z-10">Activation Costs & Fees</p>
+                        <p className="text-sm relative z-10" style={{ color: 'var(--text-secondary)' }}>Activation Costs & Fees</p>
                         <div className="group/tip relative">
-                            <Clock size={12} className="text-slate-400" />
-                            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-50">
+                            <Clock size={12} style={{ color: 'var(--text-tertiary)' }} />
+                            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 text-[10px] rounded shadow-xl opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-50" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                                 Due every other Monday.
                             </div>
                         </div>
@@ -345,68 +354,68 @@ export default function BrandDashboard() {
             {/* Performance Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Store Reach */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
-                            <Store size={24} className="text-cyan-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-info">
+                            <Store size={24} />
                         </div>
-                        <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full border border-cyan-100">
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: 'var(--info)', background: 'rgba(59, 130, 246, 0.1)' }}>
                             Coverage
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{financials.storeReach}</p>
-                    <p className="text-sm text-slate-500">Unique Stores Reached</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.storeReach}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Unique Stores Reached</p>
                 </div>
 
                 {/* Reorder Rate */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
-                            <RefreshCw size={24} className="text-violet-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-accent-tertiary">
+                            <RefreshCw size={24} />
                         </div>
-                        <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-full border border-violet-100">
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: 'var(--accent-tertiary)', background: 'rgba(52, 211, 153, 0.1)' }}>
                             Retention
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{financials.reorderRate.toFixed(1)}%</p>
-                    <p className="text-sm text-slate-500">Reorder Rate</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.reorderRate.toFixed(1)}%</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Reorder Rate</p>
                 </div>
 
                 {/* Units Sold */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                            <Boxes size={24} className="text-orange-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
+                            <Boxes size={24} />
                         </div>
-                        <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full border border-orange-100">
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: 'var(--warning)', background: 'rgba(245, 158, 11, 0.1)' }}>
                             Volume
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{financials.unitsSold.toLocaleString()}</p>
-                    <p className="text-sm text-slate-500">Total Units Sold</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.unitsSold.toLocaleString()}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Units Sold</p>
                 </div>
 
                 {/* Month-over-Month Growth */}
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${financials.monthOverMonthGrowth >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${financials.monthOverMonthGrowth >= 0 ? 'icon-bg-success' : 'icon-bg-error'}`}>
                             {financials.monthOverMonthGrowth >= 0
-                                ? <TrendingUp size={24} className="text-emerald-600" />
-                                : <TrendingDown size={24} className="text-red-600" />
+                                ? <TrendingUp size={24} />
+                                : <TrendingDown size={24} />
                             }
                         </div>
-                        <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border ${financials.monthOverMonthGrowth >= 0
-                            ? 'text-emerald-600 bg-emerald-50 border-emerald-100'
-                            : 'text-red-600 bg-red-50 border-red-100'
-                            }`}>
+                        <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full" style={{
+                            color: financials.monthOverMonthGrowth >= 0 ? 'var(--success)' : 'var(--error)',
+                            background: financials.monthOverMonthGrowth >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'
+                        }}>
                             {financials.monthOverMonthGrowth >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                             MoM
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                         {financials.monthOverMonthGrowth >= 0 ? '+' : ''}{financials.monthOverMonthGrowth.toFixed(1)}%
                     </p>
-                    <p className="text-sm text-slate-500">Month-over-Month Growth</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Month-over-Month Growth</p>
                 </div>
             </div>
 
@@ -414,9 +423,9 @@ export default function BrandDashboard() {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Sales Trend */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-                    <h3 className="text-slate-800 font-bold mb-4 flex items-center gap-2">
-                        <TrendingUp size={18} className="text-emerald-500" />
+                <div className="themed-card rounded-xl p-6">
+                    <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <TrendingUp size={18} style={{ color: 'var(--chart-primary)' }} />
                         Sales Trend
                     </h3>
                     <div className="h-64">
@@ -424,32 +433,32 @@ export default function BrandDashboard() {
                             <AreaChart data={financials.salesHistory}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="var(--chart-primary)" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="var(--chart-primary)" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                                 <XAxis
                                     dataKey="month"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                                     dy={10}
                                 />
                                 <YAxis
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                                     tickFormatter={(value) => `$${value / 1000}k`}
                                 />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-primary)', boxShadow: 'var(--card-shadow)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                                     formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
                                 />
                                 <Area
                                     type="monotone"
                                     dataKey="revenue"
-                                    stroke="#10b981"
+                                    stroke="var(--chart-primary)"
                                     strokeWidth={3}
                                     fillOpacity={1}
                                     fill="url(#colorRevenue)"
@@ -460,9 +469,9 @@ export default function BrandDashboard() {
                 </div>
 
                 {/* Product Mix */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-                    <h3 className="text-slate-800 font-bold mb-4 flex items-center gap-2">
-                        <PieChart size={18} className="text-indigo-500" />
+                <div className="themed-card rounded-xl p-6">
+                    <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <PieChart size={18} style={{ color: 'var(--chart-secondary)' }} />
                         Product Mix
                     </h3>
                     <div className="h-64 flex items-center justify-center">
@@ -482,13 +491,14 @@ export default function BrandDashboard() {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-primary)', boxShadow: 'var(--card-shadow)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                                 />
                                 <Legend
                                     verticalAlign="middle"
                                     layout="vertical"
                                     align="right"
                                     iconType="circle"
+                                    wrapperStyle={{ color: 'var(--text-secondary)' }}
                                 />
                             </RechartsPC>
                         </ResponsiveContainer>
@@ -497,41 +507,43 @@ export default function BrandDashboard() {
             </div>
 
             {/* Lead Pipeline Summary */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                        <UserPlus size={18} className="text-orange-500" />
+            <div className="themed-card rounded-xl overflow-hidden mb-6">
+                <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)' }}>
+                    <h3 className="font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <UserPlus size={18} style={{ color: 'var(--warning)' }} />
                         Lead Pipeline
                     </h3>
-                    <Link to="/brand/new-lead" className="text-sm text-emerald-600 hover:text-emerald-700 font-bold">
+                    <Link to="/brand/new-lead" className="text-sm font-bold" style={{ color: 'var(--accent-primary)' }}>
                         + Add New Lead
                     </Link>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
-                    <div className="p-4 text-center">
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Prospects</p>
-                        <p className="text-xl font-black text-slate-700">{brandLeads.filter(l => l.leadStatus === 'prospect').length}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                    <div className="p-4 text-center" style={{ borderRight: '1px solid var(--border-primary)' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Prospects</p>
+                        <p className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{brandLeads.filter(l => l.leadStatus === 'prospect').length}</p>
+                    </div>
+                    <div className="p-4 text-center" style={{ borderRight: '1px solid var(--border-primary)' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Requested</p>
+                        <p className="text-xl font-black" style={{ color: 'var(--warning)' }}>{brandLeads.filter(l => l.leadStatus === 'samples_requested').length}</p>
+                    </div>
+                    <div className="p-4 text-center" style={{ borderRight: '1px solid var(--border-primary)' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Received</p>
+                        <p className="text-xl font-black" style={{ color: 'var(--info)' }}>{brandLeads.filter(l => l.leadStatus === 'samples_delivered').length}</p>
                     </div>
                     <div className="p-4 text-center">
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Requested</p>
-                        <p className="text-xl font-black text-amber-600">{brandLeads.filter(l => l.leadStatus === 'samples_requested').length}</p>
-                    </div>
-                    <div className="p-4 text-center">
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Received</p>
-                        <p className="text-xl font-black text-blue-600">{brandLeads.filter(l => l.leadStatus === 'samples_delivered').length}</p>
-                    </div>
-                    <div className="p-4 text-center">
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Active</p>
-                        <p className="text-xl font-black text-emerald-600">{brandLeads.filter(l => l.leadStatus === 'active').length}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Active</p>
+                        <p className="text-xl font-black" style={{ color: 'var(--success)' }}>{brandLeads.filter(l => l.leadStatus === 'active').length}</p>
                     </div>
                 </div>
-                <div className="divide-y divide-slate-50 max-h-60 overflow-y-auto">
+                <div className="max-h-60 overflow-y-auto">
                     {brandLeads.length > 0 ? (
                         brandLeads.slice(0, 5).map((lead, i) => (
-                            <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div key={i} className="p-4 flex items-center justify-between transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                 <div>
-                                    <p className="font-bold text-slate-800 text-sm">{lead.dispensaryName}</p>
-                                    <p className="text-slate-400 text-xs">{lead.contacts?.[0]?.name || 'No Contact'} • {new Date(lead.createdAt).toLocaleDateString()}</p>
+                                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{lead.dispensaryName}</p>
+                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{lead.contacts?.[0]?.name || 'No Contact'} • {new Date(lead.createdAt).toLocaleDateString()}</p>
                                 </div>
                                 <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${lead.leadStatus === 'active' ? 'bg-emerald-100 text-emerald-700' :
                                     lead.leadStatus === 'samples_delivered' ? 'bg-blue-100 text-blue-700' :
@@ -543,7 +555,7 @@ export default function BrandDashboard() {
                             </div>
                         ))
                     ) : (
-                        <div className="p-8 text-center text-slate-400 text-sm italic">
+                        <div className="p-8 text-center text-sm italic" style={{ color: 'var(--text-tertiary)' }}>
                             No leads in your pipeline yet. Click "Add New Lead" to get started.
                         </div>
                     )}

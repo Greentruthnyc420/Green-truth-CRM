@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllUsers, getAllShifts, getSales } from '../../../services/firestoreService';
-import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store } from 'lucide-react';
+import { getAllUsers, getAllShifts, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory } from '../../../services/firestoreService';
+import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2 } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { getCurrentPayPeriod, calculateHourlyRate, calculateReimbursement } from '../../../services/compensationService';
+import { useNotification } from '../../../contexts/NotificationContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export default function AdminTeam() {
+    const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
     const [salesAmbassadors, setSalesAmbassadors] = useState([]);
     const [brandPartners, setBrandPartners] = useState([]);
     const [dispensaryPartners, setDispensaryPartners] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [payingRep, setPayingRep] = useState(null); // Track which rep is being paid
+    const payPeriod = getCurrentPayPeriod();
 
     useEffect(() => {
         async function loadTeamData() {
@@ -28,29 +35,93 @@ export default function AdminTeam() {
                     integrationsData[doc.id] = doc.data();
                 });
 
+                // FALLBACK: If users table is empty, extract team members from activations/sales
+                let effectiveUsers = users;
+                if (!users || users.length === 0) {
+                    console.log('Users table empty - extracting team from activations/sales data');
+                    const extractedUsers = new Map();
+
+                    // Extract from activations (reps who have done shifts)
+                    shifts.forEach(shift => {
+                        const repId = shift.repId || shift.userId || shift.rep_id;
+                        const repName = shift.repName || shift.rep_name || 'Unknown Rep';
+                        if (repId && !extractedUsers.has(repId)) {
+                            extractedUsers.set(repId, {
+                                id: repId,
+                                email: repId.includes('@') ? repId : `${repId}@greentruth.local`,
+                                name: repName,
+                                role: 'rep',
+                                profileInfo: { firstName: repName.split(' ')[0], lastName: repName.split(' ').slice(1).join(' ') }
+                            });
+                        }
+                    });
+
+                    // Extract from sales (reps who have logged sales)
+                    sales.forEach(sale => {
+                        const repId = sale.userId || sale.repId || sale.rep_id;
+                        if (repId && !extractedUsers.has(repId)) {
+                            extractedUsers.set(repId, {
+                                id: repId,
+                                email: repId.includes('@') ? repId : `${repId}@greentruth.local`,
+                                name: sale.repName || 'Sales Rep',
+                                role: 'rep',
+                                profileInfo: { firstName: 'Sales', lastName: 'Rep' }
+                            });
+                        }
+                    });
+
+                    // Add demo admin user (Omar)
+                    extractedUsers.set('admin-dev', {
+                        id: 'admin-dev',
+                        email: 'omar@thegreentruthhq.com',
+                        name: 'Omar Elsayed',
+                        role: 'admin', // Admin won't show in rep section but good to have
+                        profileInfo: { firstName: 'Omar', lastName: 'Elsayed' }
+                    });
+
+                    effectiveUsers = Array.from(extractedUsers.values());
+                    console.log('Extracted', effectiveUsers.length, 'users from activity data');
+                }
+
                 // --- 3-Way Split Logic ---
-                // 1. Sales Ambassadors: role === 'rep'
-                const ambassadors = users.filter(u => u.role === 'rep');
+                // 1. Sales Ambassadors: role === 'rep' OR role === 'admin' (for visibility)
+                const ambassadors = effectiveUsers.filter(u => u.role === 'rep' || u.role === 'admin');
 
                 // 2. Brand Partners: ONLY role === 'brand' (strict filter)
-                const brands = users.filter(u => u.role === 'brand');
+                const brands = effectiveUsers.filter(u => u.role === 'brand');
 
                 // 3. Dispensary Partners: role === 'dispensary', 'lead', or 'sale'
                 // This captures clients who have logged in via the dispensary portal
-                const dispensaries = users.filter(u =>
+                const dispensaries = effectiveUsers.filter(u =>
                     u.role === 'dispensary' || u.role === 'lead' || u.role === 'sale'
                 );
 
 
                 // Calculate stats for ambassadors ONLY
                 const ambassadorStats = ambassadors.map(user => {
-                    const userShifts = shifts.filter(s => s.userId === user.id);
-                    const userSales = sales.filter(s => s.userId === user.id);
+                    const userShifts = shifts.filter(s => (s.userId === user.id) || (s.repId === user.id) || (s.rep_id === user.id));
+                    const userSales = sales.filter(s => (s.userId === user.id) || (s.repId === user.id));
 
-                    const totalHours = userShifts.reduce((sum, s) => sum + (parseFloat(s.hoursWorked) || 0), 0);
-                    const totalSalesAmount = userSales.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-                    const totalCommission = userSales.reduce((sum, s) => sum + (parseFloat(s.commissionEarned) || 0), 0);
+                    const totalHours = userShifts.reduce((sum, s) => sum + (parseFloat(s.hoursWorked) || parseFloat(s.total_hours) || 0), 0);
+                    const totalSalesAmount = userSales.reduce((sum, s) => sum + (parseFloat(s.amount) || parseFloat(s.totalAmount) || 0), 0);
+                    const totalCommission = userSales.reduce((sum, s) => sum + (parseFloat(s.commissionEarned) || ((parseFloat(s.amount) || 0) * 0.02)), 0);
                     const integration = integrationsData[user.id];
+
+                    // Calculate pending wages from activations/shifts
+                    // Pending = status is NOT 'rep_paid'
+                    const pendingActivations = userShifts.filter(s => s.status !== 'rep_paid');
+                    const hourlyRate = calculateHourlyRate(0); // Use base rate for now, could fetch actual count later
+
+                    let pendingWages = 0;
+                    pendingActivations.forEach(a => {
+                        const hours = parseFloat(a.hoursWorked) || 0;
+                        pendingWages += hours * hourlyRate;
+                        pendingWages += calculateReimbursement(
+                            parseFloat(a.milesTraveled),
+                            parseFloat(a.tollAmount),
+                            a.hasVehicle
+                        );
+                    });
 
                     return {
                         ...user,
@@ -58,6 +129,9 @@ export default function AdminTeam() {
                         totalSalesAmount,
                         totalCommission,
                         saleCount: userSales.length,
+                        shiftCount: userShifts.length,
+                        pendingWages,
+                        pendingActivations: pendingActivations.map(a => ({ id: a.id })),
                         integration: {
                             connected: !!integration?.mondayApiToken,
                             lastSyncTimestamp: integration?.lastSync?.timestamp?.toDate(),
@@ -140,6 +214,7 @@ export default function AdminTeam() {
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Sales</th>
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Hours</th>
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Commission</th>
+                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Pending Wages</th>
                                             <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
                                         </tr>
                                     </thead>
@@ -178,8 +253,50 @@ export default function AdminTeam() {
                                                 <td className="py-4 px-6 text-right font-medium text-emerald-600">
                                                     ${member.totalCommission.toFixed(2)}
                                                 </td>
+                                                <td className="py-4 px-6 text-right">
+                                                    <span className={`font-bold ${member.pendingWages > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                                                        ${(member.pendingWages || 0).toFixed(2)}
+                                                    </span>
+                                                </td>
                                                 <td className="py-4 px-6 text-center">
-                                                    <Link to={`/admin/team/${member.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-bold hover:underline">View</Link>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {member.pendingWages > 0 && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!window.confirm(`Pay ${member.profileInfo?.firstName || member.name || 'this rep'} $${member.pendingWages?.toFixed(2)} for ${member.pendingActivations?.length || 0} activations?\n\nPeriod: ${payPeriod.label}`)) return;
+                                                                    setPayingRep(member.id);
+                                                                    try {
+                                                                        await markWagesPaidWithHistory(
+                                                                            member.id,
+                                                                            member.profileInfo?.firstName || member.name || 'Unknown',
+                                                                            member.pendingActivations?.map(a => a.id) || [],
+                                                                            member.pendingWages,
+                                                                            payPeriod.label,
+                                                                            currentUser?.uid
+                                                                        );
+                                                                        showNotification(`Paid $${member.pendingWages?.toFixed(2)} to ${member.profileInfo?.firstName || 'rep'}`, 'success');
+                                                                        // Update state instead of full page reload to preserve auth
+                                                                        setSalesAmbassadors(prev => prev.map(m =>
+                                                                            m.id === member.id
+                                                                                ? { ...m, pendingWages: 0, pendingActivations: [] }
+                                                                                : m
+                                                                        ));
+                                                                    } catch (error) {
+                                                                        console.error('Payment failed:', error);
+                                                                        showNotification('Payment failed: ' + error.message, 'error');
+                                                                    } finally {
+                                                                        setPayingRep(null);
+                                                                    }
+                                                                }}
+                                                                disabled={payingRep === member.id}
+                                                                className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                                                            >
+                                                                {payingRep === member.id ? <Loader2 size={12} className="animate-spin" /> : <Wallet size={12} />}
+                                                                Pay Wages
+                                                            </button>
+                                                        )}
+                                                        <Link to={`/admin/team/${member.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-bold hover:underline">View</Link>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

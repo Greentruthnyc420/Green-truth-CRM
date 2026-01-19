@@ -15,7 +15,17 @@ export default function DriverDashboard() {
             navigate('/driver/login');
             return;
         }
-        setDriver(JSON.parse(session));
+
+        const parsedSession = JSON.parse(session);
+
+        // Check session expiry (default 12 hours)
+        if (parsedSession.expiresAt && Date.now() > parsedSession.expiresAt) {
+            localStorage.removeItem('driver_session');
+            navigate('/driver/login');
+            return;
+        }
+
+        setDriver(parsedSession);
     }, [navigate]);
 
     useEffect(() => {

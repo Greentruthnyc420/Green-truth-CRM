@@ -13,8 +13,9 @@ export async function calculateBrandMetrics(brandId, brandName) {
             getAllShifts()
         ]);
 
-        // 1. Calculate Revenue & 5% Commission
+        // 1. Calculate Revenue & 5% Commission (only on collected revenue)
         let totalRevenue = 0;
+        let collectedRevenue = 0; // Only collected/paid sales count towards commission
         let pendingCount = 0;
         let pendingRevenue = 0;
         let totalOrders = 0;
@@ -34,7 +35,12 @@ export async function calculateBrandMetrics(brandId, brandName) {
                 totalRevenue += saleRevenue;
                 totalOrders++;
 
-                if (sale.status === 'pending') {
+                // Track collected revenue (sales with status 'collected' or 'paid')
+                if (sale.status === 'collected' || sale.status === 'paid') {
+                    collectedRevenue += saleRevenue;
+                }
+
+                if (sale.status === 'pending' || !sale.status) {
                     pendingCount++;
                     pendingRevenue += saleRevenue;
                 }
@@ -110,8 +116,8 @@ export async function calculateBrandMetrics(brandId, brandName) {
 
         const totalActivationCost = brandShifts.reduce((sum, shift) => sum + calculateAgencyShiftCost(shift), 0);
 
-        // 3. Final metrics
-        const commissionOwed = totalRevenue * 0.05;
+        // 3. Final metrics - Commission is only owed on COLLECTED revenue
+        const commissionOwed = collectedRevenue * 0.05;
         const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         // === NEW PERFORMANCE METRICS ===

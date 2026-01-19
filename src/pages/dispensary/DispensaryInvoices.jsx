@@ -31,7 +31,8 @@ export default function DispensaryInvoices() {
                     ...sale,
                     invoiceNumber: `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
                     invoiceDate: sale.date || sale.createdAt,
-                    dueDate: calculateDueDate(sale.date || sale.createdAt),
+                    paymentTerms: sale.paymentTerms || 'Net 30', // Use stored payment terms
+                    dueDate: calculateDueDate(sale.date || sale.createdAt, sale.paymentTerms),
                     paymentStatus: sale.status === 'paid' ? 'paid' : 'pending'
                 })).sort((a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate));
 
@@ -46,12 +47,23 @@ export default function DispensaryInvoices() {
         loadInvoices();
     }, [currentUser]);
 
-    // Calculate due date (NET 30 from invoice date)
-    function calculateDueDate(date) {
+    // Calculate due date based on payment terms
+    function calculateDueDate(date, paymentTerms = 'Net 30') {
         if (!date) return null;
         const d = new Date(date);
-        d.setDate(d.getDate() + 30);
-        return d.toISOString();
+
+        switch (paymentTerms) {
+            case 'COD':
+                // Cash on Delivery - due immediately (same day)
+                return d.toISOString();
+            case 'Net 14':
+                d.setDate(d.getDate() + 14);
+                return d.toISOString();
+            case 'Net 30':
+            default:
+                d.setDate(d.getDate() + 30);
+                return d.toISOString();
+        }
     }
 
     // Filter invoices
@@ -114,7 +126,7 @@ export default function DispensaryInvoices() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <div style={{ background: 'var(--bg-card)' }} className="p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
                             <FileText size={20} className="text-slate-600" />
@@ -124,7 +136,7 @@ export default function DispensaryInvoices() {
                     <p className="text-sm text-slate-500">Total Invoices</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm">
+                <div style={{ background: 'var(--bg-card)' }} className="p-5 rounded-2xl border border-amber-100 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
                             <Clock size={20} className="text-amber-600" />
@@ -134,7 +146,7 @@ export default function DispensaryInvoices() {
                     <p className="text-sm text-slate-500">Pending</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-red-100 shadow-sm">
+                <div style={{ background: 'var(--bg-card)' }} className="p-5 rounded-2xl border border-red-100 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
                             <AlertCircle size={20} className="text-red-600" />
@@ -144,7 +156,7 @@ export default function DispensaryInvoices() {
                     <p className="text-sm text-slate-500">Amount Due</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm">
+                <div style={{ background: 'var(--bg-card)' }} className="p-5 rounded-2xl border border-emerald-100 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
                             <CheckCircle size={20} className="text-emerald-600" />
@@ -162,9 +174,10 @@ export default function DispensaryInvoices() {
                         key={f}
                         onClick={() => setFilter(f)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition-colors ${filter === f
-                                ? 'bg-slate-800 text-white'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'bg-slate-800 text-white'
+                            : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
                             }`}
+                        style={filter !== f ? { background: 'var(--bg-card)' } : {}}
                     >
                         {f} {f === 'all' ? `(${stats.total})` : f === 'pending' ? `(${stats.pending})` : `(${stats.paid})`}
                     </button>
@@ -172,7 +185,7 @@ export default function DispensaryInvoices() {
             </div>
 
             {/* Invoices List */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 {filteredInvoices.length === 0 ? (
                     <div className="p-12 text-center">
                         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -192,10 +205,10 @@ export default function DispensaryInvoices() {
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${invoice.paymentStatus === 'paid'
-                                                ? 'bg-emerald-50'
-                                                : isOverdue(invoice.dueDate)
-                                                    ? 'bg-red-50'
-                                                    : 'bg-amber-50'
+                                            ? 'bg-emerald-50'
+                                            : isOverdue(invoice.dueDate)
+                                                ? 'bg-red-50'
+                                                : 'bg-amber-50'
                                             }`}>
                                             {invoice.paymentStatus === 'paid'
                                                 ? <CheckCircle size={20} className="text-emerald-600" />
@@ -212,10 +225,10 @@ export default function DispensaryInvoices() {
                                         <div className="text-right">
                                             <p className="font-bold text-slate-900">${(parseFloat(invoice.amount) || 0).toFixed(2)}</p>
                                             <p className={`text-xs font-bold uppercase ${invoice.paymentStatus === 'paid'
-                                                    ? 'text-emerald-600'
-                                                    : isOverdue(invoice.dueDate)
-                                                        ? 'text-red-600'
-                                                        : 'text-amber-600'
+                                                ? 'text-emerald-600'
+                                                : isOverdue(invoice.dueDate)
+                                                    ? 'text-red-600'
+                                                    : 'text-amber-600'
                                                 }`}>
                                                 {invoice.paymentStatus === 'paid'
                                                     ? '✓ Paid'
@@ -254,7 +267,7 @@ export default function DispensaryInvoices() {
                                                     <p><span className="text-slate-500">Invoice #:</span> <span className="font-mono font-bold">{invoice.invoiceNumber}</span></p>
                                                     <p><span className="text-slate-500">Date:</span> {formatDate(invoice.invoiceDate)}</p>
                                                     <p><span className="text-slate-500">Due Date:</span> <span className={isOverdue(invoice.dueDate) && invoice.paymentStatus !== 'paid' ? 'text-red-600 font-bold' : ''}>{formatDate(invoice.dueDate)}</span></p>
-                                                    <p><span className="text-slate-500">Terms:</span> NET 30</p>
+                                                    <p><span className="text-slate-500">Terms:</span> {invoice.paymentTerms || 'Net 30'}</p>
                                                 </div>
                                             </div>
                                         </div>

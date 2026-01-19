@@ -111,7 +111,7 @@ export default function DispensaryDashboard() {
             </div>
 
             {/* Recent Activity / Order List */}
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div style={{ background: 'var(--bg-card)' }} className="rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
                 <div className="p-6 border-b border-slate-50 flex items-center justify-between">
                     <h3 className="font-bold text-slate-800 text-lg">Active Orders</h3>
                     <button
@@ -197,7 +197,7 @@ export default function DispensaryDashboard() {
 }
 
 const StatCard = ({ icon, label, value, color }) => (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/40 flex items-center gap-4 transition-transform hover:scale-[1.02]">
+    <div style={{ background: 'var(--bg-card)' }} className="p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/40 flex items-center gap-4 transition-transform hover:scale-[1.02]">
         <div className={`w-12 h-12 rounded-2xl bg-${color}-50 flex items-center justify-center shrink-0`}>
             {icon}
         </div>
@@ -265,7 +265,7 @@ const SampleRequestModal = ({ onClose, profile, currentUser }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div style={{ background: 'var(--bg-card)' }} className="rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-slate-900">Request Product Samples</h2>
                     <button

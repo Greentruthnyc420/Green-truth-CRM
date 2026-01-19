@@ -294,7 +294,7 @@ const LandingPage = () => {
                 Manage all your clients, leads, and dispensaries in one centralized hub. Track every interaction and never miss an opportunity.
               </FeatureCard>
               <FeatureCard icon={Zap} title="Seamless Integrations" delay={0.2}>
-                Connect with the tools you already use. Live integration with Monday.com, with more platforms in beta.
+                Connect with the tools you already use. Export to any POS or ERP system with our universal CSV format.
               </FeatureCard>
               <FeatureCard icon={BarChart} title="Actionable Analytics" delay={0.3}>
                 Gain deep insights into your sales data, team performance, and market trends. Make data-driven decisions with confidence.
