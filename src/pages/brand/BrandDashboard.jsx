@@ -5,7 +5,7 @@ import {
     Package, ShoppingCart, DollarSign,
     TrendingUp, AlertCircle, CheckCircle, Clock,
     ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus, Gift, ArrowRight,
-    Store, RefreshCw, Boxes, TrendingDown
+    Store, RefreshCw, Boxes, TrendingDown, X, Trophy
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -37,6 +37,7 @@ export default function BrandDashboard() {
         salesHistory: [],
         productMix: [],
         topProduct: 'N/A',
+        top10Products: [],
         aov: 0,
         outstandingInvoices: 0,
         // Performance metrics
@@ -48,6 +49,7 @@ export default function BrandDashboard() {
     const [brandLeads, setBrandLeads] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [isTop10ModalOpen, setIsTop10ModalOpen] = useState(false);
 
     // Set active brand when user loads
     useEffect(() => {
@@ -281,7 +283,10 @@ export default function BrandDashboard() {
                 </div>
 
                 {/* Top Selling Product */}
-                <div className="themed-card p-6 rounded-xl shadow-sm">
+                <div
+                    className="themed-card p-6 rounded-xl shadow-sm cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setIsTop10ModalOpen(true)}
+                >
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
                             <Package size={24} />
@@ -291,7 +296,7 @@ export default function BrandDashboard() {
                         </span>
                     </div>
                     <p className="text-xl font-bold truncate" style={{ color: 'var(--text-primary)' }} title={financials.topProduct}>{financials.topProduct}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Top Selling Product</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Top Selling Product <span className="text-xs" style={{ color: 'var(--accent-primary)' }}>• Click for Top 10</span></p>
                 </div>
 
                 {/* GreenTruth Owed (5% Commission) */}
@@ -569,6 +574,73 @@ export default function BrandDashboard() {
                 onSuccess={() => setIsRequestModalOpen(false)}
                 initialData={{ userRole: 'brand' }}
             />
+
+            {/* Top 10 Products Modal */}
+            {isTop10ModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsTop10ModalOpen(false)}>
+                    <div
+                        className="themed-card rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center icon-bg-warning">
+                                    <Trophy size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Top 10 Products</h2>
+                                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Ranked by units sold</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsTop10ModalOpen(false)}
+                                className="p-2 rounded-full hover:opacity-80 transition-opacity"
+                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto max-h-[60vh] p-4 space-y-2">
+                            {financials.top10Products.length > 0 ? (
+                                financials.top10Products.map((product, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-3 p-3 rounded-xl transition-colors"
+                                        style={{ background: 'var(--bg-secondary)' }}
+                                    >
+                                        <div
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+                                            style={{ background: product.color, color: 'white' }}
+                                        >
+                                            #{product.rank}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{product.value.toLocaleString()} units sold</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="w-16 h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-primary)' }}>
+                                                <div
+                                                    className="h-full rounded-full"
+                                                    style={{
+                                                        width: `${(product.value / financials.top10Products[0].value) * 100}%`,
+                                                        background: product.color
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                                    <Package size={48} className="mx-auto mb-3 opacity-30" />
+                                    <p>No product data available yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

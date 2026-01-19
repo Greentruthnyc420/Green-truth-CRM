@@ -82,25 +82,27 @@ export default function AdminWorkflow() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Workflow & Approvals</h1>
-                    <p className="text-slate-500">Action items requiring your attention.</p>
+                    <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Workflow & Approvals</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>Action items requiring your attention.</p>
                 </div>
 
 
             </div>
 
             {/* Quick Filters / Sections */}
-            <div className="flex gap-4 border-b border-slate-200 pb-1">
+            <div className="flex gap-4 pb-1" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                 <button
                     onClick={() => setActiveSection('shifts')}
-                    className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeSection === 'shifts' ? 'text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeSection === 'shifts' ? 'text-brand-600' : ''}`}
+                    style={activeSection !== 'shifts' ? { color: 'var(--text-secondary)' } : {}}
                 >
                     Pending Shifts ({shifts.length})
                     {activeSection === 'shifts' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-600 rounded-t-full" />}
                 </button>
                 <button
                     onClick={() => setActiveSection('samples')}
-                    className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeSection === 'samples' ? 'text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeSection === 'samples' ? 'text-brand-600' : ''}`}
+                    style={activeSection !== 'samples' ? { color: 'var(--text-secondary)' } : {}}
                 >
                     Sample Requests
                     {activeSection === 'samples' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-600 rounded-t-full" />}
@@ -108,11 +110,11 @@ export default function AdminWorkflow() {
             </div>
 
             {activeSection === 'shifts' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+                <div className="themed-card rounded-xl overflow-hidden">
+                    <div className="p-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-primary)', background: 'rgba(0,0,0,0.05)' }}>
                         <div className="flex items-center gap-2">
                             <Clock className="text-orange-500" size={20} />
-                            <h2 className="font-bold text-slate-800">Pending Shifts</h2>
+                            <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Pending Shifts</h2>
                         </div>
                         <button
                             onClick={handleApproveShifts}
@@ -125,28 +127,28 @@ export default function AdminWorkflow() {
                     </div>
 
                     {loading ? (
-                        <div className="p-12 flex justify-center"><Loader className="animate-spin text-slate-300" /></div>
+                        <div className="p-12 flex justify-center"><Loader className="animate-spin" style={{ color: 'var(--text-tertiary)' }} /></div>
                     ) : shifts.length === 0 ? (
-                        <div className="p-12 text-center text-slate-500">
-                            <CheckCircle className="mx-auto mb-3 text-slate-300" size={48} />
+                        <div className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                            <CheckCircle className="mx-auto mb-3" size={48} style={{ color: 'var(--text-tertiary)' }} />
                             <p>All caught up! No pending shifts.</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-50 border-b border-slate-200">
+                                <thead style={{ background: 'rgba(0,0,0,0.05)', borderBottom: '1px solid var(--border-primary)' }}>
                                     <tr>
                                         <th className="py-3 px-6 w-12"><input type="checkbox" checked={selectedShiftIds.length === shifts.length} onChange={toggleSelectAll} className="rounded border-slate-300 focus:ring-brand-500" /></th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500">Rep ID</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500">Dispensary</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500">Date</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500 text-center">Hours</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500 text-center">Miles</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500 text-center">Tolls</th>
-                                        <th className="py-3 px-6 font-semibold text-slate-500 text-right">Total Pay</th>
+                                        <th className="py-3 px-6 font-semibold" style={{ color: 'var(--text-secondary)' }}>Rep ID</th>
+                                        <th className="py-3 px-6 font-semibold" style={{ color: 'var(--text-secondary)' }}>Dispensary</th>
+                                        <th className="py-3 px-6 font-semibold" style={{ color: 'var(--text-secondary)' }}>Date</th>
+                                        <th className="py-3 px-6 font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>Hours</th>
+                                        <th className="py-3 px-6 font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>Miles</th>
+                                        <th className="py-3 px-6 font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>Tolls</th>
+                                        <th className="py-3 px-6 font-semibold text-right" style={{ color: 'var(--text-secondary)' }}>Total Pay</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
                                     {shifts.map(shift => {
                                         const hours = parseFloat(shift.hoursWorked) || 0;
                                         const miles = parseFloat(shift.milesTraveled) || 0;
@@ -158,11 +160,11 @@ export default function AdminWorkflow() {
                                         const totalPay = wages + mileageReimbursement + tolls;
 
                                         return (
-                                            <tr key={shift.id} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={shift.id} className="transition-colors" style={{ ':hover': { background: 'var(--bg-secondary)' } }}>
                                                 <td className="py-3 px-6"><input type="checkbox" checked={selectedShiftIds.includes(shift.id)} onChange={() => toggleShiftSelection(shift.id)} className="rounded border-slate-300 focus:ring-brand-500" /></td>
-                                                <td className="py-3 px-6 font-mono text-xs text-slate-500">{shift.userId.substring(0, 8)}...</td>
-                                                <td className="py-3 px-6 font-medium text-slate-800">{shift.dispensaryName}</td>
-                                                <td className="py-3 px-6 text-slate-600">
+                                                <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{shift.userId.substring(0, 8)}...</td>
+                                                <td className="py-3 px-6 font-medium" style={{ color: 'var(--text-primary)' }}>{shift.dispensaryName}</td>
+                                                <td className="py-3 px-6" style={{ color: 'var(--text-secondary)' }}>
                                                     {(() => {
                                                         try {
                                                             const d = shift.date?.toDate ? shift.date.toDate() : new Date(shift.date);
@@ -171,15 +173,15 @@ export default function AdminWorkflow() {
                                                     })()}
                                                 </td>
                                                 <td className="py-3 px-6 text-center">
-                                                    <span className="font-medium text-slate-800">{hours}h</span>
-                                                    <span className="text-xs text-slate-400 block">${wages.toFixed(2)}</span>
+                                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{hours}h</span>
+                                                    <span className="text-xs block" style={{ color: 'var(--text-tertiary)' }}>${wages.toFixed(2)}</span>
                                                 </td>
                                                 <td className="py-3 px-6 text-center">
-                                                    <span className="font-medium text-slate-800">{miles}</span>
-                                                    <span className="text-xs text-slate-400 block">${mileageReimbursement.toFixed(2)}</span>
+                                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{miles}</span>
+                                                    <span className="text-xs block" style={{ color: 'var(--text-tertiary)' }}>${mileageReimbursement.toFixed(2)}</span>
                                                 </td>
                                                 <td className="py-3 px-6 text-center">
-                                                    <span className="font-medium text-slate-800">${tolls.toFixed(2)}</span>
+                                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>${tolls.toFixed(2)}</span>
                                                 </td>
                                                 <td className="py-3 px-6 text-right">
                                                     <span className="font-bold text-emerald-600">${totalPay.toFixed(2)}</span>
@@ -195,7 +197,7 @@ export default function AdminWorkflow() {
             )}
 
             {activeSection === 'samples' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="themed-card rounded-xl p-6">
                     <SampleRequests />
                 </div>
             )}

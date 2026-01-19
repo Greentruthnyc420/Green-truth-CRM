@@ -277,6 +277,40 @@ export async function getLeads() {
     }));
 }
 
+export async function getBrandLeads(brandId) {
+    // Get leads that belong to a specific brand
+    // Leads can be associated with a brand via the active_brands array or brand_id
+    const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .or(`brand_id.eq.${brandId},active_brands.cs.{${brandId}}`);
+
+    if (error) {
+        console.error('Error fetching brand leads:', error);
+        return [];
+    }
+
+    return data.map(l => ({
+        id: l.id,
+        dispensaryName: l.dispensary_name,
+        licenseNumber: l.license_number,
+        address: l.address,
+        assignedAmbassadorId: l.assigned_ambassador_id,
+        repAssigned: l.rep_assigned_name,
+        leadStatus: l.lead_status,
+        status: l.status,
+        activeBrands: l.active_brands || [],
+        samplesRequested: l.samples_requested || [],
+        priority: l.priority,
+        contacts: l.contacts,
+        meetingDate: l.meeting_date,
+        location: l.location,
+        licenseImageUrl: l.license_image_url,
+        createdAt: l.created_at,
+        userId: l.assigned_ambassador_id
+    }));
+}
+
 export async function getMyDispensaries(userId) {
     // Get all leads assigned to this user
     const { data, error } = await supabase.from('leads').select('*').eq('assigned_ambassador_id', userId);
@@ -422,6 +456,17 @@ export async function addSale(saleData) {
     // 2. Insert Sale - use correct Supabase column names
     // Extract brand info from items if available
     const brandInfo = saleData.items && saleData.items.length > 0 ? saleData.items[0] : {};
+    const brandName = brandInfo.brandName || saleData.brandName || 'Unknown';
+
+    // Generate unique invoice number: BRAND-REP-SEQUENCE
+    let invoiceNumber = null;
+    try {
+        const { generateInvoiceNumber } = await import('./invoiceNumberService');
+        invoiceNumber = await generateInvoiceNumber(brandName, repName);
+    } catch (err) {
+        console.warn('Invoice number generation failed, using fallback:', err);
+        invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+    }
 
     const { data: sale, error } = await supabase.from('sales').insert([{
         dispensary_id: leadId,
@@ -433,9 +478,10 @@ export async function addSale(saleData) {
         commission_rate: saleData.commissionRate || 0.02,
         products: saleData.items || [],
         brand_id: brandInfo.brandId || saleData.brandId || null,
-        brand_name: brandInfo.brandName || saleData.brandName || null,
+        brand_name: brandName,
         status: saleData.status || 'completed',
         sale_date: saleData.date ? new Date(saleData.date).toISOString() : new Date().toISOString(),
+        invoice_number: invoiceNumber,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     }]).select().single();
@@ -471,7 +517,9 @@ export async function getSales() {
         updatedAt: s.updated_at,
         // Add brand info for Brand Oversight
         brandId: s.brand_id || null,
-        brandName: s.brand_name || null
+        brandName: s.brand_name || null,
+        deliveryDate: s.delivery_date || null,
+        invoiceNumber: s.invoice_number || null
     }));
 }
 
@@ -702,15 +750,38 @@ export async function updateSaleStatus(saleId, status) {
 }
 
 export async function updateSale(saleId, data) {
-    // Map frontend field names to Supabase column names if needed
+    // Map frontend field names (camelCase) to Supabase column names (snake_case)
     const updateData = {
-        ...data,
         updated_at: new Date().toISOString()
     };
 
-    // Handle common field mappings
-    if (data.paidDate) updateData.paid_date = data.paidDate;
-    if (data.deliveredAt) updateData.delivered_at = data.deliveredAt;
+    // Define field mappings: camelCase -> snake_case
+    const fieldMappings = {
+        paidDate: 'paid_date',
+        deliveredAt: 'delivered_at',
+        deliveryDate: 'delivery_date',
+        totalAmount: 'total_amount',
+        brandId: 'brand_id',
+        brandName: 'brand_name',
+        dispensaryId: 'dispensary_id',
+        dispensaryName: 'dispensary_name',
+        repId: 'rep_id',
+        saleDate: 'sale_date',
+        commissionRate: 'commission_rate'
+    };
+
+    // Process each field from the input data
+    for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+            // If there's a mapping, use the snake_case version
+            if (fieldMappings[key]) {
+                updateData[fieldMappings[key]] = value;
+            } else {
+                // Otherwise, use the key as-is (for already snake_case fields like 'status')
+                updateData[key] = value;
+            }
+        }
+    }
 
     const { error } = await supabase
         .from('sales')

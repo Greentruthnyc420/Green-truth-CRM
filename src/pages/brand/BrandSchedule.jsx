@@ -143,11 +143,11 @@ const BrandSchedule = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <CalendarIcon className="text-brand-600" />
                         Activation Schedule
                     </h1>
-                    <p className="text-slate-500">
+                    <p style={{ color: 'var(--text-tertiary)' }}>
                         View upcoming activations scheduled for your brand.
                     </p>
                 </div>
@@ -176,10 +176,10 @@ const BrandSchedule = () => {
             {selectedEvent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity">
                     <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="bg-brand-50 p-6 border-b border-brand-100 flex justify-between items-start">
+                        <div className="p-6 flex justify-between items-start" style={{ background: 'var(--accent-primary)', opacity: 0.9, borderBottom: '1px solid var(--border-primary)' }}>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-900">Activation Details</h3>
-                                <p className="text-brand-700 text-sm font-medium mt-1 uppercase tracking-wide">
+                                <h3 className="text-xl font-bold" style={{ color: 'var(--text-inverse)' }}>Activation Details</h3>
+                                <p className="text-sm font-medium mt-1 uppercase tracking-wide" style={{ color: 'var(--text-inverse)', opacity: 0.8 }}>
                                     {selectedEvent.resource.status}
                                 </p>
                             </div>
@@ -187,7 +187,8 @@ const BrandSchedule = () => {
                                 <button
                                     onClick={() => handleSyncToMonday(selectedEvent)}
                                     disabled={syncingEventId === selectedEvent.resource.id}
-                                    className="p-2 hover:bg-white/50 rounded-full transition-colors text-slate-500 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ color: 'var(--text-inverse)' }}
                                     title="Sync to Monday.com"
                                 >
                                     {syncingEventId === selectedEvent.resource.id ? (
@@ -198,7 +199,8 @@ const BrandSchedule = () => {
                                 </button>
                                 <button
                                     onClick={() => setSelectedEvent(null)}
-                                    className="p-2 hover:bg-white/50 rounded-full transition-colors text-slate-500 hover:text-slate-800"
+                                    className="p-2 rounded-full transition-colors"
+                                    style={{ color: 'var(--text-inverse)' }}
                                 >
                                     <X size={20} />
                                 </button>
@@ -229,15 +231,15 @@ const BrandSchedule = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">Representative</label>
-                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                    <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Representative</label>
+                                    <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                         <User size={16} className="text-brand-500" />
                                         {selectedEvent.resource.repName || 'Pending Assignment'}
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">Store</label>
-                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                    <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Store</label>
+                                    <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                         <Tag size={16} className="text-brand-500" />
                                         {selectedEvent.resource.storeName}
                                     </div>
@@ -245,35 +247,35 @@ const BrandSchedule = () => {
                             </div>
 
                             <div className="space-y-1 pt-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase">Location Details</label>
-                                <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Location Details</label>
+                                <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                     <MapPin size={16} className="text-brand-500" />
                                     {selectedEvent.resource.storeName}
                                 </div>
                                 {selectedEvent.resource.address && (
-                                    <p className="text-sm text-slate-500 pl-6">{selectedEvent.resource.address}</p>
+                                    <p className="text-sm pl-6" style={{ color: 'var(--text-secondary)' }}>{selectedEvent.resource.address}</p>
                                 )}
                             </div>
 
                             <div className="space-y-1 pt-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase">Time</label>
-                                <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Time</label>
+                                <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                     <Clock size={16} className="text-brand-500" />
                                     {formatTime(selectedEvent.resource.startTime)} - {formatTime(selectedEvent.resource.endTime)}
                                 </div>
-                                <p className="text-sm text-slate-500 pl-6">
+                                <p className="text-sm pl-6" style={{ color: 'var(--text-secondary)' }}>
                                     {new Date(selectedEvent.resource.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
                             </div>
 
                             {selectedEvent.resource.notes && (
-                                <div className="bg-slate-50 p-4 rounded-lg mt-4 text-sm text-slate-600 italic">
+                                <div className="p-4 rounded-lg mt-4 text-sm italic" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                                     "{selectedEvent.resource.notes}"
                                 </div>
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between">
+                        <div className="p-4 flex justify-between" style={{ borderTop: '1px solid var(--border-primary)', background: 'var(--bg-secondary)' }}>
                             <button
                                 onClick={handleDelete}
                                 className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium hover:bg-red-100 transition-colors flex items-center gap-2"
@@ -283,8 +285,8 @@ const BrandSchedule = () => {
                             </button>
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
-                                style={{ background: 'var(--bg-secondary)' }}
+                                className="px-4 py-2 rounded-lg font-medium transition-colors"
+                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }}
                             >
                                 Close
                             </button>

@@ -46,9 +46,19 @@ export async function calculateBrandMetrics(brandId, brandName) {
                 }
 
                 // Track product sales from items
-                brandItems.forEach(item => {
-                    productSalesMap[item.name] = (productSalesMap[item.name] || 0) + item.quantity;
-                });
+                if (brandItems.length > 0) {
+                    brandItems.forEach(item => {
+                        // Ensure we have a valid product name (fallback to productName, brandName, or Unknown)
+                        const productName = item.name || item.productName || item.brandName || brandName || 'Unknown Product';
+                        const qty = item.quantity || 1;
+                        productSalesMap[productName] = (productSalesMap[productName] || 0) + qty;
+                    });
+                } else if (matchesTopLevel) {
+                    // Fallback: use productName, productId, or brandName for legacy sales without items[]
+                    const productKey = sale.productName || sale.productId || sale.brandName || 'Unknown Product';
+                    const qty = sale.quantity || 1;
+                    productSalesMap[productKey] = (productSalesMap[productKey] || 0) + qty;
+                }
             }
         });
 
@@ -58,20 +68,71 @@ export async function calculateBrandMetrics(brandId, brandName) {
         const productMixArray = [];
 
         // Colors for Pie Chart
-        const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+        const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b', '#ec4899', '#14b8a6', '#6366f1', '#84cc16'];
+
+        // Helper to clean product names (remove brand name and product type prefixes)
+        const cleanProductName = (name, brand) => {
+            if (!name || name === 'Unknown Product') return name;
+            let cleaned = name;
+
+            // Helper to strip emojis and trim
+            const stripEmoji = (str) => str?.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim() || str;
+
+            // Remove brand name prefix (e.g., "Honey King 1g Pre-Roll" -> "1g Pre-Roll")
+            // Also try without emojis since product names may not include brand emoji
+            const brandPatterns = [brand, brandName, stripEmoji(brand), stripEmoji(brandName)].filter(Boolean);
+            for (const pattern of brandPatterns) {
+                if (pattern && cleaned.toLowerCase().startsWith(pattern.toLowerCase())) {
+                    cleaned = cleaned.slice(pattern.length).trim();
+                    cleaned = cleaned.replace(/^[-:]+\s*/, '');
+                    break;
+                }
+            }
+
+
+            // Remove common product type prefixes (legacy data cleanup)
+            const productTypePrefixes = [
+                'Indoor Flower - ', 'Outdoor Flower - ', 'Greenhouse Flower - ',
+                'Infused Pre-Roll - ', 'Diamond Pre-Roll - ', 'Live Resin Minis - ',
+                '2G Royal Palm - ', '1.1G Oil - ', '1.1G Sweet - ',
+                '1G Oil - ', '2G Oil - '
+            ];
+            for (const prefix of productTypePrefixes) {
+                if (cleaned.startsWith(prefix)) {
+                    cleaned = cleaned.slice(prefix.length);
+                    break;
+                }
+                // Also check case-insensitive
+                if (cleaned.toLowerCase().startsWith(prefix.toLowerCase())) {
+                    cleaned = cleaned.slice(prefix.length);
+                    break;
+                }
+            }
+
+            return cleaned || name;
+        };
 
         Object.entries(productSalesMap).forEach(([name, qty]) => {
             if (qty > maxSold) {
                 maxSold = qty;
-                topProduct = name;
+                topProduct = cleanProductName(name, brandName);
             }
-            productMixArray.push({ name, value: qty });
+            productMixArray.push({ name: cleanProductName(name, brandName), fullName: name, value: qty });
         });
 
-        // Sort and limit Product Mix
-        const productMix = productMixArray
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5) // Top 5
+        // Sort all products by sales volume
+        const sortedProducts = productMixArray.sort((a, b) => b.value - a.value);
+
+        // Top 10 for the modal
+        const top10Products = sortedProducts.slice(0, 10).map((item, index) => ({
+            ...item,
+            color: COLORS[index % COLORS.length],
+            rank: index + 1
+        }));
+
+        // Top 5 for Product Mix pie chart
+        const productMix = sortedProducts
+            .slice(0, 5)
             .map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] }));
 
 
@@ -85,8 +146,14 @@ export async function calculateBrandMetrics(brandId, brandName) {
 
             // Only count if it involves this brand
             const brandItems = sale.items?.filter(item => item.brandId === brandId) || [];
+            const matchesTopLevel = sale.brandId === brandId || sale.brandName === brandName;
+
             if (brandItems.length > 0) {
                 const saleRevenue = brandItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                salesHistoryMap[monthName] = (salesHistoryMap[monthName] || 0) + saleRevenue;
+            } else if (matchesTopLevel) {
+                // Fallback: include top-level sales without items[] in sales history
+                const saleRevenue = parseFloat(sale.amount) || 0;
                 salesHistoryMap[monthName] = (salesHistoryMap[monthName] || 0) + saleRevenue;
             }
         });
@@ -195,6 +262,7 @@ export async function calculateBrandMetrics(brandId, brandName) {
             orderCount: totalOrders,
             pendingOrders: pendingCount,
             topProduct: topProduct,
+            top10Products: top10Products,
             aov: aov,
             outstandingInvoices: pendingRevenue,
             salesHistory,
@@ -215,6 +283,7 @@ export async function calculateBrandMetrics(brandId, brandName) {
             orderCount: 0,
             pendingOrders: 0,
             topProduct: 'N/A',
+            top10Products: [],
             aov: 0,
             outstandingInvoices: 0,
             salesHistory: [],

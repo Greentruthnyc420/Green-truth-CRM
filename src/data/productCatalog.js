@@ -61,11 +61,11 @@ export const PRODUCT_CATALOG = [
             { id: 'hk-pre-tangi', name: 'Infused Pre-Roll - Tangi', description: '1.5G Kief-Coated | Sativa', price: 8.60, caseSize: 24, unit: 'unit', thc: '46.52%', strainType: 'Sativa', category: 'Pre-Roll', inStock: true },
 
             // 3.5G INDOOR FLOWER - SOVEREIGN SELECTION ($20.50 / unit, 8ct pack)
-            { id: 'hk-flower-royal-runts', name: 'Indoor Flower - Royal Runts', description: '3.5G Sovereign | Hybrid', price: 20.50, caseSize: 8, unit: 'unit', thc: '25.29%', strainType: 'Hybrid', category: 'Flower', inStock: true },
-            { id: 'hk-flower-super-boof', name: 'Indoor Flower - Super Boof', description: '3.5G Sovereign | Hybrid', price: 20.50, caseSize: 8, unit: 'unit', thc: '21.88%', strainType: 'Hybrid', category: 'Flower', inStock: true },
-            { id: 'hk-flower-purps', name: 'Indoor Flower - Purps', description: '3.5G Sovereign | Indica', price: 20.50, caseSize: 8, unit: 'unit', thc: '18.87%', strainType: 'Indica', category: 'Flower', inStock: true },
-            { id: 'hk-flower-blue-dream', name: 'Indoor Flower - Blue Dream', description: '3.5G Sovereign | Sativa', price: 20.50, caseSize: 8, unit: 'unit', thc: '20.77%', strainType: 'Sativa', category: 'Flower', inStock: true },
-            { id: 'hk-flower-lemon-haze', name: 'Indoor Flower - Lemon Haze', description: '3.5G Sovereign | Sativa', price: 20.50, caseSize: 8, unit: 'unit', thc: '19.24%', strainType: 'Sativa', category: 'Flower', inStock: true },
+            { id: 'hk-flower-royal-runts', name: 'Royal Runts', description: '3.5G Sovereign | Hybrid', price: 20.50, caseSize: 8, unit: 'unit', thc: '25.29%', strainType: 'Hybrid', category: 'Flower', subcategory: 'Indoor Flower', inStock: true },
+            { id: 'hk-flower-super-boof', name: 'Super Boof', description: '3.5G Sovereign | Hybrid', price: 20.50, caseSize: 8, unit: 'unit', thc: '21.88%', strainType: 'Hybrid', category: 'Flower', subcategory: 'Indoor Flower', inStock: true },
+            { id: 'hk-flower-purps', name: 'Purps', description: '3.5G Sovereign | Indica', price: 20.50, caseSize: 8, unit: 'unit', thc: '18.87%', strainType: 'Indica', category: 'Flower', subcategory: 'Indoor Flower', inStock: true },
+            { id: 'hk-flower-blue-dream', name: 'Blue Dream', description: '3.5G Sovereign | Sativa', price: 20.50, caseSize: 8, unit: 'unit', thc: '20.77%', strainType: 'Sativa', category: 'Flower', subcategory: 'Indoor Flower', inStock: true },
+            { id: 'hk-flower-lemon-haze', name: 'Lemon Haze', description: '3.5G Sovereign | Sativa', price: 20.50, caseSize: 8, unit: 'unit', thc: '19.24%', strainType: 'Sativa', category: 'Flower', subcategory: 'Indoor Flower', inStock: true },
 
             // 1.5G DIAMOND INFUSED PRE-ROLL ($6.44 / unit, 12ct pack)
             { id: 'hk-dia-purple-punch', name: 'Diamond Pre-Roll - Purple Punch', description: '1.5G Infused | Indica', price: 6.44, caseSize: 12, unit: 'unit', thc: '41.05%', strainType: 'Indica', category: 'Pre-Roll', inStock: true },

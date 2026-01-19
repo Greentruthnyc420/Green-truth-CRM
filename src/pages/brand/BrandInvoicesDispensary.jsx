@@ -117,10 +117,10 @@ export default function BrandInvoicesDispensary() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        <ArrowDownLeft className="text-amber-600" />
-                        Dispensary Invoices
+                        <ArrowDownLeft className="text-emerald-600" />
+                        Invoices to Dispensaries
                     </h1>
-                    <p className="text-slate-500">Track payments incoming from dispensaries (Accounts Receivable)</p>
+                    <p className="text-slate-500">Track payments owed by dispensaries for product orders (Accounts Receivable)</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">

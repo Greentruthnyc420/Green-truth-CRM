@@ -81,31 +81,31 @@ export default function AdminGrowth() {
     const conversionRate = totalLeads > 0 ? ((activeCount / totalLeads) * 100).toFixed(1) : '0.0';
 
     const statsArray = [
-        { label: 'Total Pipeline', value: totalLeads, color: 'text-slate-800' },
-        { label: 'Conversion Rate', value: `${conversionRate}%`, color: 'text-emerald-600', subtext: 'Leads to Active' },
-        { label: 'Active Accounts', value: activeCount, color: 'text-indigo-600' },
-        { label: 'Prospects', value: prospectCount, color: 'text-slate-500' }
+        { label: 'Total Pipeline', value: totalLeads, colorVar: 'var(--text-primary)' },
+        { label: 'Conversion Rate', value: `${conversionRate}%`, color: 'text-emerald-500', subtext: 'Leads to Active' },
+        { label: 'Active Accounts', value: activeCount, color: 'text-indigo-500' },
+        { label: 'Prospects', value: prospectCount, colorVar: 'var(--text-tertiary)' }
     ];
 
     return (
         <div className="space-y-6">
             <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <TrendingUp className="text-brand-600" />
                         Growth & Pipeline
                     </h1>
-                    <p className="text-slate-500">Track lead conversion across the entire organization.</p>
+                    <p style={{ color: 'var(--text-tertiary)' }}>Track lead conversion across the entire organization.</p>
                 </div>
 
                 <div className="flex gap-2">
-                    <div className="bg-white border border-slate-200 rounded-lg p-1 flex">
+                    <div className="themed-card rounded-lg p-1 flex" style={{ borderColor: 'var(--border-primary)' }}>
                         {['all', 'prospect', 'sampled', 'active'].map((f) => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className={`px-3 py-1.5 text-xs font-bold uppercase rounded-md transition-colors ${filter === f ? 'bg-brand-100 text-brand-700' : 'text-slate-500 hover:bg-slate-50'
-                                    }`}
+                                className={`px-3 py-1.5 text-xs font-bold uppercase rounded-md transition-colors ${filter === f ? 'bg-brand-600/20 text-brand-400' : ''}`}
+                                style={{ color: filter === f ? undefined : 'var(--text-tertiary)' }}
                             >
                                 {f}
                             </button>
@@ -117,44 +117,44 @@ export default function AdminGrowth() {
             {/* Pipeline Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {statsArray.map((stat, idx) => (
-                    <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">{stat.label}</p>
-                        <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-                        {stat.subtext && <p className="text-[10px] text-slate-400 mt-1 font-medium">{stat.subtext}</p>}
+                    <div key={idx} className="themed-card p-4 rounded-xl shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{stat.label}</p>
+                        <p className={`text-2xl font-bold ${stat.color || ''}`} style={stat.colorVar ? { color: stat.colorVar } : undefined}>{stat.value}</p>
+                        {stat.subtext && <p className="text-[10px] mt-1 font-medium" style={{ color: 'var(--text-tertiary)' }}>{stat.subtext}</p>}
                     </div>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Leads List */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                        <h2 className="font-bold text-slate-700 flex items-center gap-2">
-                            <Store size={18} className="text-slate-400" />
+                <div className="lg:col-span-2 themed-card rounded-xl shadow-sm overflow-hidden">
+                    <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-secondary)' }}>
+                        <h2 className="font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <Store size={18} style={{ color: 'var(--text-tertiary)' }} />
                             Global Leads
                         </h2>
                     </div>
                     <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                         <table className="w-full text-left">
-                            <thead className="sticky top-0 bg-white shadow-sm z-10">
-                                <tr className="border-b border-slate-100">
-                                    <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Dispensary</th>
-                                    <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Pipeline Status</th>
-                                    <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Owner</th>
-                                    <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                            <thead className="sticky top-0 shadow-sm z-10" style={{ background: 'var(--bg-card)' }}>
+                                <tr style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                                    <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Dispensary</th>
+                                    <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Pipeline Status</th>
+                                    <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Owner</th>
+                                    <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody style={{ borderColor: 'var(--border-primary)' }}>
                                 {filteredLeads.map((lead) => (
-                                    <tr key={lead.id} className="hover:bg-slate-50">
-                                        <td className="py-3 px-6 text-sm font-medium text-slate-800">
+                                    <tr key={lead.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                                        <td className="py-3 px-6 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                             <Link
                                                 to={`/admin/dispensary/${lead.id}`}
                                                 className="hover:text-brand-600 hover:underline transition-colors"
                                             >
                                                 {lead.dispensaryName}
                                             </Link>
-                                            {lead.licenseNumber && <span className="block text-[10px] text-slate-400 font-mono">{lead.licenseNumber}</span>}
+                                            {lead.licenseNumber && <span className="block text-[10px] font-mono" style={{ color: 'var(--text-tertiary)' }}>{lead.licenseNumber}</span>}
                                         </td>
                                         <td className="py-3 px-6">
                                             <div className="relative inline-block">
@@ -177,7 +177,7 @@ export default function AdminGrowth() {
                                                 <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" />
                                             </div>
                                         </td>
-                                        <td className="py-3 px-6 text-xs text-slate-500">
+                                        <td className="py-3 px-6 text-xs" style={{ color: 'var(--text-secondary)' }}>
                                             {(() => {
                                                 const u = users[lead.userId];
                                                 if (!u) return 'Unassigned';
@@ -188,17 +188,18 @@ export default function AdminGrowth() {
                                             <button
                                                 onClick={() => handleDelete(lead.id)}
                                                 disabled={actionLoading === lead.id}
-                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                                className="p-1.5 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+                                                style={{ color: 'var(--text-tertiary)' }}
                                                 title="Delete Lead"
                                             >
-                                                {actionLoading === lead.id ? <div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-red-600 animate-spin" /> : <Trash2 size={16} />}
+                                                {actionLoading === lead.id ? <div className="w-4 h-4 rounded-full border-2 border-t-red-600 animate-spin" style={{ borderColor: 'var(--border-primary)' }} /> : <Trash2 size={16} />}
                                             </button>
                                         </td>
                                     </tr>
                                 ))}
                                 {filteredLeads.length === 0 && (
                                     <tr>
-                                        <td colSpan="4" className="py-8 text-center text-slate-400 text-sm">
+                                        <td colSpan="4" className="py-8 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
                                             No leads found in this category.
                                         </td>
                                     </tr>
@@ -209,25 +210,25 @@ export default function AdminGrowth() {
                 </div>
 
                 {/* Brand Network Summary */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
-                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                        <h2 className="font-bold text-slate-700 flex items-center gap-2">
-                            <ShoppingBag size={18} className="text-slate-400" />
+                <div className="themed-card rounded-xl shadow-sm overflow-hidden h-fit">
+                    <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-secondary)' }}>
+                        <h2 className="font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <ShoppingBag size={18} style={{ color: 'var(--text-tertiary)' }} />
                             Brand Network
                         </h2>
                     </div>
                     <div className="p-4 space-y-3">
                         {brands.map((brand, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 hover:border-slate-200 transition-colors">
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg transition-colors" style={{ border: '1px solid var(--border-primary)' }}>
                                 <div>
-                                    <p className="text-sm font-bold text-slate-800">{brand.name}</p>
-                                    <p className="text-xs text-brand-600 font-medium">Active Partner</p>
+                                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{brand.name}</p>
+                                    <p className="text-xs text-brand-500 font-medium">Active Partner</p>
                                 </div>
                                 <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
                             </div>
                         ))}
                         {brands.length === 0 && (
-                            <p className="text-sm text-slate-400 text-center py-4">No brands connected.</p>
+                            <p className="text-sm text-center py-4" style={{ color: 'var(--text-tertiary)' }}>No brands connected.</p>
                         )}
                         <Link to="/admin/brands" className="w-full py-2 text-sm text-center text-brand-600 font-medium bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors block">
                             Manage Brands

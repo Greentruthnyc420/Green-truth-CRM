@@ -200,26 +200,27 @@ export default function AdminLayout() {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
                 {/* Mobile Header */}
-                <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between z-30">
+                <header className="lg:hidden p-4 flex items-center justify-between z-30" style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border-primary)' }}>
                     <button
                         onClick={() => setIsSidebarOpen(true)}
-                        className="text-slate-500 hover:text-slate-800"
+                        style={{ color: 'var(--text-secondary)' }}
+                        className="hover:opacity-80"
                     >
                         <Menu size={24} />
                     </button>
-                    <span className="font-bold text-slate-800">Admin Portal</span>
+                    <span className="font-bold" style={{ color: 'var(--text-primary)' }}>Admin Portal</span>
                     <div className="w-8" />
                 </header>
 
                 {/* Content Scrollable */}
-                <div className="flex-1 overflow-y-auto bg-slate-50 p-4 lg:p-8 pb-32 lg:pb-8">
+                <div className="flex-1 overflow-y-auto p-4 lg:p-8 pb-32 lg:pb-8" style={{ background: 'var(--bg-secondary)' }}>
                     <ErrorBoundary key={location.pathname}>
                         <Outlet />
                     </ErrorBoundary>
                 </div>
 
                 {/* Mobile Bottom Navigation */}
-                <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+                <nav className="lg:hidden fixed bottom-0 left-0 right-0 pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.1)]" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)' }}>
                     <MobileNavLink icon={<LayoutDashboard size={20} />} label="Dash" to="/admin" end />
                     <MobileNavLink icon={<CheckSquare size={20} />} label="Workflow" to="/admin/workflow" />
 
@@ -236,7 +237,8 @@ export default function AdminLayout() {
 
                     <button
                         onClick={() => setIsMoreMenuOpen(true)}
-                        className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-brand-600 transition-colors"
+                        className="flex flex-col items-center justify-center gap-1 py-1 px-3 transition-colors"
+                        style={{ color: 'var(--text-tertiary)' }}
                     >
                         <Menu size={20} />
                         <span className="text-[10px] font-medium">More</span>
@@ -252,20 +254,21 @@ export default function AdminLayout() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setIsMoreMenuOpen(false)}
-                                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] lg:hidden"
+                                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:hidden"
                             />
                             <motion.div
                                 initial={{ y: '100%' }}
                                 animate={{ y: 0 }}
                                 exit={{ y: '100%' }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] z-[70] lg:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                                className="fixed bottom-0 left-0 right-0 rounded-t-[2.5rem] z-[70] lg:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                                style={{ background: 'var(--bg-card)' }}
                             >
-                                <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+                                <div className="w-12 h-1 rounded-full mx-auto mb-6" style={{ background: 'var(--border-primary)' }} />
 
                                 <div className="flex justify-between items-center mb-8">
-                                    <h2 className="text-xl font-bold text-slate-800">Admin Control</h2>
-                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
+                                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Admin Control</h2>
+                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                                         <X size={20} />
                                     </button>
                                 </div>
@@ -278,10 +281,11 @@ export default function AdminLayout() {
                                     <MoreMenuItem to="/admin/pipeline" icon={<GitBranch className="text-orange-500" />} label="Pipeline" onClick={() => setIsMoreMenuOpen(false)} />
                                 </div>
 
-                                <div className="border-t border-slate-100 pt-6 mt-2 flex flex-col gap-3">
+                                <div className="pt-6 mt-2 flex flex-col gap-3" style={{ borderTop: '1px solid var(--border-primary)' }}>
                                     <button
                                         onClick={() => { setIsMoreMenuOpen(false); handleLogout(); }}
-                                        className="w-full flex items-center justify-center gap-3 p-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all font-sans"
+                                        className="w-full flex items-center justify-center gap-3 p-4 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all font-sans"
+                                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                                     >
                                         <LogOut size={20} />
                                         Sign Out
@@ -302,9 +306,11 @@ function MobileNavLink({ to, icon, label, end = false }) {
             to={to}
             end={end}
             className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1 py-1 px-3 transition-colors ${isActive ? 'text-brand-600' : 'text-slate-400'
-                }`
+                `flex flex-col items-center justify-center gap-1 py-1 px-3 transition-colors ${isActive ? 'text-brand-600' : ''}`
             }
+            style={({ isActive }) => ({
+                color: isActive ? 'var(--accent-primary)' : 'var(--text-tertiary)'
+            })}
         >
             {icon}
             <span className="text-[10px] font-medium">{label}</span>
@@ -316,12 +322,12 @@ const MoreMenuItem = ({ to, icon, label, onClick }) => (
     <NavLink
         to={to}
         onClick={onClick}
-        className={({ isActive }) =>
-            `flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${isActive
-                ? 'bg-brand-50 border-brand-200 text-brand-600'
-                : 'bg-white border-slate-100 text-slate-600 active:bg-slate-50'
-            }`
-        }
+        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all active:opacity-80"
+        style={({ isActive }) => ({
+            background: isActive ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+            borderColor: isActive ? 'var(--accent-primary)' : 'var(--border-primary)',
+            color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)'
+        })}
     >
         {React.cloneElement(icon, { size: 24 })}
         <span className="text-[11px] font-bold text-center leading-tight">{label}</span>

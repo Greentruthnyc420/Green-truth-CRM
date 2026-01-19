@@ -217,8 +217,8 @@ export default function AdminCollections() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Collections</h1>
-                    <p className="text-slate-500">
+                    <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Collections</h1>
+                    <p style={{ color: 'var(--text-tertiary)' }}>
                         {isAdmin ? 'Track and manage all outstanding invoices' : 'Track invoices for your accounts'}
                     </p>
                 </div>
@@ -226,13 +226,15 @@ export default function AdminCollections() {
                 <div className="flex gap-2">
                     <button
                         onClick={loadCollections}
-                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 text-sm font-medium flex items-center gap-2 transition-colors"
+                        className="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                     >
                         <RefreshCw size={16} /> Refresh
                     </button>
                     <button
                         onClick={exportCSV}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-900 rounded-xl text-white text-sm font-medium flex items-center gap-2 transition-colors"
+                        className="px-4 py-2 rounded-xl text-white text-sm font-medium flex items-center gap-2 transition-colors"
+                        style={{ background: 'var(--text-primary)' }}
                     >
                         <Download size={16} /> Export CSV
                     </button>
@@ -241,54 +243,54 @@ export default function AdminCollections() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="themed-card p-5 rounded-2xl shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                            <FileText size={20} className="text-slate-600" />
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+                            <FileText size={20} style={{ color: 'var(--text-secondary)' }} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-                    <p className="text-sm text-slate-500">Total Invoices</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{stats.total}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Total Invoices</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm">
+                <div className="themed-card p-5 rounded-2xl shadow-sm" style={{ borderColor: 'rgba(245, 158, 11, 0.2)' }}>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
                             <Clock size={20} className="text-amber-600" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-amber-700">{formatCurrency(stats.amountDue)}</p>
-                    <p className="text-sm text-slate-500">Outstanding ({stats.pending})</p>
+                    <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Outstanding ({stats.pending})</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-red-100 shadow-sm">
+                <div className="themed-card p-5 rounded-2xl shadow-sm" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
                             <AlertCircle size={20} className="text-red-600" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-red-700">{formatCurrency(stats.amountOverdue)}</p>
-                    <p className="text-sm text-slate-500">Overdue ({stats.overdue})</p>
+                    <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Overdue ({stats.overdue})</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm">
+                <div className="themed-card p-5 rounded-2xl shadow-sm" style={{ borderColor: 'rgba(59, 130, 246, 0.2)' }}>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
                             <DollarSign size={20} className="text-blue-600" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-blue-700">{formatCurrency(stats.amountCollected)}</p>
-                    <p className="text-sm text-slate-500">Collected - Owe Reps ({stats.collected})</p>
+                    <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Collected - Owe Reps ({stats.collected})</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm">
+                <div className="themed-card p-5 rounded-2xl shadow-sm" style={{ borderColor: 'rgba(16, 185, 129, 0.2)' }}>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
                             <CheckCircle size={20} className="text-emerald-600" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-emerald-700">{formatCurrency(stats.amountPaid)}</p>
-                    <p className="text-sm text-slate-500">Fully Paid ({stats.paid})</p>
+                    <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Fully Paid ({stats.paid})</p>
                 </div>
             </div>
 
@@ -296,24 +298,29 @@ export default function AdminCollections() {
             <div className="flex flex-wrap gap-3 items-center">
                 {/* Search */}
                 <div className="relative flex-1 min-w-[200px]">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
                     <input
                         type="text"
                         placeholder="Search dispensary or invoice #..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl outline-none text-sm"
+                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                     />
                 </div>
 
                 {/* Status Filter */}
-                <div className="flex bg-slate-100 p-1 rounded-xl">
+                <div className="flex p-1 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
                     {['all', 'pending', 'collected', 'overdue', 'paid'].map(f => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                                }`}
+                            className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
+                            style={{
+                                background: filter === f ? 'var(--bg-card)' : 'transparent',
+                                color: filter === f ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                boxShadow: filter === f ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                            }}
                         >
                             {f}
                         </button>
@@ -325,7 +332,8 @@ export default function AdminCollections() {
                     <select
                         value={repFilter}
                         onChange={(e) => setRepFilter(e.target.value)}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white focus:border-brand-500 outline-none"
+                        className="px-4 py-2.5 rounded-xl text-sm font-medium outline-none"
+                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)' }}
                     >
                         <option value="all">All Reps</option>
                         {uniqueReps.map(rep => (
@@ -338,7 +346,8 @@ export default function AdminCollections() {
                 <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white focus:border-brand-500 outline-none"
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium outline-none"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)' }}
                 >
                     <option value="dueDate">Sort by Due Date</option>
                     <option value="amount">Sort by Amount</option>
@@ -347,14 +356,14 @@ export default function AdminCollections() {
             </div>
 
             {/* Invoices List */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="themed-card rounded-2xl shadow-sm overflow-hidden">
                 {filteredInvoices.length === 0 ? (
                     <div className="p-12 text-center">
-                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <FileText size={32} className="text-slate-400" />
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-secondary)' }}>
+                            <FileText size={32} style={{ color: 'var(--text-tertiary)' }} />
                         </div>
-                        <p className="text-slate-500 font-medium">No invoices found</p>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No invoices found</p>
+                        <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>
                             {filter !== 'all' ? 'Try changing your filter' : 'Start logging sales to see invoices'}
                         </p>
                     </div>

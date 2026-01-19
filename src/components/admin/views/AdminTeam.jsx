@@ -160,11 +160,11 @@ export default function AdminTeam() {
     return (
         <div className="space-y-8 pb-20">
             <header>
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                     <Users className="text-brand-600" />
                     Team & Partners
                 </h1>
-                <p className="text-slate-500">Manage ambassadors, brand partners, and dispensary clients.</p>
+                <p style={{ color: 'var(--text-tertiary)' }}>Manage ambassadors, brand partners, and dispensary clients.</p>
             </header>
 
             {loading ? (
@@ -175,7 +175,7 @@ export default function AdminTeam() {
                 <>
                     {/* --- SECTION 1: SALES AMBASSADORS --- */}
                     <div className="space-y-6">
-                        <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2">
+                        <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <TrendingUp className="text-teal-500" />
                             Sales Ambassadors
                         </h2>
@@ -199,36 +199,36 @@ export default function AdminTeam() {
                             </div>
                         )}
 
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-700">Ambassador Roster</h3>
-                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{salesAmbassadors.length} Active</span>
+                        <div className="themed-card rounded-xl shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-secondary)' }}>
+                                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Ambassador Roster</h3>
+                                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{salesAmbassadors.length} Active</span>
                             </div>
 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Ambassador</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Sales</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Hours</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Commission</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Pending Wages</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Ambassador</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Status</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Sales</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Hours</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Commission</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Pending Wages</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-tertiary)' }}>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50">
+                                    <tbody>
                                         {salesAmbassadors.map((member, idx) => (
-                                            <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={member.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-xs">
+                                                        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                                                             {(member.email?.[0] || 'U').toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-slate-800 text-sm">{member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}</p>
-                                                            <p className="text-xs text-slate-400">{member.email || 'No Email'}</p>
+                                                            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}</p>
+                                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{member.email || 'No Email'}</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -244,10 +244,10 @@ export default function AdminTeam() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="py-4 px-6 text-right font-medium text-slate-700">
+                                                <td className="py-4 px-6 text-right font-medium" style={{ color: 'var(--text-primary)' }}>
                                                     ${member.totalSalesAmount.toLocaleString()}
                                                 </td>
-                                                <td className="py-4 px-6 text-right text-slate-500">
+                                                <td className="py-4 px-6 text-right" style={{ color: 'var(--text-secondary)' }}>
                                                     {member.totalHours.toFixed(1)}
                                                 </td>
                                                 <td className="py-4 px-6 text-right font-medium text-emerald-600">
@@ -302,95 +302,95 @@ export default function AdminTeam() {
                                         ))}
                                     </tbody>
                                 </table>
-                                {salesAmbassadors.length === 0 && <p className="text-center text-slate-500 py-8">No ambassadors yet.</p>}
+                                {salesAmbassadors.length === 0 && <p className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No ambassadors yet.</p>}
                             </div>
                         </div>
                     </div>
 
                     {/* --- SECTION 2: BRAND PARTNERS --- */}
                     <div className="space-y-6">
-                        <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2">
+                        <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <Briefcase className="text-indigo-500" />
                             Brand Partners
                         </h2>
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-700">Partner Brands</h3>
-                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{brandPartners.length} Partners</span>
+                        <div className="themed-card rounded-xl shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-secondary)' }}>
+                                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Partner Brands</h3>
+                                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{brandPartners.length} Partners</span>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Partner Entity</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Setup</th>
+                                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Partner Entity</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Contact</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-tertiary)' }}>Setup</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50">
+                                    <tbody>
                                         {brandPartners.map(partner => (
-                                            <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={partner.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
                                                             {(partner.name?.[0] || partner.email?.[0] || 'B').toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-slate-800 text-sm">{partner.name || 'Brand Partner'}</p>
+                                                            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{partner.name || 'Brand Partner'}</p>
                                                             <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">Owner</span>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 px-6 text-sm text-slate-500">
+                                                <td className="py-4 px-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                                     {partner.email}
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
-                                                    <Link to={`/admin/team/${partner.id}`} className="text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1.5 rounded-lg font-bold transition-colors">Manage</Link>
+                                                    <Link to={`/admin/team/${partner.id}`} className="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>Manage</Link>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                                {brandPartners.length === 0 && <p className="text-center text-slate-500 py-8">No brand partners found.</p>}
+                                {brandPartners.length === 0 && <p className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No brand partners found.</p>}
                             </div>
                         </div>
                     </div>
 
                     {/* --- SECTION 3: DISPENSARY PARTNERS (NEW) --- */}
                     <div className="space-y-6">
-                        <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2">
+                        <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <Store className="text-purple-500" />
                             Dispensary Clients
                         </h2>
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-700">Registered Dispensaries</h3>
-                                <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-full">{dispensaryPartners.length} Clients</span>
+                        <div className="themed-card rounded-xl shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-secondary)' }}>
+                                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Registered Dispensaries</h3>
+                                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{dispensaryPartners.length} Clients</span>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Dispensary</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Location</th>
-                                            <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Dispensary</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Location</th>
+                                            <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-tertiary)' }}>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50">
+                                    <tbody>
                                         {dispensaryPartners.map(partner => (
-                                            <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={partner.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
                                                             {(partner.name?.[0] || 'D').toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-slate-800 text-sm">{partner.dispensaryName || partner.name || 'Unnamed Dispensary'}</p>
-                                                            <span className="text-[10px] text-slate-400">{partner.licenseNumber || 'No License'}</span>
+                                                            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{partner.dispensaryName || partner.name || 'Unnamed Dispensary'}</p>
+                                                            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{partner.licenseNumber || 'No License'}</span>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 px-6 text-sm text-slate-500">
+                                                <td className="py-4 px-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                                     {partner.address || 'Unknown Location'}
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
@@ -400,7 +400,7 @@ export default function AdminTeam() {
                                         ))}
                                     </tbody>
                                 </table>
-                                {dispensaryPartners.length === 0 && <p className="text-center text-slate-500 py-8">No dispensary clients registered yet.</p>}
+                                {dispensaryPartners.length === 0 && <p className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No dispensary clients registered yet.</p>}
                             </div>
                         </div>
                     </div>

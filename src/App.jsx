@@ -65,6 +65,7 @@ import MondayCallback from './pages/brand/MondayCallback';
 import BrandSyncHistory from './pages/brand/BrandSyncHistory';
 import BrandLogistics from './pages/brand/BrandLogistics';
 import BrandFulfillment from './pages/brand/BrandFulfillment';
+import BrandPipeline from './pages/brand/BrandPipeline';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 
 // Dispensary Portal Imports
@@ -79,10 +80,15 @@ import DispensaryIntegrations from './pages/dispensary/DispensaryIntegrations';
 import DispensaryMondayCallback from './pages/dispensary/MondayCallback';
 import DispensarySchedule from './pages/dispensary/DispensarySchedule';
 import DispensaryInvoices from './pages/dispensary/DispensaryInvoices';
+import DispensaryOrders from './pages/dispensary/DispensaryOrders';
 
 // Driver Portal Imports
 import DriverLogin from './pages/driver/DriverLogin';
 import DriverDashboard from './pages/driver/DriverDashboard';
+
+// Onboarding
+import ContractorOnboarding from './pages/ContractorOnboarding';
+import OnboardingRoute from './components/OnboardingRoute';
 
 function App() {
   return (
@@ -121,28 +127,31 @@ function App() {
 
         {/* Sales Ambassador Portal */}
         <Route path="/login" element={<Login />} />
+        <Route path="/onboarding" element={<ContractorOnboarding />} />
 
         <Route element={<PrivateRoute />}>
-          <Route path="/app" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="schedule" element={<Schedule />} />
-            <Route path="map" element={<LeadMap />} />
-            <Route path="my-dispensaries" element={<MyDispensaries />} />
-            <Route path="history" element={<History />} />
-            <Route path="log-shift" element={<LogShift />} />
-            <Route path="log-sale" element={<LogSale />} />
-            <Route path="new-lead" element={<NewLead />} />
-            <Route path="menus" element={<Menus />} />
-            <Route path="leaderboard" element={<Leaderboard />} />
-            <Route path="payouts/commissions" element={<CommissionPayouts />} />
-            <Route path="payouts/wages" element={<WagesPayouts />} />
-            <Route path="accounts/active" element={<ActiveAccounts />} />
-            <Route path="accounts" element={<Accounts />} />
-            {/* Legacy Admin Routes Restored */}
-            <Route path="admin" element={<AdminDashboard />} />
-            <Route path="brand-oversight" element={<BrandOversight />} />
-            {/* Fallback route */}
-            <Route path="*" element={<Dashboard />} />
+          <Route element={<OnboardingRoute />}>
+            <Route path="/app" element={<Layout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="schedule" element={<Schedule />} />
+              <Route path="map" element={<LeadMap />} />
+              <Route path="my-dispensaries" element={<MyDispensaries />} />
+              <Route path="history" element={<History />} />
+              <Route path="log-shift" element={<LogShift />} />
+              <Route path="log-sale" element={<LogSale />} />
+              <Route path="new-lead" element={<NewLead />} />
+              <Route path="menus" element={<Menus />} />
+              <Route path="leaderboard" element={<Leaderboard />} />
+              <Route path="payouts/commissions" element={<CommissionPayouts />} />
+              <Route path="payouts/wages" element={<WagesPayouts />} />
+              <Route path="accounts/active" element={<ActiveAccounts />} />
+              <Route path="accounts" element={<Accounts />} />
+              {/* Legacy Admin Routes Restored */}
+              <Route path="admin" element={<AdminDashboard />} />
+              <Route path="brand-oversight" element={<BrandOversight />} />
+              {/* Fallback route */}
+              <Route path="*" element={<Dashboard />} />
+            </Route>
           </Route>
         </Route>
 
@@ -160,6 +169,7 @@ function App() {
             <Route path="menu" element={<BrandMenuEditor />} />
             <Route path="map" element={<BrandMap />} />
             <Route path="new-lead" element={<BrandNewLead />} />
+            <Route path="pipeline" element={<BrandPipeline />} />
             <Route path="integrations" element={<BrandIntegrations />} />
             <Route path="sync-history" element={<BrandSyncHistory />} />
             <Route path="logistics" element={<BrandLogistics />} />
@@ -177,6 +187,7 @@ function App() {
             <Route index element={<DispensaryDashboard />} />
             <Route path="marketplace" element={<DispensaryMarketplace />} />
             <Route path="schedule" element={<DispensarySchedule />} />
+            <Route path="orders" element={<DispensaryOrders />} />
             <Route path="invoices" element={<DispensaryInvoices />} />
             <Route path="integrations" element={<DispensaryIntegrations />} />
             <Route path="integrations/monday/callback" element={<DispensaryMondayCallback />} />

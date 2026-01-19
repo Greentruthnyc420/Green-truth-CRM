@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeSwitcher from './ThemeSwitcher';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, Palette } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, Palette, GitBranch } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BrandLayout() {
@@ -155,12 +155,13 @@ export default function BrandLayout() {
                 {/* Navigation */}
                 <nav className="flex-1 p-3 space-y-1">
                     <NavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
+                    <NavItem to="/brand/pipeline" icon={<GitBranch size={20} />} label="Pipeline" />
                     <NavItem to="/brand/new-lead" icon={<UserPlus size={20} />} label="New Lead" />
                     <NavItem to="/brand/schedule" icon={<Calendar size={20} />} label="Schedule" />
                     <NavItem to="/brand/map" icon={<Navigation size={20} />} label="Store Map" />
                     <NavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />
-                    <NavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={20} />} label="Dispensary Inv." />
-                    <NavItem to="/brand/invoices/greentruth" icon={<ArrowUpRight size={20} />} label="GreenTruth Inv." />
+                    <NavItem to="/brand/invoices/dispensary" icon={<ArrowUpRight size={20} />} label="To Dispensaries" />
+                    <NavItem to="/brand/invoices/greentruth" icon={<ArrowDownLeft size={20} />} label="From GreenTruth" />
                     <NavItem to="/brand/menu" icon={<Menu size={20} />} label="Menu Editor" />
                     <NavItem to="/brand/integrations" icon={<Settings size={20} />} label="Integrations" />
                     {(brandUser?.isProcessor || brandUser?.allowedBrands?.length > 0) && (
@@ -229,38 +230,36 @@ export default function BrandLayout() {
                     </div>
                 )}
 
-                {/* Mobile Header - Orange */}
+                {/* Mobile Header */}
                 <header className="md:hidden bg-gradient-to-r from-orange-600 to-orange-700 p-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
-                    <div className="flex items-center gap-3">
-                        {brandLogo ? (
+                    <button
+                        onClick={() => setIsMoreMenuOpen(true)}
+                        className="p-2 rounded-lg transition-colors text-white/80 hover:text-white hover:bg-white/10"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        {brandLogo && (
                             <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center shadow-sm">
                                 <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                             </div>
-                        ) : (
-                            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-sm font-bold text-white">
-                                {initials}
-                            </div>
                         )}
-                        <span className="font-bold text-white truncate max-w-[200px]">{brandUser?.brandName}</span>
+                        <span className="font-bold text-white truncate max-w-[150px]">{brandUser?.brandName}</span>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-sm font-bold text-white">
+                        {initials}
                     </div>
                 </header>
 
-                {/* Mobile Navigation */}
+                {/* Mobile Navigation - Quick Access */}
                 <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t pb-safe z-40 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                     <MobileNavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
                     <MobileNavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />
-                    <MobileNavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={20} />} label="Disp. Inv" />
-
-                    <button
-                        onClick={() => setIsMoreMenuOpen(true)}
-                        className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-emerald-700 transition-colors"
-                    >
-                        <Menu size={20} />
-                        <span className="text-[10px] font-medium">More</span>
-                    </button>
+                    <MobileNavItem to="/brand/schedule" icon={<Calendar size={20} />} label="Schedule" />
+                    <MobileNavItem to="/brand/invoices/dispensary" icon={<ArrowDownLeft size={20} />} label="Invoices" />
                 </nav>
 
-                {/* More Menu Slide-up / Overlay */}
+                {/* Slide-out Menu from Left */}
                 <AnimatePresence>
                     {isMoreMenuOpen && (
                         <>
@@ -272,36 +271,53 @@ export default function BrandLayout() {
                                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] md:hidden"
                             />
                             <motion.div
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
+                                initial={{ x: '-100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '-100%' }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="fixed bottom-0 left-0 right-0 rounded-t-[2.5rem] z-[70] md:hidden p-6 max-h-[85vh] overflow-y-auto shadow-2xl"
+                                className="fixed top-0 left-0 bottom-0 w-72 z-[70] md:hidden p-6 overflow-y-auto shadow-2xl"
                                 style={{ background: 'var(--bg-card)' }}
                             >
-                                <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
-
                                 <div className="flex justify-between items-center mb-8">
                                     <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Brand Menu</h2>
-                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
+                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                                         <X size={20} />
                                     </button>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-4 pb-8">
-                                    <MoreMenuItem to="/brand/new-lead" icon={<UserPlus className="text-emerald-500" />} label="New Lead" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/brand/schedule" icon={<Calendar className="text-blue-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/brand/map" icon={<Navigation className="text-orange-500" />} label="Store Map" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/brand/menu" icon={<Menu className="text-indigo-500" />} label="Menu Editor" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/brand/invoices/greentruth" icon={<ArrowUpRight className="text-emerald-600" />} label="GT Invoices" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/brand/integrations" icon={<Settings className="text-purple-500" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
+                                <nav className="space-y-2 pb-6">
+                                    <SlideMenuItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/pipeline" icon={<GitBranch size={20} className="text-amber-500" />} label="Pipeline" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/orders" icon={<ShoppingCart size={20} className="text-blue-500" />} label="Orders" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/schedule" icon={<Calendar size={20} className="text-indigo-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/map" icon={<Navigation size={20} className="text-orange-500" />} label="Store Map" onClick={() => setIsMoreMenuOpen(false)} />
+
+                                    <div className="pt-4 pb-2">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Invoices</span>
+                                    </div>
+                                    <SlideMenuItem to="/brand/invoices/dispensary" icon={<ArrowUpRight size={20} className="text-emerald-500" />} label="To Dispensaries" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/invoices/greentruth" icon={<ArrowDownLeft size={20} className="text-orange-500" />} label="From GreenTruth" onClick={() => setIsMoreMenuOpen(false)} />
+
+                                    <div className="pt-4 pb-2">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Tools</span>
+                                    </div>
+                                    <SlideMenuItem to="/brand/new-lead" icon={<UserPlus size={20} className="text-emerald-500" />} label="New Lead" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/menu" icon={<Package size={20} className="text-purple-500" />} label="Menu Editor" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideMenuItem to="/brand/integrations" icon={<Settings size={20} className="text-slate-500" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
+                                </nav>
+
+                                <div className="border-t pt-4 mt-2" style={{ borderColor: 'var(--border-primary)' }}>
+                                    <div className="pb-2">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Appearance</span>
+                                    </div>
+                                    <ThemeSwitcher isOpen={true} onClose={() => { }} inline={true} />
                                 </div>
 
-                                <div className="border-t border-slate-100 pt-6 mt-2 flex flex-col gap-3">
+                                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-primary)' }}>
                                     {isGhost && (
                                         <button
                                             onClick={() => { setIsMoreMenuOpen(false); handleExitGhostMode(); }}
-                                            className="w-full flex items-center justify-center gap-3 p-4 bg-amber-50 text-amber-700 font-bold rounded-2xl hover:bg-amber-100 transition-all border border-amber-100"
+                                            className="w-full flex items-center gap-3 p-4 bg-amber-50 text-amber-700 font-bold rounded-2xl hover:bg-amber-100 transition-all border border-amber-100 mb-3"
                                         >
                                             <span>👻</span>
                                             Exit Ghost Mode
@@ -309,7 +325,8 @@ export default function BrandLayout() {
                                     )}
                                     <button
                                         onClick={() => { setIsMoreMenuOpen(false); handleLogout(); }}
-                                        className="w-full flex items-center justify-center gap-3 p-4 bg-slate-50 text-slate-600 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                        className="w-full flex items-center gap-3 p-4 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                                     >
                                         <LogOut size={20} />
                                         Sign Out
@@ -376,5 +393,23 @@ const MoreMenuItem = ({ to, icon, label, onClick }) => (
     >
         {React.cloneElement(icon, { size: 24 })}
         <span className="text-[11px] font-bold text-center leading-tight">{label}</span>
+    </NavLink>
+);
+
+const SlideMenuItem = ({ to, icon, label, onClick }) => (
+    <NavLink
+        to={to}
+        end={to === '/brand'}
+        onClick={onClick}
+        className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${!isActive ? 'hover:bg-slate-100' : ''}`
+        }
+        style={({ isActive }) => isActive ? {
+            background: 'var(--accent-primary)',
+            color: 'var(--text-inverse)'
+        } : { color: 'var(--text-primary)' }}
+    >
+        {icon}
+        <span>{label}</span>
     </NavLink>
 );

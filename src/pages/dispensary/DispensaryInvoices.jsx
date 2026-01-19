@@ -3,6 +3,7 @@ import { FileText, DollarSign, Calendar, CheckCircle, Clock, AlertCircle, Downlo
 import { useAuth } from '../../contexts/AuthContext';
 import { getSales, getUserProfile } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
+import ThemeSwitcher from '../../components/ThemeSwitcher';
 
 export default function DispensaryInvoices() {
     const { currentUser } = useAuth();
@@ -29,7 +30,8 @@ export default function DispensaryInvoices() {
                     return nameMatches || idMatches;
                 }).map(sale => ({
                     ...sale,
-                    invoiceNumber: `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+                    // Use alphanumeric invoice number from database, fallback for legacy sales
+                    invoiceNumber: sale.invoiceNumber || `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
                     invoiceDate: sale.date || sale.createdAt,
                     paymentTerms: sale.paymentTerms || 'Net 30', // Use stored payment terms
                     dueDate: calculateDueDate(sale.date || sale.createdAt, sale.paymentTerms),
@@ -110,18 +112,23 @@ export default function DispensaryInvoices() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
-                    <p className="text-slate-500">View and track your payment history</p>
+                    <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Invoices</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>View and track your payment history</p>
                 </div>
 
-                {/* Dispensary Info */}
-                {profile && (
-                    <div className="text-right text-sm text-slate-500">
-                        <p className="font-bold text-slate-700">{profile.dispensaryName}</p>
-                        {profile.licenseNumber && <p>License: {profile.licenseNumber}</p>}
-                        {profile.address && <p className="truncate max-w-xs">{profile.address}</p>}
-                    </div>
-                )}
+                <div className="flex items-center gap-4">
+                    {/* Theme Toggle */}
+                    <ThemeSwitcher />
+
+                    {/* Dispensary Info */}
+                    {profile && (
+                        <div className="text-right text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{profile.dispensaryName}</p>
+                            {profile.licenseNumber && <p>License: {profile.licenseNumber}</p>}
+                            {profile.address && <p className="truncate max-w-xs">{profile.address}</p>}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Stats Cards */}

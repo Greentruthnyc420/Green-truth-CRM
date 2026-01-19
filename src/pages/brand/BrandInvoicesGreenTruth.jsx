@@ -48,9 +48,9 @@ export default function BrandInvoicesGreenTruth() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                         <ArrowUpRight className="text-red-500" />
-                        GreenTruth Invoices
+                        Invoices from GreenTruth
                     </h1>
-                    <p className="text-slate-500">Platform fees and commissions owed to GreenTruth</p>
+                    <p className="text-slate-500">Platform fees and commissions billed by GreenTruth (Accounts Payable)</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100">

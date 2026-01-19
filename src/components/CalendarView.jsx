@@ -33,7 +33,7 @@ const CustomToolbar = ({ date, view, onNavigate, onView }) => {
     };
 
     return (
-        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 p-2 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => handleNavigate('TODAY')}
@@ -41,34 +41,38 @@ const CustomToolbar = ({ date, view, onNavigate, onView }) => {
                 >
                     Today
                 </button>
-                <div className="flex items-center bg-white rounded-lg border border-slate-200 shadow-sm">
+                <div className="flex items-center rounded-lg shadow-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
                     <button
                         onClick={() => handleNavigate('PREV')}
-                        className="p-2 hover:bg-slate-50 text-slate-600 rounded-l-lg"
+                        className="p-2 rounded-l-lg"
+                        style={{ color: 'var(--text-secondary)' }}
                     >
                         <ChevronLeft size={20} />
                     </button>
                     <button
                         onClick={() => handleNavigate('NEXT')}
-                        className="p-2 hover:bg-slate-50 text-slate-600 rounded-r-lg border-l border-slate-100"
+                        className="p-2 rounded-r-lg"
+                        style={{ color: 'var(--text-secondary)', borderLeft: '1px solid var(--border-primary)' }}
                     >
                         <ChevronRight size={20} />
                     </button>
                 </div>
-                <span className="text-xl font-bold text-slate-800 ml-2">
+                <span className="text-xl font-bold ml-2" style={{ color: 'var(--text-primary)' }}>
                     {format(date, 'MMMM yyyy')}
                 </span>
             </div>
 
-            <div className="flex bg-slate-200 p-1 rounded-lg">
+            <div className="flex p-1 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
                 {['month', 'week', 'day', 'agenda'].map((v) => (
                     <button
                         key={v}
                         onClick={() => handleViewChange(v)}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-md capitalize transition-all ${view === v
-                            ? 'bg-white text-slate-800 shadow-sm'
-                            : 'text-slate-600 hover:text-slate-800'
-                            }`}
+                        className="px-4 py-1.5 text-sm font-medium rounded-md capitalize transition-all"
+                        style={{
+                            background: view === v ? 'var(--bg-card)' : 'transparent',
+                            color: view === v ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            boxShadow: view === v ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                        }}
                     >
                         {v}
                     </button>
@@ -141,7 +145,7 @@ const CalendarView = ({ events = [], onEventClick, height = '75vh', className = 
     };
 
     return (
-        <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>
+        <div className={`themed-card rounded-xl shadow-sm p-6 ${className}`}>
             <div className="h-full w-full" style={{ height }}>
                 <Calendar
                     localizer={localizer}

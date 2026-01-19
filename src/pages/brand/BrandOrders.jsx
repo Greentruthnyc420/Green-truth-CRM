@@ -3,7 +3,7 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import {
     ShoppingCart, Check, X, Calendar, Truck,
     Clock, CheckCircle, XCircle, Package,
-    ChevronDown, Search, Filter, FileText
+    ChevronDown, Search, Filter, FileText, Upload, Download
 } from 'lucide-react';
 
 import { getSales, updateSaleStatus, updateSale } from '../../services/firestoreService';
@@ -146,6 +146,37 @@ export default function BrandOrders() {
         }
     };
 
+    // CSV Export Function
+    const exportOrdersToCSV = (ordersToExport) => {
+        if (ordersToExport.length === 0) {
+            showNotification('No orders to export', 'warning');
+            return;
+        }
+
+        const headers = ['Order ID', 'Dispensary', 'Contact', 'Products', 'Total', 'Status', 'Order Date', 'Delivery Date', 'Representative'];
+        const rows = ordersToExport.map(order => [
+            order.id,
+            order.dispensary,
+            order.contact,
+            order.products.map(p => `${p.quantity}x ${p.name}`).join('; '),
+            order.total,
+            order.status,
+            order.orderDate,
+            order.deliveryDate || '',
+            order.representative
+        ]);
+
+        const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showNotification('Orders exported successfully', 'success');
+    };
+
     const filteredOrders = orders
         .filter(o => filter === 'all' || o.status === filter)
         .filter(o => o.dispensary.toLowerCase().includes(search.toLowerCase()) || o.id.toLowerCase().includes(search.toLowerCase()));
@@ -174,9 +205,29 @@ export default function BrandOrders() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-800">Orders</h1>
-                <p className="text-slate-500">Manage incoming orders from dispensaries</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Orders</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>Manage incoming orders from dispensaries</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsUploadModalOpen(true)}
+                        className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }}
+                    >
+                        <Upload size={16} />
+                        Import CSV
+                    </button>
+                    <button
+                        onClick={() => exportOrdersToCSV(filteredOrders)}
+                        className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }}
+                    >
+                        <Download size={16} />
+                        Export CSV
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
@@ -196,10 +247,15 @@ export default function BrandOrders() {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${filter === f
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${filter === f
                                 ? 'bg-amber-500 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                : ''
                                 }`}
+                            style={filter !== f ? {
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border-primary)'
+                            } : {}}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
                         </button>
@@ -210,21 +266,21 @@ export default function BrandOrders() {
             {/* Orders List */}
             <div className="space-y-4">
                 {filteredOrders.length === 0 ? (
-                    <div style={{ background: 'var(--bg-card)' }} className="text-center py-12 rounded-xl border border-slate-100">
-                        <ShoppingCart size={48} className="mx-auto text-slate-300 mb-4" />
-                        <p className="text-slate-500">No orders found</p>
+                    <div style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} className="text-center py-12 rounded-xl border">
+                        <ShoppingCart size={48} className="mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
+                        <p style={{ color: 'var(--text-secondary)' }}>No orders found</p>
                     </div>
                 ) : (
                     filteredOrders.map((order) => (
-                        <div key={order.id} style={{ background: 'var(--bg-card)' }} className="rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50">
+                        <div key={order.id} style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} className="rounded-xl border shadow-sm overflow-hidden">
+                            <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
-                                        <Package size={24} className="text-slate-600" />
+                                    <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+                                        <Package size={24} style={{ color: 'var(--text-secondary)' }} />
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-slate-800">{order.id}</span>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{order.id}</span>
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusColors[order.status]}`}>
                                                 {statusIcons[order.status]}
                                                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -235,14 +291,14 @@ export default function BrandOrders() {
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-sm text-slate-500">{order.dispensary} • {order.contact}</p>
-                                        <p className="text-[10px] font-bold text-brand-600 uppercase tracking-widest mt-1">Rep: {order.representative}</p>
+                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{order.dispensary} • {order.contact}</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: 'var(--accent-primary)' }}>Rep: {order.representative}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="text-right">
-                                        <p className="font-bold text-slate-800">${order.total.toLocaleString()}</p>
-                                        <p className="text-xs text-slate-500">Ordered {order.orderDate}</p>
+                                        <p className="font-bold" style={{ color: 'var(--text-primary)' }}>${order.total.toLocaleString()}</p>
+                                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Ordered {order.orderDate}</p>
                                     </div>
                                     {order.status === 'pending' && (
                                         <div className="flex gap-2">
@@ -306,19 +362,19 @@ export default function BrandOrders() {
                             </div>
 
                             {/* Products */}
-                            <div className="p-4 bg-slate-50">
-                                <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-medium">Products</p>
+                            <div className="p-4" style={{ background: 'var(--bg-secondary)' }}>
+                                <p className="text-xs uppercase tracking-wider mb-2 font-bold" style={{ color: 'var(--text-tertiary)' }}>Products</p>
                                 <div className="flex flex-wrap gap-2">
                                     {order.products.map((p, i) => (
-                                        <span key={i} style={{ background: 'var(--bg-card)' }} className="px-3 py-1 border border-slate-200 rounded-full text-sm text-slate-700">
+                                        <span key={i} className="px-3 py-1 border rounded-full text-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
                                             {p.quantity}x {p.name} @ ${p.price}
                                         </span>
                                     ))}
                                 </div>
                                 {order.deliveryDate && (
-                                    <p className="mt-2 text-sm text-slate-600 flex items-center gap-2">
-                                        <Calendar size={14} />
-                                        Delivery: {order.deliveryDate}
+                                    <p className="mt-2 text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                        <Calendar size={14} className="text-emerald-500" />
+                                        <span className="font-bold">Delivery:</span> {order.deliveryDate}
                                     </p>
                                 )}
                             </div>
