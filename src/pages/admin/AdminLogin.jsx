@@ -82,8 +82,12 @@ export default function AdminLogin() {
                         Back to Gateway
                     </NavLink>
 
-                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20">
-                        <Shield size={32} className="text-white" />
+                    <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg p-3">
+                        <img
+                            src="/logos/logo-main.png"
+                            alt="GreenTruth"
+                            className="w-full h-full object-contain"
+                        />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Admin Portal</h2>
                     <p className="text-slate-400 text-sm">Restricted Access Only</p>

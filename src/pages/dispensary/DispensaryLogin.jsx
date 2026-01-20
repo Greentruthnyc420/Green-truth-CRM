@@ -46,6 +46,13 @@ export default function DispensaryLogin() {
                 </button>
 
                 <div className="text-center mb-8">
+                    <div className="w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                        <img
+                            src="/logos/logo-main.png"
+                            alt="GreenTruth NYC"
+                            className="w-full h-full object-contain"
+                        />
+                    </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dispensary Login</h1>
                     <p className="mt-2 text-slate-500">Access your dashboard and place orders</p>
                 </div>
