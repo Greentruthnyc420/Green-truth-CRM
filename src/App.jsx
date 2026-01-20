@@ -45,7 +45,6 @@ import AdminWorkflow from './components/admin/views/AdminWorkflow';
 import AdminInvoiceGenerator from './components/admin/views/AdminInvoiceGenerator';
 import AmbassadorOverview from './components/admin/AmbassadorOverview';
 import AdminLogistics from './components/admin/views/AdminLogistics'; // TEMPORARILY HIDDEN FOR LAUNCH
-import AdminIntegrations from './pages/admin/AdminIntegrations';
 import AdminBrands from './components/admin/views/AdminBrands';
 import AdminCollections from './components/admin/views/AdminCollections';
 import DispensaryDetail from './pages/admin/DispensaryDetail';
@@ -62,9 +61,7 @@ import BrandMenuEditor from './pages/brand/BrandMenuEditor';
 import BrandSchedule from './pages/brand/BrandSchedule';
 import BrandMap from './pages/brand/BrandMap';
 import BrandNewLead from './pages/brand/BrandNewLead';
-import BrandIntegrations from './pages/brand/BrandIntegrations';
-import MondayCallback from './pages/brand/MondayCallback';
-import BrandSyncHistory from './pages/brand/BrandSyncHistory';
+
 // TEMPORARILY HIDDEN FOR LAUNCH - BrandLogistics
 // import BrandLogistics from './pages/brand/BrandLogistics';
 import BrandFulfillment from './pages/brand/BrandFulfillment';
@@ -81,8 +78,7 @@ import DispensaryLayout from './components/DispensaryLayout';
 import DispensaryDashboard from './pages/dispensary/DispensaryDashboard';
 import DispensaryPrivateRoute from './components/DispensaryPrivateRoute';
 import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
-import DispensaryIntegrations from './pages/dispensary/DispensaryIntegrations';
-import DispensaryMondayCallback from './pages/dispensary/MondayCallback';
+
 import DispensarySchedule from './pages/dispensary/DispensarySchedule';
 import DispensaryInvoices from './pages/dispensary/DispensaryInvoices';
 import DispensaryOrders from './pages/dispensary/DispensaryOrders';
@@ -125,7 +121,7 @@ function App() {
             <Route path="team/:userId" element={<AmbassadorOverview />} />
             <Route path="pipeline" element={<AdminGrowth />} /> {/* Reusing AdminGrowth component for Pipeline view */}
             <Route path="growth" element={<LegacyAdminDashboard />} /> {/* Legacy Console is now the main Growth view */}
-            <Route path="integrations" element={<AdminIntegrations />} />
+
             {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}
             {/* <Route path="logistics" element={<AdminLogistics />} /> */}
             <Route path="brands" element={<AdminBrands />} />
@@ -172,7 +168,6 @@ function App() {
         <Route path="/brand/login" element={<BrandLogin />} />
 
         <Route element={<BrandPrivateRoute />}>
-          <Route path="/brand/integrations/monday/callback" element={<MondayCallback />} />
           <Route path="/brand" element={<BrandLayout />}>
             <Route index element={<BrandDashboard />} />
             <Route path="orders" element={<BrandOrders />} />
@@ -183,10 +178,6 @@ function App() {
             <Route path="map" element={<BrandMap />} />
             <Route path="new-lead" element={<BrandNewLead />} />
             <Route path="pipeline" element={<BrandPipeline />} />
-            <Route path="integrations" element={<BrandIntegrations />} />
-            <Route path="sync-history" element={<BrandSyncHistory />} />
-            {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}
-            {/* <Route path="logistics" element={<BrandLogistics />} /> */}
             <Route path="fulfillment" element={<BrandFulfillment />} />
             <Route path="deals" element={<BrandDeals />} />
             <Route path="products" element={<BrandProducts />} />
@@ -205,8 +196,6 @@ function App() {
             <Route path="schedule" element={<DispensarySchedule />} />
             <Route path="orders" element={<DispensaryOrders />} />
             <Route path="invoices" element={<DispensaryInvoices />} />
-            <Route path="integrations" element={<DispensaryIntegrations />} />
-            <Route path="integrations/monday/callback" element={<DispensaryMondayCallback />} />
           </Route>
         </Route>
 

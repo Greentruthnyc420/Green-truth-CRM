@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getActivations } from '../../services/firestoreService';
-import { syncActivationToMonday } from '../../services/mondayService';
 import { useNotification } from '../../contexts/NotificationContext';
-// import { toast } from 'sonner';
 import CalendarView from '../../components/CalendarView';
-import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, UploadCloud, Loader2, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, User, Tag, X, Plus, Trash2 } from 'lucide-react';
 import ActivationFormModal from '../../components/ActivationFormModal';
 
 // ... component start
@@ -15,43 +13,9 @@ const BrandSchedule = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
-    const [syncingEventId, setSyncingEventId] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
 
-
-    const handleSyncToMonday = async (event) => {
-        if (!event?.resource) return;
-        const activation = event.resource;
-
-        setSyncingEventId(activation.id);
-        try {
-            // Use service layer which handles error logging and response formatting cleanly
-            const result = await syncActivationToMonday(
-                brandUser.brandId,
-                {
-                    id: activation.id,
-                    storeName: activation.storeName,
-                    date: activation.date,
-                    type: activation.type,
-                    notes: activation.notes,
-                    address: activation.address,
-                    repName: activation.repName
-                }
-            );
-
-            if (result.success) {
-                showNotification(`Activation synced to Monday.com!`, 'success');
-            } else {
-                throw new Error(result.error || 'Sync failed');
-            }
-        } catch (error) {
-            console.error("Error syncing activation to Monday.com:", error);
-            showNotification(`Sync failed: ${error.message}`, 'error');
-        } finally {
-            setSyncingEventId(null);
-        }
-    };
 
     const handleDelete = async () => {
         if (!selectedEvent?.resource?.id) return;
@@ -184,19 +148,6 @@ const BrandSchedule = () => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => handleSyncToMonday(selectedEvent)}
-                                    disabled={syncingEventId === selectedEvent.resource.id}
-                                    className="p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{ color: 'var(--text-inverse)' }}
-                                    title="Sync to Monday.com"
-                                >
-                                    {syncingEventId === selectedEvent.resource.id ? (
-                                        <Loader2 size={20} className="animate-spin" />
-                                    ) : (
-                                        <UploadCloud size={20} />
-                                    )}
-                                </button>
                                 <button
                                     onClick={() => setSelectedEvent(null)}
                                     className="p-2 rounded-full transition-colors"

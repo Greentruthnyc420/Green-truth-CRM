@@ -8,7 +8,6 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { awardLeadPoints } from '../../services/pointsService';
-import { getMondayIntegrationStatus, syncAccountToMonday } from '../../services/mondayService';
 
 export default function BrandNewLead() {
     const navigate = useNavigate();
@@ -19,8 +18,6 @@ export default function BrandNewLead() {
     const [licenseImage, setLicenseImage] = useState(null);
     const [licensePreview, setLicensePreview] = useState(null);
     const [analyzingLicense, setAnalyzingLicense] = useState(false);
-    const [mondayIntegration, setMondayIntegration] = useState({ connected: false, accountsBoardId: null });
-    const [syncToMonday, setSyncToMonday] = useState(true);
 
     const [formData, setFormData] = useState({
         dispensaryName: '',
@@ -33,15 +30,7 @@ export default function BrandNewLead() {
         ]
     });
 
-    useEffect(() => {
-        async function fetchMondayStatus() {
-            if (brandUser?.brandId) {
-                const status = await getMondayIntegrationStatus(brandUser.brandId);
-                setMondayIntegration(status);
-            }
-        }
-        fetchMondayStatus();
-    }, [brandUser]);
+
 
     const categories = [
         { id: LEAD_STATUS.PROSPECT, label: 'Prospect', color: { bg: 'var(--bg-secondary)', text: 'var(--text-secondary)' } },
@@ -135,16 +124,7 @@ export default function BrandNewLead() {
                 console.warn("Points awarding failed.", pErr);
             }
 
-            // Sync to Monday.com if enabled
-            if (syncToMonday && mondayIntegration.connected && mondayIntegration.accountsBoardId) {
-                const leadDataForSync = { ...formData, id: leadRef.id };
-                const syncResult = await syncAccountToMonday(brandUser.brandId, leadDataForSync, mondayIntegration.accountsBoardId);
-                if (syncResult.success) {
-                    showNotification('Lead synced to Monday.com successfully!', 'success');
-                } else {
-                    showNotification(`Failed to sync lead to Monday.com: ${syncResult.error}`, 'error');
-                }
-            }
+
 
             showNotification('Lead recorded and categorized successfully!', 'success');
             navigate('/brand');
@@ -377,29 +357,7 @@ export default function BrandNewLead() {
                     </div>
                 </div>
 
-                {mondayIntegration.connected && mondayIntegration.accountsBoardId && (
-                    <div className="themed-card p-6 rounded-xl shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
-                                <label htmlFor="syncToMonday" className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Sync to Monday.com</label>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setSyncToMonday(!syncToMonday)}
-                                className="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200"
-                                style={{ background: syncToMonday ? 'var(--accent-primary)' : 'var(--bg-tertiary)' }}
-                                aria-pressed="false"
-                            >
-                                <span
-                                    aria-hidden="true"
-                                    className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${syncToMonday ? 'translate-x-5' : 'translate-x-0'
-                                        }`}
-                                ></span>
-                            </button>
-                        </div>
-                    </div>
-                )}
+
 
                 <button
                     type="submit"

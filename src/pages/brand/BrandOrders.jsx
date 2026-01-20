@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 
 import { getSales, updateSaleStatus, updateSale } from '../../services/firestoreService';
-import { getMondayIntegrationStatus, syncOrderToMonday } from '../../services/mondayService';
 import { generateManifestPDF } from '../../utils/manifestGenerator';
 import SampleRequests from '../../components/SampleRequests';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -21,20 +20,11 @@ export default function BrandOrders() {
     const [processing, setProcessing] = useState(false);
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
-    const [deliveryModal, setDeliveryModal] = useState({ open: false, orderId: null, date: '', syncToMonday: true });
-    const [mondayIntegration, setMondayIntegration] = useState({ connected: false, ordersBoardId: null });
+    const [deliveryModal, setDeliveryModal] = useState({ open: false, orderId: null, date: '' });
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const { showNotification } = useNotification();
 
-    useEffect(() => {
-        async function fetchMondayStatus() {
-            if (brandUser?.brandId) {
-                const status = await getMondayIntegrationStatus(brandUser.brandId);
-                setMondayIntegration(status);
-            }
-        }
-        fetchMondayStatus();
-    }, [brandUser]);
+
 
     const fetchOrders = async () => {
         if (!brandUser?.brandId) return;
@@ -96,21 +86,11 @@ export default function BrandOrders() {
             if (success) {
                 const updatedOrder = { ...orders.find(o => o.id === deliveryModal.orderId), status: 'accepted', deliveryDate: deliveryModal.date };
                 setOrders(prev => prev.map(o => o.id === deliveryModal.orderId ? updatedOrder : o));
-
-                // Sync to Monday.com if enabled
-                if (deliveryModal.syncToMonday && mondayIntegration.connected && mondayIntegration.ordersBoardId) {
-                    const syncResult = await syncOrderToMonday(brandUser.brandId, updatedOrder, mondayIntegration.ordersBoardId);
-                    if (syncResult.success) {
-                        showNotification('Order synced to Monday.com successfully!', 'success');
-                        // Optionally update order with mondayItemId
-                        setOrders(prev => prev.map(o => o.id === deliveryModal.orderId ? { ...o, mondayItemId: syncResult.mondayItemId } : o));
-                    } else {
-                        showNotification(`Failed to sync order to Monday.com: ${syncResult.error}`, 'error');
-                    }
-                }
+                showNotification('Order accepted successfully!', 'success');
             }
         } catch (error) {
             console.error(error);
+            showNotification('Failed to accept order', 'error');
         } finally {
             setProcessing(false);
             setDeliveryModal({ open: false, orderId: null, date: '' });
@@ -298,11 +278,6 @@ export default function BrandOrders() {
                                                     {order.paymentTerms}
                                                 </span>
                                             )}
-                                            {order.mondayItemId && (
-                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
-                                                    <CheckCircle size={12} /> Synced
-                                                </span>
-                                            )}
                                         </div>
                                         {/* Dispensary Info - CRITICAL for order processing */}
                                         <div className="mt-2 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
@@ -356,23 +331,6 @@ export default function BrandOrders() {
                                         >
                                             <Truck size={16} />
                                             Mark Fulfilled
-                                        </button>
-                                    )}
-                                    {!order.mondayItemId && mondayIntegration.connected && mondayIntegration.salesBoardId && (
-                                        <button
-                                            onClick={async () => {
-                                                const syncResult = await syncOrderToMonday(brandUser.brandId, order, mondayIntegration.salesBoardId);
-                                                if (syncResult.success) {
-                                                    showNotification('Order synced to Monday.com successfully!', 'success');
-                                                    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, mondayItemId: syncResult.mondayItemId } : o));
-                                                } else {
-                                                    showNotification(`Failed to sync order to Monday.com: ${syncResult.error}`, 'error');
-                                                }
-                                            }}
-                                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center gap-2"
-                                        >
-                                            <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
-                                            Sync
                                         </button>
                                     )}
                                     {(order.status === 'accepted' || order.status === 'fulfilled') && (
@@ -429,27 +387,6 @@ export default function BrandOrders() {
                                 value={deliveryModal.date}
                                 onChange={(e) => setDeliveryModal(prev => ({ ...prev, date: e.target.value }))}
                             />
-                            {mondayIntegration.connected && mondayIntegration.ordersBoardId && (
-                                <div className="flex items-center justify-between mt-4">
-                                    <div className="flex items-center gap-3">
-                                        <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
-                                        <label htmlFor="syncToMonday" className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Sync to Monday.com</label>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setDeliveryModal(prev => ({ ...prev, syncToMonday: !prev.syncToMonday }))}
-                                        className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 ${deliveryModal.syncToMonday ? 'bg-amber-600' : 'bg-gray-200'
-                                            }`}
-                                        aria-pressed="false"
-                                    >
-                                        <span
-                                            aria-hidden="true"
-                                            className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${deliveryModal.syncToMonday ? 'translate-x-5' : 'translate-x-0'
-                                                }`}
-                                        ></span>
-                                    </button>
-                                </div>
-                            )}
                         </div>
                         <div className="p-4 flex justify-end gap-3" style={{ borderTop: '1px solid var(--border-primary)' }}>
                             <button
