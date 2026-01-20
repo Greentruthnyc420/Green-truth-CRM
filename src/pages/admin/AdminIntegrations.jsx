@@ -11,84 +11,84 @@ export default function AdminIntegrations() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Admin Integrations</h1>
-            <p className="text-slate-300">Platform-wide connection settings</p>
+            <p className="text-white/70">Platform-wide connection settings</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* HubSpot */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="rounded-xl shadow-sm p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">🔶</span>
-              <h3 className="font-bold text-slate-800 text-lg">HubSpot CRM</h3>
+              <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>HubSpot CRM</h3>
             </div>
             <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
               <CheckCircle size={12} /> Active
             </span>
           </div>
-          <p className="text-slate-600 text-sm mb-4">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
             Sync leads and dispensary contacts to HubSpot for sales pipeline management.
           </p>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
             Managed via the Legacy Dashboard → Leads tab
           </div>
         </div>
 
         {/* Google Calendar */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="rounded-xl shadow-sm p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">📅</span>
-              <h3 className="font-bold text-slate-800 text-lg">Google Calendar</h3>
+              <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Google Calendar</h3>
             </div>
             <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
               <CheckCircle size={12} /> Active
             </span>
           </div>
-          <p className="text-slate-600 text-sm mb-4">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
             Activation scheduling syncs with Google Calendar for rep assignments.
           </p>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
             Managed via Scheduling tab
           </div>
         </div>
 
         {/* Firebase */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="rounded-xl shadow-sm p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">🔥</span>
-              <h3 className="font-bold text-slate-800 text-lg">Firebase</h3>
+              <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Firebase</h3>
             </div>
             <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
               <CheckCircle size={12} /> Active
             </span>
           </div>
-          <p className="text-slate-600 text-sm mb-4">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
             Authentication and cloud functions for secure user management.
           </p>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
             Auto-configured
           </div>
         </div>
 
         {/* Supabase */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="rounded-xl shadow-sm p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">⚡</span>
-              <h3 className="font-bold text-slate-800 text-lg">Supabase</h3>
+              <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Supabase</h3>
             </div>
             <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
               <CheckCircle size={12} /> Active
             </span>
           </div>
-          <p className="text-slate-600 text-sm mb-4">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
             PostgreSQL database for all business data - shifts, sales, activations.
           </p>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
             Auto-configured
           </div>
         </div>

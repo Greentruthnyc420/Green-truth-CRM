@@ -93,9 +93,9 @@ export default function BrandInvoicesGreenTruth() {
             </div>
 
             {/* Outstanding Invoices */}
-            <div className="rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-6" style={{ background: 'var(--bg-card)' }}>
-                <div className="p-4 border-b border-slate-100 bg-red-50/30">
-                    <h2 className="font-bold text-slate-800">Outstanding Invoices</h2>
+            <div className="rounded-xl shadow-sm overflow-hidden mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                <div className="p-4 bg-red-50/30" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                    <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Outstanding Invoices</h2>
                 </div>
                 {invoices.outstanding.length > 0 ? (
                     <div className="divide-y divide-slate-50">
@@ -103,27 +103,28 @@ export default function BrandInvoicesGreenTruth() {
                             <div key={inv.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="font-bold text-slate-800">Invoice #{inv.id.slice(0, 8)}...</h3>
+                                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Invoice #{inv.id.slice(0, 8)}...</h3>
                                         {inv.status === 'overdue' && (
                                             <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
                                                 <AlertTriangle size={12} /> Overdue
                                             </span>
                                         )}
-                                        <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">
+                                        <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                                             {new Date(inv.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-slate-500">Due {inv.dueDate || 'Upon Receipt'}</p>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Due {inv.dueDate || 'Upon Receipt'}</p>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <span className="text-xl font-bold text-slate-800">${(inv.totalAmount || 0).toFixed(2)}</span>
+                                    <span className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>${(inv.totalAmount || 0).toFixed(2)}</span>
                                     <button
                                         onClick={() => setSelectedInvoice(inv)}
-                                        className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm font-medium transition-colors"
+                                        className="flex items-center gap-1 text-sm font-medium transition-colors"
+                                        style={{ color: 'var(--text-secondary)' }}
                                     >
                                         <Eye size={16} /> Details
                                     </button>
-                                    <button className="px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors flex items-center gap-2">
+                                    <button className="px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-colors flex items-center gap-2">
                                         <CreditCard size={16} />
                                         Pay Now
                                     </button>
@@ -132,20 +133,20 @@ export default function BrandInvoicesGreenTruth() {
                         ))}
                     </div>
                 ) : (
-                    <div className="p-8 text-center text-slate-500">
+                    <div className="p-8 text-center" style={{ color: 'var(--text-secondary)' }}>
                         No outstanding invoices. You're all paid up!
                     </div>
                 )}
             </div>
 
             {/* Payment History */}
-            <div className="rounded-xl border border-slate-100 shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)' }}>
-                <div className="p-4 border-b border-slate-100">
-                    <h2 className="font-bold text-slate-800">Payment History</h2>
+            <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                <div className="p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                    <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Payment History</h2>
                 </div>
                 <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase tracking-wider">
-                        <tr>
+                    <thead style={{ background: 'var(--bg-secondary)' }}>
+                        <tr className="text-left text-xs uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                             <th className="px-6 py-3">Invoice</th>
                             <th className="px-6 py-3">Date Paid</th>
                             <th className="px-6 py-3">Amount</th>
@@ -154,17 +155,18 @@ export default function BrandInvoicesGreenTruth() {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                         {invoices.history.map((inv) => (
-                            <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={inv.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                 <td className="px-6 py-4">
-                                    <p className="font-medium text-slate-800">#{inv.id.slice(0, 8)}...</p>
-                                    <p className="text-xs text-slate-400">{new Date(inv.createdAt).toLocaleDateString()}</p>
+                                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>#{inv.id.slice(0, 8)}...</p>
+                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{new Date(inv.createdAt).toLocaleDateString()}</p>
                                 </td>
-                                <td className="px-6 py-4 text-slate-600">{inv.paidDate || '-'}</td>
-                                <td className="px-6 py-4 font-medium text-slate-800">${(inv.totalAmount || 0).toFixed(2)}</td>
+                                <td className="px-6 py-4" style={{ color: 'var(--text-secondary)' }}>{inv.paidDate || '-'}</td>
+                                <td className="px-6 py-4 font-medium" style={{ color: 'var(--text-primary)' }}>${(inv.totalAmount || 0).toFixed(2)}</td>
                                 <td className="px-6 py-4">
                                     <button
                                         onClick={() => setSelectedInvoice(inv)}
-                                        className="text-slate-400 hover:text-amber-600 transition-colors"
+                                        className="transition-colors"
+                                        style={{ color: 'var(--text-tertiary)' }}
                                     >
                                         <Eye size={18} />
                                     </button>
@@ -179,53 +181,54 @@ export default function BrandInvoicesGreenTruth() {
             {selectedInvoice && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200" style={{ background: 'var(--bg-card)' }}>
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10" style={{ background: 'var(--bg-card)' }}>
+                        <div className="p-6 flex items-center justify-between sticky top-0 z-10" style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border-primary)' }}>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-900">Invoice Details</h3>
-                                <p className="text-slate-500 text-sm">#{selectedInvoice.id}</p>
+                                <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Invoice Details</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>#{selectedInvoice.id}</p>
                             </div>
                             <button
                                 onClick={() => setSelectedInvoice(null)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                className="p-2 rounded-full transition-colors"
+                                style={{ color: 'var(--text-secondary)' }}
                             >
-                                <X size={20} className="text-slate-500" />
+                                <X size={20} />
                             </button>
                         </div>
 
                         <div className="p-6 space-y-6">
                             {/* Summary */}
-                            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl">
+                            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
                                 <div>
-                                    <p className="text-xs text-slate-500 uppercase">Status</p>
+                                    <p className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Status</p>
                                     <p className={`font-bold capitalize ${selectedInvoice.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
                                         {selectedInvoice.status}
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xs text-slate-500 uppercase">Total Amount</p>
-                                    <p className="font-bold text-slate-900 text-lg">${(selectedInvoice.totalAmount || 0).toFixed(2)}</p>
+                                    <p className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Total Amount</p>
+                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>${(selectedInvoice.totalAmount || 0).toFixed(2)}</p>
                                 </div>
                             </div>
 
                             {/* Line Items */}
                             <div>
-                                <h4 className="font-bold text-slate-800 mb-3">Line Items</h4>
-                                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                <h4 className="font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Line Items</h4>
+                                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-primary)' }}>
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-50 border-b border-slate-200">
+                                        <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
                                             <tr>
-                                                <th className="px-4 py-2 text-left text-slate-500">Description</th>
-                                                <th className="px-4 py-2 text-right text-slate-500">Qty</th>
-                                                <th className="px-4 py-2 text-right text-slate-500">Amount</th>
-                                                <th className="px-4 py-2 text-center text-slate-500">Docs</th>
+                                                <th className="px-4 py-2 text-left" style={{ color: 'var(--text-secondary)' }}>Description</th>
+                                                <th className="px-4 py-2 text-right" style={{ color: 'var(--text-secondary)' }}>Qty</th>
+                                                <th className="px-4 py-2 text-right" style={{ color: 'var(--text-secondary)' }}>Amount</th>
+                                                <th className="px-4 py-2 text-center" style={{ color: 'var(--text-secondary)' }}>Docs</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {(selectedInvoice.items || []).map((item, idx) => (
-                                                <tr key={idx}>
-                                                    <td className="px-4 py-3 text-slate-700">{item.description}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-600">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-right font-medium text-slate-800">
+                                                <tr key={idx} style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                                                    <td className="px-4 py-3" style={{ color: 'var(--text-primary)' }}>{item.description}</td>
+                                                    <td className="px-4 py-3 text-right" style={{ color: 'var(--text-secondary)' }}>{item.quantity}</td>
+                                                    <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--text-primary)' }}>
                                                         ${(item.amount || 0).toFixed(2)}
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
@@ -243,9 +246,9 @@ export default function BrandInvoicesGreenTruth() {
                                                 </tr>
                                             ))}
                                         </tbody>
-                                        <tfoot className="bg-slate-50 font-bold border-t border-slate-200">
+                                        <tfoot className="font-bold" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
                                             <tr>
-                                                <td colSpan="2" className="px-4 py-3 text-right text-slate-600">Total:</td>
+                                                <td colSpan="2" className="px-4 py-3 text-right" style={{ color: 'var(--text-secondary)' }}>Total:</td>
                                                 <td className="px-4 py-3 text-right text-emerald-600">
                                                     ${(selectedInvoice.totalAmount || 0).toFixed(2)}
                                                 </td>

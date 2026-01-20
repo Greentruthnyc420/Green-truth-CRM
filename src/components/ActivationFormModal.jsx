@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Building2, User, Clock, Check } from 'lucide-react';
+import { X, Calendar, MapPin, Building2, User, Clock, Check, Repeat } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
 import { getLeads, addActivation, getAllBrandProfiles } from '../services/firestoreService';
@@ -76,7 +76,11 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
         // Pricing fields
         region: initialData.region || 'NYC',
         milesTraveled: initialData.milesTraveled || '',
-        tollAmount: initialData.tollAmount || ''
+        tollAmount: initialData.tollAmount || '',
+
+        // Recurring activation settings
+        isRecurring: initialData.isRecurring || false,
+        recurrenceDays: initialData.recurrenceDays || 30
     });
 
     useEffect(() => {
@@ -186,7 +190,11 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                     return Math.max(2, Math.round((endMinutes - startMinutes) / 60));
                 })(),
                 // Add requester info if helpful
-                requestedBy: isDispensary ? 'Dispensary' : (isBrand ? 'Brand' : 'Admin/Rep')
+                requestedBy: isDispensary ? 'Dispensary' : (isBrand ? 'Brand' : 'Admin/Rep'),
+
+                // Recurring activation settings
+                isRecurring: formData.isRecurring || false,
+                recurrenceDays: formData.isRecurring ? (parseInt(formData.recurrenceDays) || 30) : null
             };
 
             await addActivation(submissionData);
@@ -439,6 +447,55 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                             onChange={e => setFormData({ ...formData, notes: e.target.value })}
                         />
                     </div>
+
+                    {/* Recurring Activation Toggle - Only for scheduled (non-request) activations */}
+                    {!isRequestMode && (isAdmin || isRep) && (
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isRecurring}
+                                        onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                                        className="sr-only"
+                                    />
+                                    <div className={`w-10 h-6 rounded-full transition-colors ${formData.isRecurring ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                                        <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform absolute top-1 ${formData.isRecurring ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <Repeat size={16} className="text-indigo-600" />
+                                        <span className="font-bold text-slate-700">Recurring Activation</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-0.5">Auto-schedule next visit after completion</p>
+                                </div>
+                            </label>
+
+                            {formData.isRecurring && (
+                                <div className="mt-4 pt-4 border-t border-indigo-100">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                        Repeat every
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="number"
+                                            min="7"
+                                            max="90"
+                                            className="w-24 p-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none text-center font-bold"
+                                            value={formData.recurrenceDays}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                recurrenceDays: Math.min(90, Math.max(7, parseInt(e.target.value) || 30))
+                                            })}
+                                        />
+                                        <span className="text-sm text-slate-600">days</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">Common: 7 (weekly), 14 (bi-weekly), 30 (monthly), 45, 60</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="pt-4 flex justify-end gap-3">
                         <button

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, ADMIN_EMAILS } from '../../contexts/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
-import { Shield, Loader, ArrowRight, Lock, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Shield, Loader, ArrowRight, Lock, Mail, Eye, EyeOff, ArrowLeft, Play } from 'lucide-react';
 
 export default function AdminLogin() {
     const { login, loginWithGoogle, devLogin, currentUser, logout } = useAuth();
@@ -188,7 +188,7 @@ export default function AdminLogin() {
                     </button>
 
                     {import.meta.env.DEV && (
-                        <div className="mt-4">
+                        <div className="mt-4 space-y-3">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -199,6 +199,18 @@ export default function AdminLogin() {
                             >
                                 <Shield size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
                                 <span>Log in as <span className="text-white font-bold">Admin</span> (Dev)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    sessionStorage.setItem('triggerTour', 'admin');
+                                    devLogin('omar@thegreentruthnyc.com');
+                                    navigate('/admin');
+                                }}
+                                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold text-sm hover:from-indigo-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/30"
+                            >
+                                <Play size={16} />
+                                <span>🎬 Take Tour</span>
                             </button>
                         </div>
                     )}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
-import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft, Instagram, Play } from 'lucide-react';
+import { createUserProfile } from '../services/firestoreService';
 
 export default function Login() {
     const { login, signup, loginWithGoogle, devLogin, resetPassword, currentUser } = useAuth();
@@ -18,9 +19,15 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [instagramHandle, setInstagramHandle] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // Format Instagram handle (remove @ if user types it)
+    const formatInstagram = (value) => {
+        return value.replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '');
+    };
 
     // Capture Referral Code
     React.useEffect(() => {
@@ -45,7 +52,30 @@ export default function Login() {
 
         try {
             if (isRegistering) {
-                await signup(email, password);
+                // Validate Instagram handle for signup
+                if (!instagramHandle || instagramHandle.trim() === '') {
+                    setError('Instagram handle is required for registration.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Create Firebase auth account
+                const userCredential = await signup(email, password);
+                const user = userCredential.user;
+
+                // Create user profile with Instagram
+                await createUserProfile(user.uid, {
+                    email: user.email,
+                    name: user.displayName || email.split('@')[0],
+                    role: sessionStorage.getItem('signupRole') || 'rep',
+                    instagramHandle: formatInstagram(instagramHandle),
+                    assigned_ambassador_id: sessionStorage.getItem('referralRef') || null,
+                    created_at: new Date().toISOString()
+                });
+
+                // Clear session storage
+                sessionStorage.removeItem('referralRef');
+                sessionStorage.removeItem('signupRole');
             } else {
                 await login(email, password);
             }
@@ -184,6 +214,28 @@ export default function Login() {
                             </div>
                         </div>
 
+                        {/* Instagram Handle - Required for Registration */}
+                        {isRegistering && (
+                            <div>
+                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                                    Instagram Handle <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <Instagram size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <span className="absolute left-10 top-1/2 -translate-y-1/2 text-slate-400 font-medium">@</span>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full pl-16 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all"
+                                        placeholder="your_instagram"
+                                        value={instagramHandle}
+                                        onChange={(e) => setInstagramHandle(formatInstagram(e.target.value))}
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Required for activation flyers & social media tagging</p>
+                            </div>
+                        )}
+
                         <button
                             type="submit"
                             disabled={loading}
@@ -259,6 +311,21 @@ export default function Login() {
                             >
                                 <Users size={16} />
                                 <span>Log in as <span className="text-slate-700 font-bold">Sales Rep</span> (Dev)</span>
+                            </button>
+
+                            {/* Take Tour Button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Log in as demo rep and trigger tour
+                                    devLogin('rep@thegreentruthnyc.com');
+                                    sessionStorage.setItem('triggerTour', 'sales_rep');
+                                    navigate('/app');
+                                }}
+                                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200"
+                            >
+                                <Play size={16} />
+                                <span>🎬 Take Tour</span>
                             </button>
 
                             {/* Developer Reset Button */}

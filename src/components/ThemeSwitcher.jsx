@@ -265,3 +265,33 @@ export function ThemeToggleButton({ onClick }) {
         </button>
     );
 }
+
+/**
+ * Mobile Theme Bar - Compact horizontal row of 4 theme buttons
+ * Shows emoji icons only, perfect for mobile bottom navigation
+ */
+export function MobileThemeBar() {
+    const { theme, setTheme, themes } = useTheme();
+    const themeList = Object.values(themes);
+
+    return (
+        <div className="flex items-center justify-center gap-2 py-2 px-3">
+            <span className="text-xs font-medium mr-2" style={{ color: 'var(--text-tertiary)' }}>Theme:</span>
+            {themeList.map((t) => (
+                <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95"
+                    style={{
+                        background: theme === t.id ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                        border: theme === t.id ? '2px solid var(--accent-primary)' : '2px solid var(--border-primary)',
+                        boxShadow: theme === t.id ? '0 2px 8px rgba(0,0,0,0.15)' : 'none'
+                    }}
+                    title={t.name}
+                >
+                    <span className="text-lg">{t.icon}</span>
+                </button>
+            ))}
+        </div>
+    );
+}

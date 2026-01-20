@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings, Palette } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings, Palette, MoreHorizontal } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import ThemeSwitcher from './ThemeSwitcher';
+import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
+import LayoutTourWrapper from './LayoutTourWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
@@ -73,6 +74,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                 </div>
 
                 <NavItem to="/app/menus" icon={<FileText size={20} />} label="Brand Menus" isCollapsed={isCollapsed} />
+                <NavItem to="/app/settings" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} />
 
                 {isAdmin && (
                     <>
@@ -196,141 +198,149 @@ export default function Layout() {
     };
 
     return (
-        <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
-            <Sidebar
-                isCollapsed={isSidebarCollapsed}
-                toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                currentUser={currentUser}
-            />
+        <LayoutTourWrapper
+            tourType="sales_rep"
+            userEmail={currentUser?.email}
+            userId={currentUser?.uid}
+        >
+            <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
+                <Sidebar
+                    isCollapsed={isSidebarCollapsed}
+                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    currentUser={currentUser}
+                />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-64'} w-full min-h-screen relative transition-all duration-300`}>
-                {/* Mobile Header */}
-                <header className="md:hidden border-b p-4 flex items-center justify-between sticky top-0 z-40" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                    {/* Hamburger Menu Button */}
+                <main className={`flex-1 ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-64'} w-full min-h-screen relative transition-all duration-300`}>
+                    {/* Mobile Header */}
+                    <header className="md:hidden border-b p-4 flex items-center justify-between sticky top-0 z-40" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                        {/* Hamburger Menu Button */}
+                        <button
+                            onClick={() => setIsMoreMenuOpen(true)}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ color: 'var(--text-secondary)' }}
+                        >
+                            <Menu size={24} />
+                        </button>
+
+                        {/* Logo */}
+                        <img src="/logos/logo-main.png" alt="Company Logo" className="h-12 w-auto object-contain" />
+
+                        {/* User Avatar */}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            {initials}
+                        </div>
+                    </header>
+
+                    <div className="p-4 md:p-8 pb-32 md:pb-8 max-w-7xl mx-auto">
+                        <Outlet />
+                    </div>
+                </main>
+
+                {/* Bottom Nav - Admin Style with More Button */}
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md border-t pb-safe z-50 px-2 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                    <MobileNavItem to="/app" icon={<LayoutDashboard size={20} />} label="Home" />
+                    <MobileNavItem to="/app/new-lead" icon={<Users size={20} />} label="Leads" />
+
+                    <div className="relative -top-4">
+                        <NavLink
+                            to="/app/log-sale"
+                            className="w-14 h-14 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-brand-600/40 border-4 border-white active:scale-95 transition-all"
+                        >
+                            <PlusCircle size={28} />
+                        </NavLink>
+                    </div>
+
+                    <MobileNavItem to="/app/history" icon={<History size={20} />} label="History" />
                     <button
                         onClick={() => setIsMoreMenuOpen(true)}
-                        className="p-2 rounded-lg transition-colors"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
+                        style={{ color: isMoreMenuOpen ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
                     >
-                        <Menu size={24} />
+                        <MoreHorizontal size={20} />
+                        <span className="text-[10px] font-medium">More</span>
                     </button>
+                </nav>
 
-                    {/* Logo */}
-                    <img src="/logos/logo-main.png" alt="Company Logo" className="h-12 w-auto object-contain" />
-
-                    {/* User Avatar */}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                        {initials}
-                    </div>
-                </header>
-
-                <div className="p-4 md:p-8 pb-32 md:pb-8 max-w-7xl mx-auto">
-                    <Outlet />
-                </div>
-            </main>
-
-            {/* Bottom Nav - Direct Nav Items (no hamburger - it's in header now) */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md border-t pb-safe z-50 px-4 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <MobileNavItem to="/app" icon={<LayoutDashboard size={20} />} label="Home" />
-                <MobileNavItem to="/app/new-lead" icon={<Users size={20} />} label="Leads" />
-
-                <div className="relative -top-4">
-                    <NavLink
-                        to="/app/log-sale"
-                        className="w-14 h-14 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-brand-600/40 border-4 border-white active:scale-95 transition-all"
-                    >
-                        <PlusCircle size={28} />
-                    </NavLink>
-                </div>
-
-                <MobileNavItem to="/app/history" icon={<History size={20} />} label="History" />
-                <MobileNavItem to="/app/map" icon={<Navigation size={20} />} label="Map" />
-            </nav>
-
-            {/* Slide-out Menu from Left */}
-            <AnimatePresence>
-                {isMoreMenuOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsMoreMenuOpen(false)}
-                            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] md:hidden"
-                        />
-                        <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed top-0 left-0 bottom-0 w-72 z-[70] md:hidden p-6 overflow-y-auto shadow-2xl"
-                            style={{ background: 'var(--bg-card)' }}
-                        >
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Navigation</h2>
-                                <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            {/* Navigation Links - Vertical List */}
-                            <nav className="space-y-2 pb-8">
-                                <SlideMenuItem to="/app" icon={<LayoutDashboard size={20} />} label="Dashboard" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/map" icon={<Navigation size={20} className="text-brand-500" />} label="Territory Map" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/history" icon={<History size={20} />} label="History" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/schedule" icon={<Calendar size={20} className="text-blue-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
-
-                                <div className="pt-4 pb-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Actions</span>
+                {/* Bottom Slide-Up More Menu (Admin Style) */}
+                <AnimatePresence>
+                    {isMoreMenuOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsMoreMenuOpen(false)}
+                                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] md:hidden"
+                            />
+                            <motion.div
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="fixed bottom-0 left-0 right-0 z-[70] md:hidden rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto"
+                                style={{ background: 'var(--bg-card)' }}
+                            >
+                                {/* Handle Bar */}
+                                <div className="flex justify-center pt-3 pb-2">
+                                    <div className="w-12 h-1.5 rounded-full" style={{ background: 'var(--border-primary)' }} />
                                 </div>
 
-                                <SlideMenuItem to="/app/log-shift" icon={<Car size={20} className="text-orange-500" />} label="Log Shift" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/new-lead" icon={<Users size={20} className="text-emerald-500" />} label="New Lead" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/log-sale" icon={<DollarSign size={20} className="text-green-500" />} label="Log Sale" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/accounts" icon={<Building2 size={20} className="text-indigo-500" />} label="All Accounts" onClick={() => setIsMoreMenuOpen(false)} />
-
-                                <div className="pt-4 pb-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>More</span>
+                                {/* Header */}
+                                <div className="flex justify-between items-center px-6 pb-4">
+                                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>More</h2>
+                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                                        <X size={20} />
+                                    </button>
                                 </div>
 
-                                <SlideMenuItem to="/app/leaderboard" icon={<Trophy size={20} className="text-yellow-500" />} label="King of the Crop" onClick={() => setIsMoreMenuOpen(false)} />
-                                <SlideMenuItem to="/app/menus" icon={<FileText size={20} className="text-emerald-500" />} label="Brand Menus" onClick={() => setIsMoreMenuOpen(false)} />
+                                {/* Theme Bar - 4 Visible Options */}
+                                <div className="px-4 pb-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                                    <MobileThemeBar />
+                                </div>
 
+                                {/* Navigation Grid */}
+                                <div className="px-4 py-4 grid grid-cols-4 gap-3">
+                                    <SlideGridItem to="/app" icon={<LayoutDashboard size={22} />} label="Dashboard" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/map" icon={<Navigation size={22} className="text-brand-500" />} label="Map" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/schedule" icon={<Calendar size={22} className="text-blue-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/accounts" icon={<Building2 size={22} className="text-indigo-500" />} label="Accounts" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/log-shift" icon={<Car size={22} className="text-orange-500" />} label="Log Shift" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/leaderboard" icon={<Trophy size={22} className="text-yellow-500" />} label="Leaderboard" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/menus" icon={<FileText size={22} className="text-emerald-500" />} label="Menus" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/settings" icon={<Settings size={22} className="text-slate-500" />} label="Settings" onClick={() => setIsMoreMenuOpen(false)} />
+                                </div>
+
+                                {/* Admin Link (if applicable) */}
                                 {isAdmin && (
-                                    <>
-                                        <div className="pt-4 pb-2">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Admin</span>
-                                        </div>
-                                        <SlideMenuItem to="/admin" icon={<ShieldCheck size={20} className="text-purple-500" />} label="Admin Portal" onClick={() => setIsMoreMenuOpen(false)} />
-                                    </>
+                                    <div className="px-4 pb-4">
+                                        <NavLink
+                                            to="/admin"
+                                            onClick={() => setIsMoreMenuOpen(false)}
+                                            className="flex items-center justify-center gap-3 p-4 bg-purple-50 text-purple-700 font-bold rounded-2xl hover:bg-purple-100 transition-all"
+                                        >
+                                            <ShieldCheck size={20} />
+                                            Admin Portal
+                                        </NavLink>
+                                    </div>
                                 )}
-                            </nav>
 
-                            {/* Theme Switcher Section */}
-                            <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-primary)' }}>
-                                <div className="pb-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Appearance</span>
+                                {/* Footer Actions */}
+                                <div className="px-4 pb-8 border-t pt-4" style={{ borderColor: 'var(--border-primary)' }}>
+                                    <button
+                                        onClick={() => { setIsMoreMenuOpen(false); handleLogout(); }}
+                                        className="w-full flex items-center justify-center gap-3 p-4 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                                    >
+                                        <LogOut size={20} />
+                                        Sign Out
+                                    </button>
                                 </div>
-                                <div className="relative">
-                                    <ThemeSwitcher isOpen={true} onClose={() => { }} inline={true} />
-                                </div>
-                            </div>
-
-                            <div className="border-t pt-6 mt-4" style={{ borderColor: 'var(--border-primary)' }}>
-                                <button
-                                    onClick={() => { setIsMoreMenuOpen(false); handleLogout(); }}
-                                    className="w-full flex items-center gap-3 p-4 font-bold rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
-                                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-                                >
-                                    <LogOut size={20} />
-                                    Sign Out
-                                </button>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-        </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+            </div>
+        </LayoutTourWrapper>
     );
 }
 
@@ -375,3 +385,21 @@ const SlideMenuItem = ({ to, icon, label, onClick }) => {
     );
 };
 
+// Grid item for mobile More menu
+const SlideGridItem = ({ to, icon, label, onClick }) => (
+    <NavLink
+        to={to}
+        end={to === '/app'}
+        onClick={onClick}
+        className={({ isActive }) =>
+            `flex flex-col items-center justify-center gap-2 p-3 rounded-xl transition-all ${isActive
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'hover:bg-slate-100'
+            }`
+        }
+        style={({ isActive }) => isActive ? {} : { color: 'var(--text-secondary)' }}
+    >
+        {icon}
+        <span className="text-[10px] font-medium text-center leading-tight">{label}</span>
+    </NavLink>
+);

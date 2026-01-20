@@ -3,7 +3,6 @@ import { Gift, CheckCircle, XCircle, Clock, Mail, MapPin, FileText, Trash2 } fro
 import { supabase } from '../services/supabaseClient';
 import { useNotification } from '../contexts/NotificationContext';
 import { deleteSampleRequest } from '../services/firestoreService';
-// import { getLeads } from '../services/firestoreService'; // Can use this or direct supabase call
 
 export default function SampleRequests({ userRole, brandId = null }) {
     const [requests, setRequests] = useState([]);
@@ -23,8 +22,7 @@ export default function SampleRequests({ userRole, brandId = null }) {
 
                 if (error) throw error;
 
-                // 2. Get Leads (for names/addresses) - simplified fetching all for mapping
-                // Optimization: In a huge app, we'd use a Join or fetch by IDs.
+                // 2. Get Leads (for names/addresses)
                 const { data: leads } = await supabase.from('leads').select('id, dispensary_name, license_number, address');
                 const leadMap = new Map(leads?.map(l => [l.id, l]) || []);
 
@@ -36,7 +34,7 @@ export default function SampleRequests({ userRole, brandId = null }) {
                         dispensaryName: lead?.dispensary_name || r.dispensary_name || 'Unknown Dispensary',
                         licenseNumber: lead?.license_number || r.license_number,
                         address: lead?.address || r.address,
-                        createdAt: r.created_at, // Normalize for UI
+                        createdAt: r.created_at,
                         requestedBrands: r.requested_brands || [],
                         notes: r.notes
                     };
@@ -62,9 +60,6 @@ export default function SampleRequests({ userRole, brandId = null }) {
         }
 
         fetchRequests();
-
-        // Optional: Realtime Subscription could be added here
-        // const subscription = supabase.channel('...')...
     }, [brandId, userRole]);
 
     const handleStatusUpdate = async (requestId, newStatus) => {
@@ -108,12 +103,12 @@ export default function SampleRequests({ userRole, brandId = null }) {
 
     const filteredRequests = filter === 'all'
         ? requests
-        : requests.filter(r => r.status?.toLowerCase() === filter.toLowerCase()); // Safe lowercasing
+        : requests.filter(r => r.status?.toLowerCase() === filter.toLowerCase());
 
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent-primary)' }}></div>
             </div>
         );
     }
@@ -122,8 +117,8 @@ export default function SampleRequests({ userRole, brandId = null }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Sample Requests</h2>
-                    <p className="text-slate-500 mt-1">
+                    <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Sample Requests</h2>
+                    <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
                         {userRole === 'brand' ? 'Requests for your products' : 'All dispensary sample requests'}
                     </p>
                 </div>
@@ -134,10 +129,11 @@ export default function SampleRequests({ userRole, brandId = null }) {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${filter === f
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
+                            className="px-4 py-2 rounded-xl font-medium text-sm transition-all"
+                            style={{
+                                background: filter === f ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                color: filter === f ? 'white' : 'var(--text-secondary)'
+                            }}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
                         </button>
@@ -146,9 +142,9 @@ export default function SampleRequests({ userRole, brandId = null }) {
             </div>
 
             {filteredRequests.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
-                    <Gift size={48} className="mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500 font-medium">No sample requests found</p>
+                <div className="themed-card rounded-2xl p-12 text-center">
+                    <Gift size={48} className="mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
+                    <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No sample requests found</p>
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -169,9 +165,9 @@ export default function SampleRequests({ userRole, brandId = null }) {
 
 const RequestCard = ({ request, onStatusUpdate, onDelete, userRole }) => {
     const statusColors = {
-        'Pending': 'bg-amber-100 text-amber-700 border-amber-200',
-        'Approved': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-        'Declined': 'bg-red-100 text-red-700 border-red-200'
+        'Pending': { bg: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', border: 'rgba(245, 158, 11, 0.3)' },
+        'Approved': { bg: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: 'rgba(16, 185, 129, 0.3)' },
+        'Declined': { bg: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: 'rgba(239, 68, 68, 0.3)' }
     };
 
     const statusIcons = {
@@ -182,19 +178,27 @@ const RequestCard = ({ request, onStatusUpdate, onDelete, userRole }) => {
 
     // Normalize Status case for matching
     const displayStatus = request.status.charAt(0).toUpperCase() + request.status.slice(1).toLowerCase();
+    const statusStyle = statusColors[displayStatus] || statusColors['Pending'];
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-lg transition-shadow">
+        <div className="themed-card rounded-2xl p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-slate-900">{request.dispensaryName}</h3>
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${statusColors[displayStatus] || statusColors['Pending']}`}>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{request.dispensaryName}</h3>
+                        <span
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+                            style={{
+                                background: statusStyle.bg,
+                                color: statusStyle.color,
+                                border: `1px solid ${statusStyle.border}`
+                            }}
+                        >
                             {statusIcons[displayStatus] || statusIcons['Pending']}
                             {displayStatus}
                         </span>
                     </div>
-                    <div className="flex flex-col gap-1 text-sm text-slate-500">
+                    <div className="flex flex-col gap-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         {request.licenseNumber && (
                             <div className="flex items-center gap-2">
                                 <FileText size={14} />
@@ -230,12 +234,17 @@ const RequestCard = ({ request, onStatusUpdate, onDelete, userRole }) => {
 
             <div className="space-y-3">
                 <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Requested Brands</p>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-tertiary)' }}>Requested Brands</p>
                     <div className="flex flex-wrap gap-2">
                         {request.requestedBrands?.map((brand, idx) => (
                             <span
                                 key={idx}
-                                className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-100"
+                                className="px-3 py-1 rounded-lg text-sm font-medium"
+                                style={{
+                                    background: 'rgba(168, 85, 247, 0.1)',
+                                    color: 'rgb(168, 85, 247)',
+                                    border: '1px solid rgba(168, 85, 247, 0.2)'
+                                }}
                             >
                                 {brand}
                             </span>
@@ -245,31 +254,34 @@ const RequestCard = ({ request, onStatusUpdate, onDelete, userRole }) => {
 
                 {request.notes && (
                     <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Notes</p>
-                        <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{request.notes}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-tertiary)' }}>Notes</p>
+                        <p className="text-sm p-3 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{request.notes}</p>
                     </div>
                 )}
             </div>
 
             {userRole !== 'dispensary' && displayStatus === 'Pending' && (
-                <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+                <div className="flex gap-3 mt-4 pt-4" style={{ borderTop: '1px solid var(--border-primary)' }}>
                     <button
                         onClick={() => onStatusUpdate(request.id, 'Approved')}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-2 font-bold rounded-xl transition-colors"
+                        style={{ background: 'var(--success)', color: 'white' }}
                     >
                         <CheckCircle size={18} />
                         Approve
                     </button>
                     <button
                         onClick={() => onStatusUpdate(request.id, 'Declined')}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-2 font-bold rounded-xl transition-colors"
+                        style={{ background: 'var(--error)', color: 'white' }}
                     >
                         <XCircle size={18} />
                         Decline
                     </button>
                     <button
                         onClick={() => onDelete(request.id)}
-                        className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-xl hover:bg-red-200 transition-colors flex items-center gap-2"
+                        className="px-4 py-2 font-bold rounded-xl transition-colors flex items-center gap-2"
+                        style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)' }}
                         title="Delete Request"
                     >
                         <Trash2 size={18} />
@@ -279,10 +291,15 @@ const RequestCard = ({ request, onStatusUpdate, onDelete, userRole }) => {
 
             {/* Separate Always-Visible Delete Button */}
             {userRole !== 'dispensary' && (
-                <div className={displayStatus === 'Pending' ? "mt-3" : "mt-4 pt-4 border-t border-slate-100"}>
+                <div className={displayStatus === 'Pending' ? "mt-3" : "mt-4 pt-4"} style={displayStatus !== 'Pending' ? { borderTop: '1px solid var(--border-primary)' } : {}}>
                     <button
                         onClick={() => onDelete(request.id)}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 text-red-700 font-bold rounded-xl hover:bg-red-600 hover:text-white border-2 border-red-300 hover:border-red-600 transition-all shadow-sm"
+                        className="w-full flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition-all shadow-sm"
+                        style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: 'var(--error)',
+                            border: '2px solid rgba(239, 68, 68, 0.3)'
+                        }}
                     >
                         <Trash2 size={20} />
                         Delete Request

@@ -13,6 +13,7 @@ import {
     RadialBarChart, RadialBar, ComposedChart
 } from 'recharts';
 import ActivationFormModal from '../../components/ActivationFormModal';
+import BrandChatbot from '../../components/BrandChatbot';
 
 const FLX_SUB_BRANDS = [
     { id: 'pines', name: 'Pines', color: '#10b981' },
@@ -28,6 +29,7 @@ export default function FLXProcessorDashboard() {
     const [loading, setLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [pendingSampleRequests, setPendingSampleRequests] = useState(0);
+    const [upcomingActivations, setUpcomingActivations] = useState([]);
     const [metrics, setMetrics] = useState({
         combined: null,
         byBrand: {}
@@ -38,13 +40,39 @@ export default function FLXProcessorDashboard() {
             setLoading(true);
             try {
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
+                const { getActivations: fetchActivations } = await import('../../services/firestoreService');
 
+                // Fetch all brand metrics
                 const results = await Promise.all(
                     FLX_SUB_BRANDS.map(async (brand) => {
                         const data = await calculateBrandMetrics(brand.id, brand.name);
                         return { ...brand, metrics: data };
                     })
                 );
+
+                // Fetch activations for all FLX brands
+                const allActivations = await fetchActivations();
+                const now = new Date();
+                const flxBrandNames = FLX_SUB_BRANDS.map(b => b.name);
+                const flxBrandIds = FLX_SUB_BRANDS.map(b => b.id);
+
+                const upcoming = allActivations
+                    .filter(a => {
+                        const aDate = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        return aDate >= now && (
+                            flxBrandIds.includes(a.brandId) ||
+                            flxBrandNames.includes(a.brandName) ||
+                            a.brandName?.includes('FLX') ||
+                            a.brandId?.includes('flx')
+                        );
+                    })
+                    .sort((a, b) => {
+                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                        return dateA - dateB;
+                    })
+                    .slice(0, 10);
+                setUpcomingActivations(upcoming);
 
                 // Store by brand
                 const byBrand = {};
@@ -161,7 +189,7 @@ export default function FLXProcessorDashboard() {
             <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-500 mx-auto"></div>
-                    <p className="mt-4 text-slate-500 font-medium">Loading FLX Analytics...</p>
+                    <p className="mt-4 font-medium" style={{ color: 'var(--text-secondary)' }}>Loading FLX Analytics...</p>
                 </div>
             </div>
         );
@@ -175,17 +203,18 @@ export default function FLXProcessorDashboard() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900">
+                    <h1 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
                         FLX <span className="text-amber-500">Analytics Dashboard</span>
                     </h1>
-                    <p className="text-slate-500 mt-1">Complete view of Pines • Smoothie Bar • Waferz NY</p>
+                    <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Complete view of Pines • Smoothie Bar • Waferz NY</p>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3">
                     <Link
                         to="/brand/new-lead"
-                        className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 transition-all shadow-sm"
+                        className="themed-card flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold hover:border-amber-500 transition-all shadow-sm"
+                        style={{ color: 'var(--text-primary)' }}
                     >
                         <UserPlus size={18} className="text-amber-500" />
                         <span>Create Lead</span>
@@ -201,7 +230,7 @@ export default function FLXProcessorDashboard() {
             </div>
 
             {/* View Tabs */}
-            <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-xl w-fit">
+            <div className="flex flex-wrap gap-2 p-1.5 rounded-xl w-fit" style={{ background: 'var(--bg-secondary)' }}>
                 <TabButton active={activeView === 'all'} onClick={() => setActiveView('all')} color="#f59e0b">
                     📊 All Brands
                 </TabButton>
@@ -220,7 +249,7 @@ export default function FLXProcessorDashboard() {
             {activeView === 'all' ? (
                 <AllBrandsView combined={combined} formatCurrency={formatCurrency} formatNumber={formatNumber} />
             ) : (
-                <SingleBrandView brand={displayBrand} formatCurrency={formatCurrency} formatNumber={formatNumber} />
+                <SingleBrandView brand={displayBrand} formatCurrency={formatCurrency} formatNumber={formatNumber} onBackToAll={() => setActiveView('all')} />
             )}
 
             {/* Activation Request Modal */}
@@ -229,6 +258,30 @@ export default function FLXProcessorDashboard() {
                 onClose={() => setIsRequestModalOpen(false)}
                 brandId={brandUser?.brandId || 'flx-extracts'}
                 brandName={brandUser?.brandName || 'FLX Extracts'}
+            />
+
+            {/* Brand Analytics Chatbot */}
+            <BrandChatbot
+                brandContext={{
+                    brandName: 'FLX Extracts (Processor)',
+                    totalRevenue: combined.totalRevenue,
+                    totalOrders: combined.totalOrders,
+                    unitsSold: combined.unitsSold,
+                    storeReach: combined.storeReach,
+                    outstandingInvoices: 0, // Not tracked in FLX dashboard currently
+                    monthOverMonthGrowth: combined.momGrowth ? `${combined.momGrowth > 0 ? '+' : ''}${combined.momGrowth.toFixed(1)}%` : null,
+                    topProducts: combined.topProducts?.slice(0, 5) || [],
+                    upcomingActivations: upcomingActivations.map(a => ({
+                        date: (a.date?.toDate ? a.date.toDate() : new Date(a.date)).toLocaleDateString(),
+                        dispensaryName: a.dispensaryName,
+                        repName: a.repName || 'TBD'
+                    })),
+                    recentTrends: combined.momGrowth > 0
+                        ? `Sales are up ${combined.momGrowth.toFixed(1)}% month over month across all sub-brands`
+                        : combined.momGrowth < 0
+                            ? `Sales are down ${Math.abs(combined.momGrowth).toFixed(1)}% - consider scheduling more activations`
+                            : 'Sales are steady this month across all FLX brands'
+                }}
             />
         </div>
     );
@@ -240,10 +293,14 @@ function TabButton({ children, active, onClick, color }) {
         <button
             onClick={onClick}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${active
-                ? 'bg-white text-slate-900 shadow-lg'
-                : 'text-slate-600 hover:bg-white/50'
+                ? 'shadow-lg'
+                : 'hover:opacity-80'
                 }`}
-            style={active ? { borderBottom: `3px solid ${color}` } : {}}
+            style={{
+                background: active ? 'var(--bg-card)' : 'transparent',
+                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottom: active ? `3px solid ${color}` : 'none'
+            }}
         >
             {children}
         </button>
@@ -263,16 +320,14 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
                     value={formatCurrency(combined.totalRevenue)}
                     icon={<DollarSign className="text-emerald-500" />}
                     subtitle="Across all brands"
-                    trend="+15.2%"
-                    trendUp={true}
+                    link="/brand/invoices/greentruth"
                 />
                 <KPICard
                     title="Total Orders"
                     value={formatNumber(combined.totalOrders)}
                     icon={<ShoppingCart className="text-blue-500" />}
                     subtitle="Units sold"
-                    trend="+8"
-                    trendUp={true}
+                    link="/brand/orders"
                 />
                 <KPICard
                     title="Commission Owed"
@@ -325,6 +380,7 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
                     value={formatNumber(combined.storeReach || 0)}
                     icon={<Store className="text-cyan-600" />}
                     subtitle="Unique stores"
+                    link="/brand/map"
                 />
                 <KPICard
                     title="Reorder Rate"
@@ -420,21 +476,21 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
                 <ChartCard title="Top 10 Best Selling Products" icon={<Star className="text-yellow-500" />}>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                         {combined.topProducts.map((product, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl transition-colors" style={{ background: 'var(--bg-secondary)' }}>
                                 <div className="flex items-center gap-3">
                                     <span
                                         className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                                        style={{ backgroundColor: idx < 3 ? '#f59e0b' : '#94a3b8' }}
+                                        style={{ backgroundColor: idx < 3 ? '#f59e0b' : 'var(--text-tertiary)' }}
                                     >
                                         {idx + 1}
                                     </span>
                                     <div>
-                                        <p className="font-semibold text-slate-800">{product.name}</p>
-                                        <p className="text-xs text-slate-500" style={{ color: product.brandColor }}>{product.brand}</p>
+                                        <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
+                                        <p className="text-xs" style={{ color: product.brandColor || 'var(--text-secondary)' }}>{product.brand}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="font-bold text-slate-700">{product.value} sold</span>
+                                    <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>{product.value} sold</span>
                                 </div>
                             </div>
                         ))}
@@ -476,18 +532,18 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
                     return (
                         <div
                             key={brand.id}
-                            className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+                            className="themed-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                             style={{ borderLeft: `4px solid ${brand.color}` }}
                         >
                             <div className="flex justify-between items-start mb-3">
-                                <h3 className="font-bold text-slate-800">{brand.name}</h3>
+                                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>{brand.name}</h3>
                                 <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ backgroundColor: `${brand.color}20`, color: brand.color }}>
                                     {pct.toFixed(1)}%
                                 </span>
                             </div>
-                            <p className="text-2xl font-black text-slate-900">{formatCurrency(data?.revenue || 0)}</p>
-                            <p className="text-sm text-slate-500">{data?.orders || 0} orders</p>
-                            <div className="mt-3 bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <p className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{formatCurrency(data?.revenue || 0)}</p>
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{data?.orders || 0} orders</p>
+                            <div className="mt-3 rounded-full h-2 overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
                                 <div
                                     className="h-full rounded-full transition-all duration-500"
                                     style={{ width: `${pct}%`, backgroundColor: brand.color }}
@@ -501,20 +557,119 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
     );
 }
 
-// SINGLE BRAND VIEW
-function SingleBrandView({ brand, formatCurrency, formatNumber }) {
-    if (!brand) return <p className="text-slate-500">No data available</p>;
+// SINGLE BRAND VIEW - Full Analytics (matching AllBrandsView)
+function SingleBrandView({ brand, formatCurrency, formatNumber, onBackToAll }) {
+    if (!brand) return <p style={{ color: 'var(--text-secondary)' }}>No data available</p>;
 
     const m = brand.metrics || {};
 
+    // Calculate derived metrics
+    const avgOrderValue = m.orderCount > 0 ? (m.revenue || 0) / m.orderCount : 0;
+    const profitMargin = m.revenue > 0 ? ((m.revenue - (m.activationCosts || 0)) / m.revenue * 100) : 0;
+
     return (
         <>
-            {/* KPIs */}
+            {/* Back to All Brands Button */}
+            <div className="flex items-center justify-between mb-4">
+                <button
+                    onClick={onBackToAll}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:bg-slate-100"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                >
+                    <ArrowRight size={16} className="rotate-180" />
+                    All Brands
+                </button>
+                <h2 className="text-xl font-bold" style={{ color: brand.color }}>
+                    {brand.name} Analytics
+                </h2>
+            </div>
+
+            {/* KPIs Row 1 - Main Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KPICard title="Revenue" value={formatCurrency(m.revenue)} icon={<DollarSign className="text-emerald-500" />} />
-                <KPICard title="Orders" value={formatNumber(m.orderCount)} icon={<ShoppingCart className="text-blue-500" />} />
-                <KPICard title="Commission" value={formatCurrency(m.commissionOwed)} icon={<Percent className="text-amber-500" />} />
-                <KPICard title="Top Product" value={m.topProduct || 'N/A'} icon={<Star className="text-yellow-500" />} />
+                <KPICard
+                    title="Revenue"
+                    value={formatCurrency(m.revenue)}
+                    icon={<DollarSign className="text-emerald-500" />}
+                    subtitle="Total earnings"
+                />
+                <KPICard
+                    title="Orders"
+                    value={formatNumber(m.orderCount)}
+                    icon={<ShoppingCart className="text-blue-500" />}
+                    subtitle="Units sold"
+                />
+                <KPICard
+                    title="Commission"
+                    value={formatCurrency(m.commissionOwed)}
+                    icon={<Percent className="text-amber-500" />}
+                    subtitle="5% of revenue"
+                />
+                <KPICard
+                    title="Activation Costs"
+                    value={formatCurrency(m.activationCosts || 0)}
+                    icon={<Calendar className="text-purple-500" />}
+                    subtitle="Pop-up expenses"
+                />
+            </div>
+
+            {/* KPIs Row 2 - Performance Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard
+                    title="Avg Order Value"
+                    value={formatCurrency(avgOrderValue)}
+                    icon={<Target className="text-cyan-500" />}
+                    subtitle="Per transaction"
+                />
+                <KPICard
+                    title="Pending Orders"
+                    value={formatNumber(m.pendingOrders || 0)}
+                    icon={<Clock className="text-orange-500" />}
+                    subtitle="Awaiting fulfillment"
+                />
+                <KPICard
+                    title="Top Product"
+                    value={m.topProduct || 'N/A'}
+                    icon={<Star className="text-yellow-500" />}
+                    subtitle="Best seller"
+                />
+                <KPICard
+                    title="Profit Margin"
+                    value={`${profitMargin.toFixed(1)}%`}
+                    icon={<TrendingUp className="text-emerald-500" />}
+                    subtitle="After activation costs"
+                    trend={profitMargin > 50 ? "Healthy" : "Monitor"}
+                    trendUp={profitMargin > 50}
+                />
+            </div>
+
+            {/* KPIs Row 3 - Growth & Reach Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard
+                    title="Store Reach"
+                    value={formatNumber(m.storeReach || 0)}
+                    icon={<Store className="text-cyan-600" />}
+                    subtitle="Unique stores"
+                />
+                <KPICard
+                    title="Reorder Rate"
+                    value={`${(m.reorderRate || 0).toFixed(1)}%`}
+                    icon={<RefreshCw className="text-violet-500" />}
+                    subtitle="Repeat buyers"
+                />
+                <KPICard
+                    title="Units Sold"
+                    value={formatNumber(m.unitsSold || 0)}
+                    icon={<Boxes className="text-orange-500" />}
+                    subtitle="Total volume"
+                />
+                <KPICard
+                    title="MoM Growth"
+                    value={`${(m.monthOverMonthGrowth || 0).toFixed(1)}%`}
+                    icon={(m.monthOverMonthGrowth || 0) >= 0 ? <TrendingUp className="text-emerald-500" /> : <TrendingDown className="text-red-500" />}
+                    subtitle="Revenue trend"
+                    trend={(m.monthOverMonthGrowth || 0) >= 0 ? "Growing" : "Declining"}
+                    trendUp={(m.monthOverMonthGrowth || 0) >= 0}
+                />
             </div>
 
             {/* Sales Chart */}
@@ -524,7 +679,7 @@ function SingleBrandView({ brand, formatCurrency, formatNumber }) {
                         <AreaChart data={m.salesHistory || []}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis dataKey="month" stroke="#94a3b8" />
-                            <YAxis stroke="#94a3b8" />
+                            <YAxis stroke="#94a3b8" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                             <Tooltip formatter={(v) => formatCurrency(v)} />
                             <Area type="monotone" dataKey="revenue" stroke={brand.color} fill={brand.color} fillOpacity={0.3} />
                         </AreaChart>
@@ -532,14 +687,22 @@ function SingleBrandView({ brand, formatCurrency, formatNumber }) {
                 </div>
             </ChartCard>
 
-            {/* Product Mix */}
+            {/* Product Mix & Top Products */}
             {m.productMix?.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ChartCard title="Product Mix" icon={<PieChart style={{ color: brand.color }} />}>
                         <div className="h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <RechartsPC>
-                                    <Pie data={m.productMix} cx="50%" cy="50%" outerRadius={90} dataKey="value" label>
+                                    <Pie
+                                        data={m.productMix}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={50}
+                                        outerRadius={90}
+                                        dataKey="value"
+                                        label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                                    >
                                         {m.productMix.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                     </Pie>
                                     <Tooltip />
@@ -550,32 +713,55 @@ function SingleBrandView({ brand, formatCurrency, formatNumber }) {
                     </ChartCard>
 
                     <ChartCard title="Top Products" icon={<Star style={{ color: brand.color }} />}>
-                        <div className="space-y-2">
-                            {m.productMix.slice(0, 5).map((p, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div className="space-y-2 max-h-72 overflow-y-auto">
+                            {m.productMix.slice(0, 8).map((p, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
                                     <div className="flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: brand.color }}>
+                                        <span
+                                            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                                            style={{ backgroundColor: i < 3 ? brand.color : 'var(--text-tertiary)' }}
+                                        >
                                             {i + 1}
                                         </span>
-                                        <span className="font-medium text-slate-800">{p.name}</span>
+                                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{p.name}</span>
                                     </div>
-                                    <span className="font-bold text-slate-600">{p.value} sold</span>
+                                    <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>{p.value} sold</span>
                                 </div>
                             ))}
                         </div>
                     </ChartCard>
                 </div>
             )}
+
+            {/* Lead Pipeline Status (if available) */}
+            {(m.leadsByStatus && Object.keys(m.leadsByStatus).length > 0) && (
+                <ChartCard title="Lead Pipeline" icon={<Users style={{ color: brand.color }} />}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(m.leadsByStatus).map(([status, count], i) => (
+                            <div
+                                key={status}
+                                className="p-4 rounded-xl text-center"
+                                style={{ background: 'var(--bg-secondary)' }}
+                            >
+                                <p className="text-2xl font-bold" style={{ color: brand.color }}>{count}</p>
+                                <p className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>
+                                    {status.replace(/_/g, ' ')}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </ChartCard>
+            )}
         </>
     );
 }
 
-// KPI Card Component
-function KPICard({ title, value, icon, subtitle, trend, trendUp }) {
-    return (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+// KPI Card Component - supports optional link for clickable cards
+function KPICard({ title, value, icon, subtitle, trend, trendUp, link }) {
+    const content = (
+        <>
             <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
                     {icon}
                 </div>
                 {trend && (
@@ -585,8 +771,24 @@ function KPICard({ title, value, icon, subtitle, trend, trendUp }) {
                     </span>
                 )}
             </div>
-            <p className="text-2xl font-black text-slate-900 truncate">{value}</p>
-            <p className="text-sm text-slate-500">{subtitle || title}</p>
+            <p className="text-2xl font-black truncate" style={{ color: 'var(--text-primary)' }}>{value}</p>
+            <p className={`text-sm ${link ? 'group-hover:underline' : ''}`} style={{ color: 'var(--text-secondary)' }}>
+                {subtitle || title}{link && ' • Click to view'}
+            </p>
+        </>
+    );
+
+    if (link) {
+        return (
+            <Link to={link} className="themed-card rounded-2xl p-5 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group">
+                {content}
+            </Link>
+        );
+    }
+
+    return (
+        <div className="themed-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            {content}
         </div>
     );
 }
@@ -594,8 +796,8 @@ function KPICard({ title, value, icon, subtitle, trend, trendUp }) {
 // Chart Card Component
 function ChartCard({ title, icon, children }) {
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <div className="themed-card rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                 {icon}
                 {title}
             </h2>

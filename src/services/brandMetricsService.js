@@ -1,4 +1,4 @@
-import { getSales as getAllSales, getAllShifts } from './firestoreService';
+import { getSales as getAllSales, getAllShifts, getBrandProducts } from './firestoreService';
 
 /**
  * Calculate brand-specific financial metrics
@@ -8,10 +8,24 @@ import { getSales as getAllSales, getAllShifts } from './firestoreService';
  */
 export async function calculateBrandMetrics(brandId, brandName) {
     try {
-        const [allSales, allShifts] = await Promise.all([
+        const [allSales, allShifts, menuProducts] = await Promise.all([
             getAllSales(),
-            getAllShifts()
+            getAllShifts(),
+            getBrandProducts(brandId)
         ]);
+
+        // Build a map for fuzzy matching menu products
+        const menuMap = new Map();
+        menuProducts.forEach(p => {
+            // Index by lowercase name for fuzzy matching
+            const lowerName = (p.name || '').toLowerCase().trim();
+            menuMap.set(lowerName, p);
+            // Also add without brand prefix for better matching
+            const words = lowerName.split(' ');
+            if (words.length > 1) {
+                menuMap.set(words.slice(1).join(' '), p);
+            }
+        });
 
         // 1. Calculate Revenue & 5% Commission (only on collected revenue)
         let totalRevenue = 0;
@@ -112,28 +126,92 @@ export async function calculateBrandMetrics(brandId, brandName) {
             return cleaned || name;
         };
 
+        // First pass - collect all products with cleaned names
         Object.entries(productSalesMap).forEach(([name, qty]) => {
-            if (qty > maxSold) {
-                maxSold = qty;
-                topProduct = cleanProductName(name, brandName);
-            }
             productMixArray.push({ name: cleanProductName(name, brandName), fullName: name, value: qty });
         });
 
         // Sort all products by sales volume
         const sortedProducts = productMixArray.sort((a, b) => b.value - a.value);
 
-        // Top 10 for the modal
-        const top10Products = sortedProducts.slice(0, 10).map((item, index) => ({
-            ...item,
-            color: COLORS[index % COLORS.length],
-            rank: index + 1
-        }));
+        // Helper to find matching menu product
+        const findMenuProduct = (productName) => {
+            const lowerName = (productName || '').toLowerCase().trim();
 
-        // Top 5 for Product Mix pie chart
+            // Direct match
+            if (menuMap.has(lowerName)) return menuMap.get(lowerName);
+
+            // Partial match - check if any menu item name contains this, or vice versa
+            for (const [key, product] of menuMap) {
+                if (lowerName.includes(key) || key.includes(lowerName)) {
+                    return product;
+                }
+            }
+
+            // Word-based similarity match
+            const productWords = lowerName.split(/\s+/).filter(w => w.length > 2);
+            let bestMatch = null;
+            let bestScore = 0;
+
+            for (const [key, product] of menuMap) {
+                const menuWords = key.split(/\s+/).filter(w => w.length > 2);
+                const matchingWords = productWords.filter(w => menuWords.includes(w));
+                const score = matchingWords.length / Math.max(productWords.length, menuWords.length);
+                if (score > bestScore && score >= 0.4) {
+                    bestScore = score;
+                    bestMatch = product;
+                }
+            }
+
+            return bestMatch;
+        };
+
+        // Top 10 for the modal - include linked menu product data
+        // IMPORTANT: Only show products that EXIST in the current menu
+        const top10Products = sortedProducts
+            .map((item, index) => {
+                const menuProduct = findMenuProduct(item.fullName || item.name);
+                // Skip products not in current menu
+                if (!menuProduct) return null;
+
+                return {
+                    ...item,
+                    name: menuProduct.name, // Use exact menu product name
+                    color: COLORS[index % COLORS.length],
+                    rank: index + 1,
+                    // Linked menu product data
+                    menuProduct: {
+                        id: menuProduct.id,
+                        name: menuProduct.name,
+                        imageUrl: menuProduct.imageUrl,
+                        price: menuProduct.price,
+                        category: menuProduct.category
+                    }
+                };
+            })
+            .filter(item => item !== null) // Remove null entries (unmatched products)
+            .slice(0, 10) // Take top 10 after filtering
+            .map((item, index) => ({ ...item, rank: index + 1 })); // Re-assign ranks after filtering
+
+        // Determine top product from top10 (use menu-matched name)
+        topProduct = top10Products.length > 0 ? top10Products[0].name : 'N/A';
+
+        // Top 5 for Product Mix pie chart - only include menu-matched products
         const productMix = sortedProducts
-            .slice(0, 5)
-            .map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] }));
+            .map((item, index) => {
+                const menuProduct = findMenuProduct(item.fullName || item.name);
+                // Skip products not in current menu
+                if (!menuProduct) return null;
+
+                return {
+                    ...item,
+                    name: menuProduct.name,
+                    color: COLORS[index % COLORS.length]
+                };
+            })
+            .filter(item => item !== null) // Remove unmatched
+            .slice(0, 5) // Take top 5
+            .map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] })); // Re-assign colors
 
 
         // 4. Calculate Sales History (Monthly)

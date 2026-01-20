@@ -3,7 +3,8 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import {
     ShoppingCart, Check, X, Calendar, Truck,
     Clock, CheckCircle, XCircle, Package,
-    ChevronDown, Search, Filter, FileText, Upload, Download
+    ChevronDown, Search, Filter, FileText, Upload, Download,
+    MapPin, FileCheck
 } from 'lucide-react';
 
 import { getSales, updateSaleStatus, updateSale } from '../../services/firestoreService';
@@ -52,6 +53,8 @@ export default function BrandOrders() {
                 return {
                     id: sale.id || 'N/A',
                     dispensary: sale.dispensaryName || 'Unknown',
+                    dispensaryAddress: sale.dispensaryAddress || sale.address || '',
+                    licenseNumber: sale.licenseNumber || sale.ocmNumber || '',
                     contact: sale.contactPerson || sale.userName || 'N/A',
                     products: brandItems.map(item => ({
                         name: item.name,
@@ -62,6 +65,7 @@ export default function BrandOrders() {
                     status: sale.status || 'pending',
                     orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
                     deliveryDate: sale.deliveryDate || null,
+                    paymentTerms: sale.paymentTerms || 'COD',
                     representative: sale.representativeName || sale.userName || 'Unassigned'
                 };
             });
@@ -153,13 +157,16 @@ export default function BrandOrders() {
             return;
         }
 
-        const headers = ['Order ID', 'Dispensary', 'Contact', 'Products', 'Total', 'Status', 'Order Date', 'Delivery Date', 'Representative'];
+        const headers = ['Order ID', 'Dispensary', 'Address', 'OCM License', 'Contact', 'Products', 'Total', 'Payment Terms', 'Status', 'Order Date', 'Delivery Date', 'Representative'];
         const rows = ordersToExport.map(order => [
             order.id,
             order.dispensary,
+            order.dispensaryAddress,
+            order.licenseNumber,
             order.contact,
             order.products.map(p => `${p.quantity}x ${p.name}`).join('; '),
             order.total,
+            order.paymentTerms,
             order.status,
             order.orderDate,
             order.deliveryDate || '',
@@ -233,11 +240,12 @@ export default function BrandOrders() {
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
                     <input
                         type="text"
                         placeholder="Search orders..."
-                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:border-amber-500 outline-none"
+                        className="w-full pl-10 pr-4 py-2 rounded-lg outline-none"
+                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -278,21 +286,44 @@ export default function BrandOrders() {
                                     <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
                                         <Package size={24} style={{ color: 'var(--text-secondary)' }} />
                                     </div>
-                                    <div>
+                                    <div className="flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{order.id}</span>
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusColors[order.status]}`}>
                                                 {statusIcons[order.status]}
                                                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                                             </span>
+                                            {order.paymentTerms && (
+                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                                    {order.paymentTerms}
+                                                </span>
+                                            )}
                                             {order.mondayItemId && (
                                                 <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
                                                     <CheckCircle size={12} /> Synced
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{order.dispensary} • {order.contact}</p>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: 'var(--accent-primary)' }}>Rep: {order.representative}</p>
+                                        {/* Dispensary Info - CRITICAL for order processing */}
+                                        <div className="mt-2 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                            <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>{order.dispensary}</p>
+                                            {order.dispensaryAddress && (
+                                                <p className="text-sm flex items-center gap-1 mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                                    <MapPin size={14} className="shrink-0" />
+                                                    {order.dispensaryAddress}
+                                                </p>
+                                            )}
+                                            {order.licenseNumber && (
+                                                <p className="text-sm flex items-center gap-1 mt-1 font-medium" style={{ color: 'var(--accent-primary)' }}>
+                                                    <FileCheck size={14} className="shrink-0" />
+                                                    OCM License: {order.licenseNumber}
+                                                </p>
+                                            )}
+                                            {!order.dispensaryAddress && !order.licenseNumber && (
+                                                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">⚠️ Missing compliance info - verify before fulfilling</p>
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest mt-2" style={{ color: 'var(--text-tertiary)' }}>Contact: {order.contact} • Rep: {order.representative}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
@@ -351,7 +382,8 @@ export default function BrandOrders() {
                                                 driver: { name: 'Assigned Driver', vehiclePlate: 'ABC-123' },
                                                 route: 'Standard Route'
                                             })}
-                                            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors flex items-center gap-2"
+                                            className="px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                                             title="Generate PDF Manifest"
                                         >
                                             <FileText size={16} />
@@ -388,11 +420,12 @@ export default function BrandOrders() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl w-full max-w-md shadow-2xl">
                         <div className="p-6">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">Set Delivery Date</h3>
-                            <p className="text-sm text-slate-500 mb-4">When will this order be delivered?</p>
+                            <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Set Delivery Date</h3>
+                            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>When will this order be delivered?</p>
                             <input
                                 type="date"
-                                className="w-full p-3 border border-slate-200 rounded-lg focus:border-amber-500 outline-none"
+                                className="w-full p-3 rounded-lg outline-none"
+                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                                 value={deliveryModal.date}
                                 onChange={(e) => setDeliveryModal(prev => ({ ...prev, date: e.target.value }))}
                             />
@@ -400,7 +433,7 @@ export default function BrandOrders() {
                                 <div className="flex items-center justify-between mt-4">
                                     <div className="flex items-center gap-3">
                                         <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
-                                        <label htmlFor="syncToMonday" className="block text-sm font-medium text-slate-700">Sync to Monday.com</label>
+                                        <label htmlFor="syncToMonday" className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Sync to Monday.com</label>
                                     </div>
                                     <button
                                         type="button"
@@ -418,10 +451,11 @@ export default function BrandOrders() {
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
+                        <div className="p-4 flex justify-end gap-3" style={{ borderTop: '1px solid var(--border-primary)' }}>
                             <button
                                 onClick={() => setDeliveryModal({ open: false, orderId: null, date: '' })}
-                                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
+                                className="px-4 py-2 font-medium rounded-lg"
+                                style={{ color: 'var(--text-secondary)' }}
                             >
                                 Cancel
                             </button>

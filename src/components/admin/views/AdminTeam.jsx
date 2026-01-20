@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllUsers, getAllShifts, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory } from '../../../services/firestoreService';
-import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2 } from 'lucide-react';
+import { getAllUsers, getAllShifts, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser } from '../../../services/firestoreService';
+import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2, Ban, RefreshCw, UserX, UserCheck } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { getCurrentPayPeriod, calculateHourlyRate, calculateReimbursement } from '../../../services/compensationService';
@@ -16,6 +16,9 @@ export default function AdminTeam() {
     const [dispensaryPartners, setDispensaryPartners] = useState([]);
     const [loading, setLoading] = useState(true);
     const [payingRep, setPayingRep] = useState(null); // Track which rep is being paid
+    const [blockingRep, setBlockingRep] = useState(null); // Track which rep is being blocked/unblocked
+    const [showReassignModal, setShowReassignModal] = useState(null); // Store rep to reassign leads from
+    const [reassignTarget, setReassignTarget] = useState(''); // Store target rep ID
     const payPeriod = getCurrentPayPeriod();
 
     useEffect(() => {
@@ -132,6 +135,7 @@ export default function AdminTeam() {
                         shiftCount: userShifts.length,
                         pendingWages,
                         pendingActivations: pendingActivations.map(a => ({ id: a.id })),
+                        isBlocked: user.isBlocked || false,
                         integration: {
                             connected: !!integration?.mondayApiToken,
                             lastSyncTimestamp: integration?.lastSync?.timestamp?.toDate(),
@@ -259,7 +263,7 @@ export default function AdminTeam() {
                                                     </span>
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
+                                                    <div className="flex items-center justify-center gap-2 flex-wrap">
                                                         {member.pendingWages > 0 && (
                                                             <button
                                                                 onClick={async () => {
@@ -275,7 +279,6 @@ export default function AdminTeam() {
                                                                             currentUser?.uid
                                                                         );
                                                                         showNotification(`Paid $${member.pendingWages?.toFixed(2)} to ${member.profileInfo?.firstName || 'rep'}`, 'success');
-                                                                        // Update state instead of full page reload to preserve auth
                                                                         setSalesAmbassadors(prev => prev.map(m =>
                                                                             m.id === member.id
                                                                                 ? { ...m, pendingWages: 0, pendingActivations: [] }
@@ -292,9 +295,61 @@ export default function AdminTeam() {
                                                                 className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50"
                                                             >
                                                                 {payingRep === member.id ? <Loader2 size={12} className="animate-spin" /> : <Wallet size={12} />}
-                                                                Pay Wages
+                                                                Pay
                                                             </button>
                                                         )}
+
+                                                        {/* Block/Unblock Button */}
+                                                        <button
+                                                            onClick={async () => {
+                                                                const action = member.isBlocked ? 'unblock' : 'block';
+                                                                if (!window.confirm(`Are you sure you want to ${action} ${member.profileInfo?.firstName || member.name || 'this user'}?${!member.isBlocked ? '\n\nThis will prevent them from logging in.' : ''}`)) return;
+                                                                setBlockingRep(member.id);
+                                                                try {
+                                                                    const success = member.isBlocked
+                                                                        ? await unblockUser(member.id)
+                                                                        : await blockUser(member.id);
+                                                                    if (success) {
+                                                                        showNotification(`${member.profileInfo?.firstName || 'User'} has been ${action}ed`, 'success');
+                                                                        setSalesAmbassadors(prev => prev.map(m =>
+                                                                            m.id === member.id
+                                                                                ? { ...m, isBlocked: !member.isBlocked }
+                                                                                : m
+                                                                        ));
+                                                                    } else {
+                                                                        showNotification(`Failed to ${action} user`, 'error');
+                                                                    }
+                                                                } catch (error) {
+                                                                    showNotification(`Error: ${error.message}`, 'error');
+                                                                } finally {
+                                                                    setBlockingRep(null);
+                                                                }
+                                                            }}
+                                                            disabled={blockingRep === member.id}
+                                                            className={`flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50 ${member.isBlocked
+                                                                ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                                                : 'bg-red-50 text-red-500 hover:bg-red-100'
+                                                                }`}
+                                                            title={member.isBlocked ? 'Unblock User' : 'Block User'}
+                                                        >
+                                                            {blockingRep === member.id ? (
+                                                                <Loader2 size={12} className="animate-spin" />
+                                                            ) : member.isBlocked ? (
+                                                                <UserCheck size={12} />
+                                                            ) : (
+                                                                <UserX size={12} />
+                                                            )}
+                                                        </button>
+
+                                                        {/* Reassign Leads Button */}
+                                                        <button
+                                                            onClick={() => setShowReassignModal(member)}
+                                                            className="flex items-center gap-1 text-xs bg-purple-50 text-purple-600 hover:bg-purple-100 px-2 py-1.5 rounded-lg font-bold transition-colors"
+                                                            title="Reassign Leads"
+                                                        >
+                                                            <RefreshCw size={12} />
+                                                        </button>
+
                                                         <Link to={`/admin/team/${member.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-bold hover:underline">View</Link>
                                                     </div>
                                                 </td>
@@ -405,6 +460,74 @@ export default function AdminTeam() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Reassign Leads Modal */}
+            {showReassignModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">Reassign Leads</h3>
+                        <p className="text-slate-600 text-sm mb-6">
+                            Transfer all leads from <span className="font-bold text-slate-800">{showReassignModal.profileInfo?.firstName || showReassignModal.name || 'this rep'}</span> to another ambassador.
+                        </p>
+
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Select Target Ambassador</label>
+                            <select
+                                value={reassignTarget}
+                                onChange={(e) => setReassignTarget(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                            >
+                                <option value="">Choose an ambassador...</option>
+                                {salesAmbassadors
+                                    .filter(m => m.id !== showReassignModal.id && m.role === 'rep')
+                                    .map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.profileInfo?.firstName || m.name || m.email}
+                                        </option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowReassignModal(null);
+                                    setReassignTarget('');
+                                }}
+                                className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!reassignTarget) {
+                                        showNotification('Please select a target ambassador', 'error');
+                                        return;
+                                    }
+                                    try {
+                                        const result = await reassignUserLeads(showReassignModal.id, reassignTarget);
+                                        if (result.success) {
+                                            showNotification(`Reassigned ${result.count} leads successfully`, 'success');
+                                            setShowReassignModal(null);
+                                            setReassignTarget('');
+                                        } else {
+                                            showNotification('Failed to reassign leads', 'error');
+                                        }
+                                    } catch (error) {
+                                        showNotification(`Error: ${error.message}`, 'error');
+                                    }
+                                }}
+                                disabled={!reassignTarget}
+                                className="flex-1 py-3 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                <RefreshCw size={16} />
+                                Reassign Leads
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

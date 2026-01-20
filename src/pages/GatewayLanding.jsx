@@ -58,16 +58,17 @@ export default function GatewayLanding() {
             color: 'from-purple-500 to-indigo-600',
             path: '/dispensary/verify',
             glow: 'shadow-purple-500/50'
-        },
-        {
-            id: 'driver',
-            title: 'Driver Portal',
-            description: 'View routes & delivery assignments',
-            icon: Truck,
-            color: 'from-blue-500 to-cyan-600',
-            path: '/driver/login',
-            glow: 'shadow-blue-500/50'
         }
+        // TEMPORARILY HIDDEN FOR LAUNCH - Driver Portal
+        // {
+        //     id: 'driver',
+        //     title: 'Driver Portal',
+        //     description: 'View routes & delivery assignments',
+        //     icon: Truck,
+        //     color: 'from-blue-500 to-cyan-600',
+        //     path: '/driver/login',
+        //     glow: 'shadow-blue-500/50'
+        // }
     ];
 
     const adminPortal = {
@@ -217,7 +218,7 @@ export default function GatewayLanding() {
                     </h2>
 
                     {/* Main Portal Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 justify-items-center">
                         {mainPortals.map((card, index) => (
                             <motion.button
                                 key={card.id}

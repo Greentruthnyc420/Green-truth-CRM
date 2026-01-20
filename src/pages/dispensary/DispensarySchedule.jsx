@@ -72,11 +72,11 @@ export default function DispensarySchedule() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <Calendar className="text-emerald-600" />
                         Activations & Events
                     </h1>
-                    <p className="text-slate-500">Manage your upcoming brand activations and demos.</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Manage your upcoming brand activations and demos.</p>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
@@ -92,7 +92,7 @@ export default function DispensarySchedule() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                 </div>
             ) : (
-                <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="rounded-2xl shadow-sm overflow-hidden">
                     <CalendarView
                         events={events}
                         onEventClick={setSelectedEvent}
@@ -107,7 +107,7 @@ export default function DispensarySchedule() {
                     <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-emerald-50 p-6 border-b border-emerald-100 flex justify-between items-start">
                             <div>
-                                <h3 className="text-xl font-bold text-slate-900">Activation Details</h3>
+                                <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Activation Details</h3>
                                 <p className="text-emerald-700 text-sm font-medium mt-1 uppercase tracking-wide">
                                     {selectedEvent.resource.status}
                                 </p>
@@ -151,15 +151,15 @@ export default function DispensarySchedule() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">Brand</label>
-                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                    <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Brand</label>
+                                    <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                         <Tag size={16} className="text-emerald-500" />
                                         {selectedEvent.resource.brandName}
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">Type</label>
-                                    <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                    <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Type</label>
+                                    <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                         <User size={16} className="text-emerald-500" />
                                         {selectedEvent.resource.activationType || 'Activation'}
                                     </div>
@@ -167,28 +167,28 @@ export default function DispensarySchedule() {
                             </div>
 
                             <div className="space-y-1 pt-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase">Time</label>
-                                <div className="flex items-center gap-2 text-slate-800 font-medium">
+                                <label className="text-xs font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>Time</label>
+                                <div className="flex items-center gap-2 font-medium" style={{ color: 'var(--text-primary)' }}>
                                     <Clock size={16} className="text-emerald-500" />
                                     {selectedEvent.resource.startTime || '12:00'} - {selectedEvent.resource.endTime || '16:00'}
                                 </div>
-                                <p className="text-sm text-slate-500 pl-6">
+                                <p className="text-sm pl-6" style={{ color: 'var(--text-secondary)' }}>
                                     {new Date(selectedEvent.resource.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
                             </div>
 
                             {selectedEvent.resource.notes && (
-                                <div className="bg-slate-50 p-4 rounded-lg mt-4 text-sm text-slate-600 italic">
+                                <div className="p-4 rounded-lg mt-4 text-sm italic" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                                     "{selectedEvent.resource.notes}"
                                 </div>
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <div className="p-4 flex justify-end" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
-                                style={{ background: 'var(--bg-secondary)' }}
+                                className="px-4 py-2 rounded-lg font-medium transition-colors"
+                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                             >
                                 Close
                             </button>

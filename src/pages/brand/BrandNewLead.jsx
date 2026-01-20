@@ -44,10 +44,10 @@ export default function BrandNewLead() {
     }, [brandUser]);
 
     const categories = [
-        { id: LEAD_STATUS.PROSPECT, label: 'Prospect', color: 'bg-slate-100 text-slate-700' },
-        { id: LEAD_STATUS.SAMPLES_REQUESTED, label: 'Samples Requested', color: 'bg-amber-100 text-amber-700' },
-        { id: LEAD_STATUS.SAMPLES_DELIVERED, label: 'Received Samples', color: 'bg-blue-100 text-blue-700' },
-        { id: LEAD_STATUS.ACTIVE, label: 'Active', color: 'bg-emerald-100 text-emerald-700' }
+        { id: LEAD_STATUS.PROSPECT, label: 'Prospect', color: { bg: 'var(--bg-secondary)', text: 'var(--text-secondary)' } },
+        { id: LEAD_STATUS.SAMPLES_REQUESTED, label: 'Samples Requested', color: { bg: 'rgba(245, 158, 11, 0.1)', text: 'var(--warning)' } },
+        { id: LEAD_STATUS.SAMPLES_DELIVERED, label: 'Received Samples', color: { bg: 'rgba(59, 130, 246, 0.1)', text: 'var(--info)' } },
+        { id: LEAD_STATUS.ACTIVE, label: 'Active', color: { bg: 'rgba(16, 185, 129, 0.1)', text: 'var(--success)' } }
     ];
 
     const handleLicenseImageChange = async (e) => {
@@ -124,12 +124,9 @@ export default function BrandNewLead() {
                 brandName: brandUser?.brandName,
                 createdBy: 'brand',
                 createdAt: new Date().toISOString(),
-                samplesRequested: [brandUser?.brandName] // Auto-include their own brand if they requested/delivered samples
+                samplesRequested: [brandUser?.brandName]
             });
 
-            // Note: For Brand portal users, we don't necessarily award "Ambassador Points" 
-            // but the system allows it if we ever have "Brand Reps".
-            // For now, let's keep it consistent if brandUser.uid exists.
             try {
                 if (brandUser?.uid) {
                     await awardLeadPoints(brandUser.uid, leadRef.id || 'unknown');
@@ -162,31 +159,31 @@ export default function BrandNewLead() {
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-8 text-center">
-                <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-4">
+                <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(249, 115, 22, 0.1)', color: 'var(--accent-primary)' }}>
                     <UserPlus size={32} />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-800">New Brand Lead</h1>
-                <p className="text-slate-500">Add a new potential dispensary to your {brandUser?.brandName} pipeline.</p>
+                <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>New Brand Lead</h1>
+                <p style={{ color: 'var(--text-secondary)' }}>Add a new potential dispensary to your {brandUser?.brandName} pipeline.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 pb-12">
-                <div className="p-6 rounded-xl border border-slate-100 shadow-sm space-y-4" style={{ background: 'var(--bg-card)' }}>
+                <div className="themed-card p-6 rounded-xl shadow-sm space-y-4">
 
                     {/* Status Categorization */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Lead Category</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Lead Category</label>
                         <div className="grid grid-cols-2 gap-2">
                             {categories.map((cat) => (
                                 <button
                                     key={cat.id}
                                     type="button"
                                     onClick={() => setFormData({ ...formData, leadStatus: cat.id })}
-                                    className={`
-                                        flex items-center justify-center p-3 rounded-lg border text-sm font-medium transition-all
-                                        ${formData.leadStatus === cat.id
-                                            ? `${cat.color} border-slate-400 ring-2 ring-emerald-500/20`
-                                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}
-                                    `}
+                                    className="flex items-center justify-center p-3 rounded-lg text-sm font-medium transition-all"
+                                    style={{
+                                        background: formData.leadStatus === cat.id ? cat.color.bg : 'var(--bg-card)',
+                                        color: formData.leadStatus === cat.id ? cat.color.text : 'var(--text-secondary)',
+                                        border: formData.leadStatus === cat.id ? '2px solid var(--accent-primary)' : '1px solid var(--border-primary)'
+                                    }}
                                 >
                                     {cat.label}
                                 </button>
@@ -194,16 +191,21 @@ export default function BrandNewLead() {
                         </div>
                     </div>
 
-                    <hr className="border-slate-100" />
+                    <hr style={{ borderColor: 'var(--border-primary)' }} />
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Dispensary Name</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Dispensary Name</label>
                         <div className="relative">
-                            <Store size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Store size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
                             <input
                                 type="text"
                                 required
-                                className="w-full pl-10 rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-3 border"
+                                className="w-full pl-10 rounded-lg outline-none p-3"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                                 value={formData.dispensaryName}
                                 onChange={(e) => setFormData({ ...formData, dispensaryName: e.target.value })}
                             />
@@ -211,14 +213,19 @@ export default function BrandNewLead() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Address</label>
                         <div className="relative">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">📍</div>
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }}>📍</div>
                             <input
                                 type="text"
                                 required
                                 placeholder="123 Main St, New York, NY"
-                                className="w-full pl-10 rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-3 border"
+                                className="w-full pl-10 rounded-lg outline-none p-3"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                                 value={formData.address}
                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                             />
@@ -228,23 +235,25 @@ export default function BrandNewLead() {
                     {/* Contacts Section */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <label className="block text-sm font-medium text-slate-700">Points of Contact</label>
+                            <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Points of Contact</label>
                             <button
                                 type="button"
                                 onClick={addContact}
-                                className="text-sm text-orange-600 font-medium hover:text-orange-700 flex items-center gap-1"
+                                className="text-sm font-medium flex items-center gap-1"
+                                style={{ color: 'var(--accent-primary)' }}
                             >
                                 <Plus size={16} /> Add Contact
                             </button>
                         </div>
 
                         {formData.contacts.map((contact, index) => (
-                            <div key={index} className="p-4 rounded-lg border border-slate-100 relative" style={{ background: 'var(--bg-secondary)' }}>
+                            <div key={index} className="p-4 rounded-lg relative" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
                                 {formData.contacts.length > 1 && (
                                     <button
                                         type="button"
                                         onClick={() => removeContact(index)}
-                                        className="absolute top-2 right-2 text-slate-400 hover:text-red-500"
+                                        className="absolute top-2 right-2"
+                                        style={{ color: 'var(--text-tertiary)' }}
                                     >
                                         <X size={16} />
                                     </button>
@@ -254,13 +263,23 @@ export default function BrandNewLead() {
                                         type="text"
                                         required
                                         placeholder="Contact Name"
-                                        className="w-full rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-2 border text-sm"
+                                        className="w-full rounded-lg outline-none p-2 text-sm"
+                                        style={{
+                                            background: 'var(--bg-card)',
+                                            border: '1px solid var(--border-primary)',
+                                            color: 'var(--text-primary)'
+                                        }}
                                         value={contact.name}
                                         onChange={(e) => updateContact(index, 'name', e.target.value)}
                                     />
                                     <div className="grid grid-cols-2 gap-3">
                                         <select
-                                            className="w-full rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-2 border bg-white text-sm"
+                                            className="w-full rounded-lg outline-none p-2 text-sm"
+                                            style={{
+                                                background: 'var(--bg-card)',
+                                                border: '1px solid var(--border-primary)',
+                                                color: 'var(--text-primary)'
+                                            }}
                                             value={contact.role}
                                             onChange={(e) => updateContact(index, 'role', e.target.value)}
                                         >
@@ -273,7 +292,12 @@ export default function BrandNewLead() {
                                         <input
                                             type="email"
                                             placeholder="Email"
-                                            className="w-full rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-2 border text-sm"
+                                            className="w-full rounded-lg outline-none p-2 text-sm"
+                                            style={{
+                                                background: 'var(--bg-card)',
+                                                border: '1px solid var(--border-primary)',
+                                                color: 'var(--text-primary)'
+                                            }}
                                             value={contact.email}
                                             onChange={(e) => updateContact(index, 'email', e.target.value)}
                                         />
@@ -281,7 +305,12 @@ export default function BrandNewLead() {
                                     <input
                                         type="tel"
                                         placeholder="Phone Number"
-                                        className="w-full rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-2 border text-sm"
+                                        className="w-full rounded-lg outline-none p-2 text-sm"
+                                        style={{
+                                            background: 'var(--bg-card)',
+                                            border: '1px solid var(--border-primary)',
+                                            color: 'var(--text-primary)'
+                                        }}
                                         value={contact.phone}
                                         onChange={(e) => updateContact(index, 'phone', e.target.value)}
                                     />
@@ -291,13 +320,18 @@ export default function BrandNewLead() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Date</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Meeting Date</label>
                         <div className="relative">
-                            <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
                             <input
                                 type="date"
                                 required
-                                className="w-full pl-10 rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-3 border"
+                                className="w-full pl-10 rounded-lg outline-none p-3"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                                 value={formData.meetingDate}
                                 onChange={(e) => setFormData({ ...formData, meetingDate: e.target.value })}
                             />
@@ -305,24 +339,30 @@ export default function BrandNewLead() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">OCM License (Optional)</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>OCM License (Optional)</label>
                         <div className="relative">
-                            <FileText size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <FileText size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
                             <input
                                 type="text"
                                 placeholder="License Number"
-                                className={`w-full pl-10 rounded-lg border-slate-200 focus:border-orange-500 focus:ring-orange-500 outline-none p-3 border ${analyzingLicense ? 'bg-slate-50' : ''}`}
+                                className="w-full pl-10 rounded-lg outline-none p-3"
+                                style={{
+                                    background: analyzingLicense ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
                                 value={formData.licenseNumber}
                                 onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
                             />
                             {analyzingLicense && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs text-orange-600 font-medium animate-pulse">
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs font-medium animate-pulse" style={{ color: 'var(--accent-primary)' }}>
                                     <Sparkles size={14} />
                                     <span>Analyzing...</span>
                                 </div>
                             )}
                         </div>
-                        <label className="relative flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors text-slate-500 text-sm mt-2">
+                        <label className="relative flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-sm mt-2"
+                            style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
                             <Camera size={16} />
                             <span>{licenseImage ? 'Change Photo' : 'Upload License Photo'}</span>
                             <input
@@ -338,17 +378,17 @@ export default function BrandNewLead() {
                 </div>
 
                 {mondayIntegration.connected && mondayIntegration.accountsBoardId && (
-                    <div className="p-6 rounded-xl border border-slate-100 shadow-sm" style={{ background: 'var(--bg-card)' }}>
+                    <div className="themed-card p-6 rounded-xl shadow-sm">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <img src="https://dapulse-res.cloudinary.com/image/upload/v1575480544/mondaycom/logos/monday_logo_color.png" alt="Monday.com Logo" className="h-6 w-auto object-contain" />
-                                <label htmlFor="syncToMonday" className="block text-sm font-medium text-slate-700">Sync to Monday.com</label>
+                                <label htmlFor="syncToMonday" className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Sync to Monday.com</label>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSyncToMonday(!syncToMonday)}
-                                className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${syncToMonday ? 'bg-orange-600' : 'bg-gray-200'
-                                    }`}
+                                className="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200"
+                                style={{ background: syncToMonday ? 'var(--accent-primary)' : 'var(--bg-tertiary)' }}
                                 aria-pressed="false"
                             >
                                 <span
@@ -364,7 +404,8 @@ export default function BrandNewLead() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200 disabled:opacity-70 flex items-center justify-center gap-2"
+                    className="w-full py-4 rounded-xl font-bold text-lg transition-colors shadow-lg disabled:opacity-70 flex items-center justify-center gap-2"
+                    style={{ background: 'var(--accent-primary)', color: 'white' }}
                 >
                     {loading ? <Loader className="animate-spin" /> : null}
                     {loading ? 'Processing...' : 'Record Categorized Lead'}

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import {
     Plus, Search, Filter, Edit2, Trash2, Eye, X, ChevronRight,
     DollarSign, Calendar, Users, Building2, Phone, Mail, FileText,
-    TrendingUp, CheckCircle, AlertCircle, Key, Copy, Upload, Image
+    TrendingUp, CheckCircle, AlertCircle, Key, Copy, Upload, Image, Tag
 } from 'lucide-react';
 import { getAllActivations, getSales, getAllBrandProfiles, getAdminBrands, saveAdminBrand, deleteAdminBrand, updateAdminBrand } from '../../../services/firestoreService';
 import { useNotification } from '../../../contexts/NotificationContext';
@@ -21,6 +21,7 @@ const DEFAULT_BRANDS = [
     { id: 'waferz', name: 'Waferz NY', status: 'active', contacts: [], contractStart: '2024-05-01', commissionRate: 5 },
     { id: 'pines', name: 'Pines', status: 'active', contacts: [], contractStart: '2024-06-01', commissionRate: 5 },
     { id: 'flx-extracts', name: 'FLX Extracts', status: 'active', contacts: [], contractStart: '2024-01-01', commissionRate: 5 },
+    { id: 'jusbud', name: 'JUSBUD!', status: 'active', contacts: [], contractStart: '2024-01-01', commissionRate: 5 },
     { id: 'budcracker-nyc', name: 'Budcracker NYC', status: 'inactive', contacts: [], contractStart: '2023-06-01', commissionRate: 5 }
 ];
 
@@ -454,6 +455,14 @@ export default function AdminBrands() {
                                     {(brand.contacts || []).length} contacts
                                 </div>
                                 <div className="flex gap-1">
+                                    <Link
+                                        to={`/brand/deals?admin_brand=${brand.id}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                        title="Manage Deals"
+                                    >
+                                        <Tag size={16} />
+                                    </Link>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleToggleStatus(brand.id); }}
                                         className={`p-1.5 rounded-lg transition-colors ${brand.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-50'}`}

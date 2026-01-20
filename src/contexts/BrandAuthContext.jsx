@@ -25,7 +25,8 @@ export const AVAILABLE_BRANDS = {
     'smoothie-bar': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
     'waferz': { brandId: 'waferz', brandName: 'Waferz NY' },
     'pines': { brandId: 'pines', brandName: 'Pines' },
-    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', isProcessor: true, managedBrands: ['pines', 'smoothie-bar', 'waferz'] }
+    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', isProcessor: true, managedBrands: ['pines', 'smoothie-bar', 'waferz'] },
+    'jusbud': { brandId: 'jusbud', brandName: 'JUSBUD!' }
 };
 
 // Legacy support: Map old license numbers to brands (for existing users)
@@ -235,13 +236,27 @@ export function BrandAuthProvider({ children }) {
             return null;
         }
         const brandInfo = BRAND_LICENSES[licenseKey];
+
+        // Handle processors - set up allowedBrands from managedBrands
+        let allowedBrands = [];
+        if (brandInfo.isProcessor && brandInfo.managedBrands && brandInfo.managedBrands.length > 0) {
+            allowedBrands = brandInfo.managedBrands.map(bid => {
+                const key = Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === bid);
+                return key ? { ...BRAND_LICENSES[key], license: key } : null;
+            }).filter(Boolean);
+        }
+
         const mockBrandUser = {
             ...brandInfo,
             licenseNumber: licenseKey,
             email: `${brandId}@example.com`,
             displayName: brandInfo.brandName,
-            uid: `brand-${brandId}`
+            uid: `brand-${brandId}`,
+            isProcessor: brandInfo.isProcessor || false,
+            allowedBrands: allowedBrands
         };
+
+        console.log('[DevLogin] Created mock brand user:', mockBrandUser);
         setBrandUser(mockBrandUser);
         return mockBrandUser;
     }

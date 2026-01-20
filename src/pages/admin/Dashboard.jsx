@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DollarSign, Users, Award, TrendingUp, Store, Wallet, PiggyBank, Banknote, Percent, Target, Calendar, FileText, UserCheck, CircleDollarSign } from 'lucide-react';
+import { DollarSign, Users, Award, TrendingUp, Store, Wallet, PiggyBank, Banknote, Percent, Target, Calendar, FileText, UserCheck, CircleDollarSign, HelpCircle } from 'lucide-react';
 import { getSales, getAllShifts, getLeads, LEAD_STATUS } from '../../services/firestoreService';
 import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../../services/compensationService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import OnboardingTour from '../../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../../data/tourSteps';
 
 const HOURLY_RATE = 20;
 
@@ -93,6 +95,7 @@ export default function Dashboard() {
         salesHistory: []
     });
     const [loading, setLoading] = useState(true);
+    const [showTour, setShowTour] = useState(false);
 
     useEffect(() => {
         async function fetchAnalytics() {
@@ -200,7 +203,35 @@ export default function Dashboard() {
                     });
                 }
 
-                // Product Mix
+                // Product Mix - Build catalog lookup for validation
+                const allCatalogProducts = new Map();
+                PRODUCT_CATALOG.forEach(brand => {
+                    (brand.products || []).forEach(product => {
+                        // Index by lowercase name for fuzzy matching
+                        const lowerName = (product.name || '').toLowerCase().trim();
+                        allCatalogProducts.set(lowerName, product);
+                        // Also add partial matches (without brand prefix)
+                        const words = lowerName.split(' ');
+                        if (words.length > 1) {
+                            allCatalogProducts.set(words.slice(1).join(' '), product);
+                        }
+                    });
+                });
+
+                // Helper to find matching catalog product
+                const findCatalogProduct = (productName) => {
+                    const lowerName = (productName || '').toLowerCase().trim();
+                    if (allCatalogProducts.has(lowerName)) return allCatalogProducts.get(lowerName);
+
+                    // Partial match
+                    for (const [key, product] of allCatalogProducts) {
+                        if (lowerName.includes(key) || key.includes(lowerName)) {
+                            return product;
+                        }
+                    }
+                    return null;
+                };
+
                 const productCounts = {};
                 sales.forEach(s => {
                     const items = s.items || s.products || [];
@@ -216,13 +247,22 @@ export default function Dashboard() {
 
                 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
                 const productMix = Object.entries(productCounts)
-                    .map(([name, value], index) => ({
-                        name: name.length > 15 ? name.substring(0, 15) + '...' : name,
-                        value,
-                        color: COLORS[index % COLORS.length]
-                    }))
+                    .map(([name, value]) => {
+                        // Validate against catalog - only include products that exist
+                        const catalogProduct = findCatalogProduct(name);
+                        if (!catalogProduct) return null;
+
+                        const displayName = catalogProduct.name;
+                        return {
+                            name: displayName.length > 15 ? displayName.substring(0, 15) + '...' : displayName,
+                            fullName: displayName,
+                            value
+                        };
+                    })
+                    .filter(item => item !== null)
                     .sort((a, b) => b.value - a.value)
-                    .slice(0, 5);
+                    .slice(0, 5)
+                    .map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] }));
 
                 const activeSellers = new Set(sales.map(s => s.userId)).size;
 
@@ -303,6 +343,14 @@ export default function Dashboard() {
                     <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Admin Dashboard</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Company performance overview.</p>
                 </div>
+                <button
+                    onClick={() => setShowTour(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}
+                >
+                    <HelpCircle size={16} />
+                    Replay Tour
+                </button>
             </div>
 
             {/* ===== GROWTH SECTION: QUARTERLY SALES PERFORMANCE ===== */}
@@ -569,6 +617,16 @@ export default function Dashboard() {
                     </Link>
                 </div>
             </div>
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('admin')}
+                    isFirstTime={false}
+                    onComplete={() => setShowTour(false)}
+                    tourKey="admin_replay"
+                />
+            )}
         </div>
     );
 }

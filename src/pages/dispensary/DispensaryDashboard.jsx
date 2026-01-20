@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Package, Clock, CheckCircle2, ArrowRight, Star, Gift, FileText } from 'lucide-react';
+import { ShoppingBag, Package, Clock, CheckCircle2, ArrowRight, Star, Gift, FileText, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getLeads, getUserProfile, getSales } from '../../services/firestoreService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../services/supabaseClient';
+import DispensaryChatbot from '../../components/DispensaryChatbot';
+import OnboardingTour from '../../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../../data/tourSteps';
 
 import { exportToDutchie, exportToBlaze, exportToCova, exportToBioTrack, exportToLeafLogix, exportMetrcReady, exportGeneric } from '../../utils/csvExporters';
 
@@ -14,6 +17,7 @@ export default function DispensaryDashboard() {
     const [activeOrders, setActiveOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showSampleRequest, setShowSampleRequest] = useState(false);
+    const [showTour, setShowTour] = useState(false);
     const navigate = useNavigate();
 
     // Export Handlers
@@ -76,12 +80,19 @@ export default function DispensaryDashboard() {
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                         Hello, {profile?.dispensaryName || 'Dispensary'}!
                     </h1>
-                    <p className="text-slate-500 mt-2 font-medium">Welcome to your ordering portal.</p>
+                    <p className="mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>Welcome to your ordering portal.</p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={() => setShowTour(true)}
+                        className="flex items-center justify-center gap-2 px-4 py-4 font-bold rounded-2xl transition-all active:scale-95"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}
+                    >
+                        <HelpCircle size={18} />
+                    </button>
                     <button
                         onClick={() => navigate('/dispensary/invoices')}
                         className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-700 text-white font-bold rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all active:scale-95"
@@ -105,15 +116,15 @@ export default function DispensaryDashboard() {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard icon={<Package className="text-blue-600" />} label="Recent Orders" value="0" color="blue" />
-                <StatCard icon={<Star className="text-amber-500" />} label="Favorite Brands" value="--" color="amber" />
+                <StatCard icon={<Package className="text-blue-600" />} label="Recent Orders" value={activeOrders.length || "0"} color="blue" link="/dispensary/orders" />
+                <StatCard icon={<Star className="text-amber-500" />} label="Favorite Brands" value="--" color="amber" link="/dispensary/marketplace" />
                 <StatCard icon={<Clock className="text-indigo-600" />} label="Avg Delivery" color="indigo" value="48h" />
             </div>
 
             {/* Recent Activity / Order List */}
-            <div style={{ background: 'var(--bg-card)' }} className="rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
-                <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-800 text-lg">Active Orders</h3>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="rounded-[2rem] shadow-xl overflow-hidden">
+                <div className="p-6 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                    <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Active Orders</h3>
                     <button
                         onClick={() => navigate('/dispensary/marketplace')}
                         className="text-sm font-bold text-emerald-600 hover:underline"
@@ -124,13 +135,14 @@ export default function DispensaryDashboard() {
 
                 {activeOrders.length === 0 ? (
                     <div className="p-12 text-center">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
                             <Clock size={32} />
                         </div>
-                        <p className="text-slate-500 font-medium">No active orders yet.</p>
+                        <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No active orders yet.</p>
                         <button
                             onClick={() => navigate('/dispensary/marketplace')}
-                            className="mt-4 px-6 py-2 border-2 border-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all"
+                            className="mt-4 px-6 py-2 border-2 font-bold rounded-xl transition-all"
+                            style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
                         >
                             Start Shopping
                         </button>
@@ -141,7 +153,7 @@ export default function DispensaryDashboard() {
                             <div key={order.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <p className="font-bold text-slate-900">Order #{order.id.slice(-6).toUpperCase()}</p>
+                                        <p className="font-bold" style={{ color: 'var(--text-primary)' }}>Order #{order.id.slice(-6).toUpperCase()}</p>
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${order.status === 'Pending Approval' ? 'bg-amber-100 text-amber-700' :
                                             order.status === 'Completed' || order.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' :
                                                 'bg-slate-100 text-slate-500'
@@ -149,7 +161,7 @@ export default function DispensaryDashboard() {
                                             {order.status || 'Processing'}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-slate-500">
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                         {new Date(order.createdAt || order.date).toLocaleDateString()} • {Object.keys(order.brands || {}).join(', ') || 'Various Brands'}
                                     </p>
                                 </div>
@@ -158,7 +170,8 @@ export default function DispensaryDashboard() {
                                     <p className="text-xs text-slate-400 mb-2">{order.items?.length || Object.values(order.brands || {}).reduce((sum, b) => sum + Object.keys(b).length, 0)} Items</p>
                                     <div className="flex items-center gap-2 ml-auto">
                                         <select
-                                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 font-bold outline-none border-none cursor-pointer"
+                                            className="text-xs px-2 py-1 rounded-lg font-bold outline-none border-none cursor-pointer"
+                                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                                             onChange={(e) => {
                                                 if (e.target.value) {
                                                     handleExport(order, e.target.value);
@@ -181,32 +194,69 @@ export default function DispensaryDashboard() {
                             </div>
                         ))}
                     </div>
-                )}
-            </div>
+                )
+                }
+            </div >
 
             {/* Sample Request Modal */}
-            {showSampleRequest && (
-                <SampleRequestModal
-                    onClose={() => setShowSampleRequest(false)}
-                    profile={profile}
-                    currentUser={currentUser}
+            {
+                showSampleRequest && (
+                    <SampleRequestModal
+                        onClose={() => setShowSampleRequest(false)}
+                        profile={profile}
+                        currentUser={currentUser}
+                    />
+                )
+            }
+
+            {/* AI Chatbot */}
+            <DispensaryChatbot />
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('dispensary')}
+                    isFirstTime={false}
+                    onComplete={() => setShowTour(false)}
+                    tourKey="dispensary_replay"
                 />
             )}
-        </div>
+        </div >
     );
 }
 
-const StatCard = ({ icon, label, value, color }) => (
-    <div style={{ background: 'var(--bg-card)' }} className="p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/40 flex items-center gap-4 transition-transform hover:scale-[1.02]">
-        <div className={`w-12 h-12 rounded-2xl bg-${color}-50 flex items-center justify-center shrink-0`}>
-            {icon}
+const StatCard = ({ icon, label, value, color, link }) => {
+    const content = (
+        <>
+            <div className={`w-12 h-12 rounded-2xl bg-${color}-50 flex items-center justify-center shrink-0`}>
+                {icon}
+            </div>
+            <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-tertiary)' }}>{label}</p>
+                <p className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{value}</p>
+                {link && <p className="text-xs mt-1 group-hover:underline" style={{ color: 'var(--accent-primary)' }}>View Details</p>}
+            </div>
+        </>
+    );
+
+    if (link) {
+        return (
+            <Link
+                to={link}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}
+                className="p-6 rounded-[2rem] shadow-lg flex items-center gap-4 transition-all hover:scale-[1.02] hover:shadow-xl cursor-pointer group"
+            >
+                {content}
+            </Link>
+        );
+    }
+
+    return (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="p-6 rounded-[2rem] shadow-lg flex items-center gap-4 transition-transform hover:scale-[1.02]">
+            {content}
         </div>
-        <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-            <p className="text-2xl font-black text-slate-800 tracking-tight">{value}</p>
-        </div>
-    </div>
-);
+    );
+};
 
 // Sample Request Modal Component
 const SampleRequestModal = ({ onClose, profile, currentUser }) => {
@@ -267,10 +317,11 @@ const SampleRequestModal = ({ onClose, profile, currentUser }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div style={{ background: 'var(--bg-card)' }} className="rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900">Request Product Samples</h2>
+                    <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Request Product Samples</h2>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                     >
                         ✕
                     </button>
@@ -278,7 +329,7 @@ const SampleRequestModal = ({ onClose, profile, currentUser }) => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-3">Select Brands</label>
+                        <label className="block text-sm font-bold mb-3" style={{ color: 'var(--text-secondary)' }}>Select Brands</label>
                         <div className="grid grid-cols-2 gap-3">
                             {availableBrands.map(brand => (
                                 <label
@@ -301,9 +352,10 @@ const SampleRequestModal = ({ onClose, profile, currentUser }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Additional Notes (Optional)</label>
+                        <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text-secondary)' }}>Additional Notes (Optional)</label>
                         <textarea
-                            className="w-full p-4 rounded-xl border border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all resize-none"
+                            className="w-full p-4 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all resize-none"
+                            style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                             rows="4"
                             placeholder="Any specific products or notes for the brands..."
                             value={notes}
@@ -315,7 +367,8 @@ const SampleRequestModal = ({ onClose, profile, currentUser }) => {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+                            className="flex-1 py-3 border-2 font-bold rounded-xl transition-colors"
+                            style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
                         >
                             Cancel
                         </button>

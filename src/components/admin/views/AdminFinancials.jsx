@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getSales, markRepAsPaid, updateSaleStatus, getAllActivations, updateActivationStatus, markSaleCollected, markSaleRepPaid, markActivationBrandPaid, markActivationRepPaid } from '../../../services/firestoreService';
-import { DollarSign, Users, Award, Download, Filter, Search, CheckCircle, Calendar, ChevronDown, ChevronUp, Banknote, CreditCard } from 'lucide-react';
+import { DollarSign, Users, Award, Download, Filter, Search, CheckCircle, Calendar, ChevronDown, ChevronUp, Banknote, CreditCard, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { convertToCSV, downloadCSV } from '../../../utils/csvHelper';
 import { calculateAgencyShiftCost } from '../../../utils/pricing';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AdminFinancials() {
     const [sales, setSales] = useState([]);
@@ -194,6 +195,129 @@ export default function AdminFinancials() {
         return 'Pending';
     };
 
+    // Chart colors
+    const CHART_COLORS = ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
+
+    // Monthly revenue chart data
+    const monthlyRevenueData = useMemo(() => {
+        const monthlyData = {};
+        sales.forEach(sale => {
+            const date = sale.date?.toDate ? sale.date.toDate() : new Date(sale.date);
+            if (isNaN(date)) return;
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const monthName = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { month: monthName, revenue: 0, commission: 0 };
+            }
+            const amount = parseFloat(sale.amount) || 0;
+            monthlyData[monthKey].revenue += amount;
+            monthlyData[monthKey].commission += amount * 0.05;
+        });
+        return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
+    }, [sales]);
+
+    // Weekly revenue chart data
+    const weeklyRevenueData = useMemo(() => {
+        const weeklyData = {};
+        const getWeekKey = (date) => {
+            const d = new Date(date);
+            const startOfYear = new Date(d.getFullYear(), 0, 1);
+            const weekNum = Math.ceil((((d - startOfYear) / 86400000) + startOfYear.getDay() + 1) / 7);
+            return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+        };
+        sales.forEach(sale => {
+            const date = sale.date?.toDate ? sale.date.toDate() : new Date(sale.date);
+            if (isNaN(date)) return;
+            const weekKey = getWeekKey(date);
+            const weekLabel = `Week ${weekKey.split('-W')[1]}`;
+            if (!weeklyData[weekKey]) {
+                weeklyData[weekKey] = { week: weekLabel, revenue: 0, orders: 0 };
+            }
+            weeklyData[weekKey].revenue += parseFloat(sale.amount) || 0;
+            weeklyData[weekKey].orders += 1;
+        });
+        return Object.values(weeklyData).slice(-8);
+    }, [sales]);
+
+    // Top Dispensaries by revenue
+    const topDispensariesData = useMemo(() => {
+        const dispensaryData = {};
+        sales.forEach(sale => {
+            const name = sale.dispensaryName || 'Unknown';
+            if (!dispensaryData[name]) {
+                dispensaryData[name] = { name, revenue: 0, orders: 0 };
+            }
+            dispensaryData[name].revenue += parseFloat(sale.amount) || 0;
+            dispensaryData[name].orders += 1;
+        });
+        return Object.values(dispensaryData).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+    }, [sales]);
+
+    // Rep Performance comparison
+    const repPerformanceData = useMemo(() => {
+        const repData = {};
+        sales.forEach(sale => {
+            const repName = sale.representativeName || sale.userName || 'Unknown Rep';
+            if (!repData[repName]) {
+                repData[repName] = { rep: repName, sales: 0, revenue: 0, commission: 0 };
+            }
+            repData[repName].sales += 1;
+            repData[repName].revenue += parseFloat(sale.amount) || 0;
+            repData[repName].commission += (parseFloat(sale.amount) || 0) * 0.02;
+        });
+        return Object.values(repData).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+    }, [sales]);
+
+    // Cumulative Revenue Area Chart
+    const cumulativeRevenueData = useMemo(() => {
+        const sorted = [...sales].sort((a, b) => {
+            const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+            const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+            return dateA - dateB;
+        });
+        let cumulative = 0;
+        const dailyData = {};
+        sorted.forEach(sale => {
+            const date = sale.date?.toDate ? sale.date.toDate() : new Date(sale.date);
+            if (isNaN(date)) return;
+            const dayKey = date.toISOString().split('T')[0];
+            const amount = parseFloat(sale.amount) || 0;
+            cumulative += amount;
+            dailyData[dayKey] = { date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), cumulative, daily: amount };
+        });
+        return Object.values(dailyData).slice(-30);
+    }, [sales]);
+
+    // Pie chart data for commission status breakdown
+    const commissionPieData = useMemo(() => [
+        { name: 'Uncollected', value: stats.uncollected, color: '#f59e0b' },
+        { name: 'Ready to Pay', value: stats.collectedUnpaid, color: '#eab308' },
+        { name: 'Paid to Reps', value: stats.paidToReps, color: '#10b981' }
+    ].filter(d => d.value > 0), [stats]);
+
+    // Bar chart data for brand performance
+    const brandPerformanceData = useMemo(() => {
+        const brandData = {};
+        activations.forEach(a => {
+            const brand = a.brandName || a.brand_name || a.brand || 'Unknown';
+            if (!brandData[brand]) {
+                brandData[brand] = { brand, activations: 0, revenue: 0 };
+            }
+            brandData[brand].activations += 1;
+            const fee = parseFloat(a.activationFee) || parseFloat(a.activation_fee) ||
+                calculateAgencyShiftCost({
+                    hoursWorked: a.hoursWorked || a.total_hours || 0,
+                    region: a.region || 'NYC',
+                    milesTraveled: a.milesTraveled || a.miles_traveled || 0,
+                    tollAmount: a.tollAmount || a.toll_amount || 0,
+                    hasVehicle: a.hasVehicle !== undefined ? a.hasVehicle : a.has_vehicle
+                });
+            brandData[brand].revenue += fee;
+        });
+        return Object.values(brandData).sort((a, b) => b.revenue - a.revenue).slice(0, 6);
+    }, [activations]);
+
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-end">
@@ -233,6 +357,189 @@ export default function AdminFinancials() {
                     <h3 className="text-2xl font-bold text-emerald-700">${(stats.paidToReps || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                     <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Complete</p>
                 </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Line Chart - Monthly Revenue Trend */}
+                <div className="themed-card p-5 rounded-xl lg:col-span-2">
+                    <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <TrendingUp size={18} className="text-indigo-600" /> Monthly Revenue Trend
+                    </h3>
+                    {monthlyRevenueData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={250}>
+                            <LineChart data={monthlyRevenueData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                                <XAxis dataKey="month" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: '8px' }}
+                                    formatter={(value) => [`$${value.toFixed(2)}`, '']}
+                                />
+                                <Legend />
+                                <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6' }} />
+                                <Line type="monotone" dataKey="commission" name="Commission" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-[250px] flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                            No sales data available
+                        </div>
+                    )}
+                </div>
+
+                {/* Pie Chart - Commission Status */}
+                <div className="themed-card p-5 rounded-xl">
+                    <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <PieChartIcon size={18} className="text-purple-600" /> Commission Status
+                    </h3>
+                    {commissionPieData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                                <Pie
+                                    data={commissionPieData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    labelLine={false}
+                                >
+                                    {commissionPieData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-[250px] flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                            No commission data
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Bar Chart - Brand Performance */}
+            {brandPerformanceData.length > 0 && (
+                <div className="themed-card p-5 rounded-xl">
+                    <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <Award size={18} className="text-amber-600" /> Brand Performance (Activations)
+                    </h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={brandPerformanceData} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                            <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                            <YAxis type="category" dataKey="brand" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} width={100} />
+                            <Tooltip
+                                contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: '8px' }}
+                                formatter={(value, name) => [name === 'revenue' ? `$${value.toFixed(2)}` : value, name === 'revenue' ? 'Revenue' : 'Activations']}
+                            />
+                            <Bar dataKey="revenue" name="Revenue" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            )}
+
+            {/* Additional Analytics Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Weekly Revenue Chart */}
+                {weeklyRevenueData.length > 0 && (
+                    <div className="themed-card p-5 rounded-xl">
+                        <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <Calendar size={18} className="text-blue-600" /> Weekly Revenue Breakdown
+                        </h3>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={weeklyRevenueData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                                <XAxis dataKey="week" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: '8px' }}
+                                    formatter={(value, name) => [name === 'revenue' ? `$${value.toLocaleString()}` : value, name === 'revenue' ? 'Revenue' : 'Orders']}
+                                />
+                                <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="orders" name="Orders" fill="#93c5fd" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
+                {/* Top Dispensaries Chart */}
+                {topDispensariesData.length > 0 && (
+                    <div className="themed-card p-5 rounded-xl">
+                        <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <Users size={18} className="text-teal-600" /> Top Dispensaries by Revenue
+                        </h3>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={topDispensariesData} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                                <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} />
+                                <YAxis type="category" dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} width={90} />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: '8px' }}
+                                    formatter={(value, name) => [name === 'revenue' ? `$${value.toLocaleString()}` : value, name === 'revenue' ? 'Revenue' : 'Orders']}
+                                />
+                                <Bar dataKey="revenue" name="Revenue" fill="#14b8a6" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+            </div>
+
+            {/* Rep Performance & Cumulative Revenue */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Rep Performance Chart */}
+                {repPerformanceData.length > 0 && (
+                    <div className="themed-card p-5 rounded-xl">
+                        <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <Award size={18} className="text-orange-600" /> Rep Performance Comparison
+                        </h3>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={repPerformanceData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                                <XAxis dataKey="rep" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} angle={-15} textAnchor="end" height={50} />
+                                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: '8px' }}
+                                    formatter={(value, name) => [name === 'commission' ? `$${value.toFixed(2)}` : name === 'revenue' ? `$${value.toLocaleString()}` : value, name.charAt(0).toUpperCase() + name.slice(1)]}
+                                />
+                                <Legend />
+                                <Bar dataKey="revenue" name="Revenue" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="commission" name="Commission" fill="#fdba74" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
+                {/* Cumulative Revenue Area Chart */}
+                {cumulativeRevenueData.length > 0 && (
+                    <div className="themed-card p-5 rounded-xl">
+                        <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                            <TrendingUp size={18} className="text-emerald-600" /> Cumulative Revenue (30 Days)
+                        </h3>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <LineChart data={cumulativeRevenueData}>
+                                <defs>
+                                    <linearGradient id="colorCumulative" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+                                <XAxis dataKey="date" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} angle={-30} textAnchor="end" height={50} />
+                                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: '8px' }}
+                                    formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'cumulative' ? 'Total' : 'Daily']}
+                                />
+                                <Line type="monotone" dataKey="cumulative" name="Cumulative" stroke="#10b981" strokeWidth={2} fill="url(#colorCumulative)" dot={false} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
             </div>
 
             {/* Commissions Ledger */}

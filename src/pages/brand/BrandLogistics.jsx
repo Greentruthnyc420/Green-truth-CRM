@@ -122,7 +122,7 @@ export default function BrandLogistics() {
     };
 
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading Logistics Data...</div>;
+    if (loading) return <div className="p-8 text-center" style={{ color: 'var(--text-secondary)' }}>Loading Logistics Data...</div>;
 
     return (
         <div className="space-y-6">
@@ -135,9 +135,9 @@ export default function BrandLogistics() {
             </header>
 
             {/* Drivers Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                    <h2 className="font-bold text-slate-700 flex items-center gap-2"><Users size={18} /> Drivers</h2>
+            <div className="rounded-xl shadow-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                <div className="px-6 py-4 flex justify-between items-center" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                    <h2 className="font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Users size={18} /> Drivers</h2>
                     <button
                         onClick={() => setDriverModal({ open: true, data: null })}
                         className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-4 rounded-full flex items-center gap-1 transition-colors"
@@ -148,25 +148,25 @@ export default function BrandLogistics() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Name</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">License #</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Employee ID</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                            <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Name</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>License #</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Employee ID</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-tertiary)' }}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody>
                             {drivers.length === 0 && (
-                                <tr><td colSpan="4" className="py-4 text-center text-slate-500 text-sm">No drivers found. Add one to get started.</td></tr>
+                                <tr><td colSpan="4" className="py-4 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>No drivers found. Add one to get started.</td></tr>
                             )}
                             {drivers.map(driver => (
-                                <tr key={driver.id} className="hover:bg-slate-50">
-                                    <td className="py-4 px-6 font-medium text-slate-800">{driver.name}</td>
-                                    <td className="py-4 px-6 text-slate-500">{driver.license}</td>
-                                    <td className="py-4 px-6 text-slate-500">{driver.employeeId}</td>
+                                <tr key={driver.id} style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                                    <td className="py-4 px-6 font-medium" style={{ color: 'var(--text-primary)' }}>{driver.name}</td>
+                                    <td className="py-4 px-6" style={{ color: 'var(--text-secondary)' }}>{driver.license}</td>
+                                    <td className="py-4 px-6" style={{ color: 'var(--text-secondary)' }}>{driver.employeeId}</td>
                                     <td className="py-4 px-6 text-center space-x-2">
-                                        <button onClick={() => setDriverModal({ open: true, data: driver })} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100"><Edit size={14} /></button>
-                                        <button onClick={() => handleDeleteDriver(driver.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded-md hover:bg-slate-100"><Trash2 size={14} /></button>
+                                        <button onClick={() => setDriverModal({ open: true, data: driver })} className="p-1.5 rounded-md transition-colors" style={{ color: 'var(--text-tertiary)' }}><Edit size={14} /></button>
+                                        <button onClick={() => handleDeleteDriver(driver.id)} className="p-1.5 rounded-md transition-colors" style={{ color: 'var(--text-tertiary)' }}><Trash2 size={14} /></button>
                                     </td>
                                 </tr>
                             ))}
@@ -176,9 +176,9 @@ export default function BrandLogistics() {
             </div>
 
             {/* Vehicles Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                    <h2 className="font-bold text-slate-700 flex items-center gap-2"><Car size={18} /> Vehicles</h2>
+            <div className="rounded-xl shadow-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                <div className="px-6 py-4 flex justify-between items-center" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                    <h2 className="font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Car size={18} /> Vehicles</h2>
                     <button
                         onClick={() => setVehicleModal({ open: true, data: null })}
                         className="text-xs bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-4 rounded-full flex items-center gap-1 transition-colors"
@@ -189,27 +189,27 @@ export default function BrandLogistics() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Make & Model</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Color</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">License Plate</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Insurance</th>
-                                <th className="py-3 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                            <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Make & Model</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Color</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>License Plate</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Insurance</th>
+                                <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-tertiary)' }}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody>
                             {vehicles.length === 0 && (
-                                <tr><td colSpan="5" className="py-4 text-center text-slate-500 text-sm">No vehicles found. Add one to get started.</td></tr>
+                                <tr><td colSpan="5" className="py-4 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>No vehicles found. Add one to get started.</td></tr>
                             )}
                             {vehicles.map(vehicle => (
-                                <tr key={vehicle.id} className="hover:bg-slate-50">
-                                    <td className="py-4 px-6 font-medium text-slate-800">{vehicle.make} {vehicle.model}</td>
-                                    <td className="py-4 px-6 text-slate-500">{vehicle.color}</td>
-                                    <td className="py-4 px-6 text-slate-500">{vehicle.plate}</td>
-                                    <td className="py-4 px-6 text-slate-500">{vehicle.insuranceExpiry}</td>
+                                <tr key={vehicle.id} style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                                    <td className="py-4 px-6 font-medium" style={{ color: 'var(--text-primary)' }}>{vehicle.make} {vehicle.model}</td>
+                                    <td className="py-4 px-6" style={{ color: 'var(--text-secondary)' }}>{vehicle.color}</td>
+                                    <td className="py-4 px-6" style={{ color: 'var(--text-secondary)' }}>{vehicle.plate}</td>
+                                    <td className="py-4 px-6" style={{ color: 'var(--text-secondary)' }}>{vehicle.insuranceExpiry}</td>
                                     <td className="py-4 px-6 text-center space-x-2">
-                                        <button onClick={() => setVehicleModal({ open: true, data: vehicle })} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100"><Edit size={14} /></button>
-                                        <button onClick={() => handleDeleteVehicle(vehicle.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded-md hover:bg-slate-100"><Trash2 size={14} /></button>
+                                        <button onClick={() => setVehicleModal({ open: true, data: vehicle })} className="p-1.5 rounded-md transition-colors" style={{ color: 'var(--text-tertiary)' }}><Edit size={14} /></button>
+                                        <button onClick={() => handleDeleteVehicle(vehicle.id)} className="p-1.5 rounded-md transition-colors" style={{ color: 'var(--text-tertiary)' }}><Trash2 size={14} /></button>
                                     </td>
                                 </tr>
                             ))}
@@ -221,23 +221,23 @@ export default function BrandLogistics() {
             {/* Modals */}
             {driverModal.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                    <div className="rounded-xl shadow-2xl w-full max-w-md p-6" style={{ background: 'var(--bg-card)' }}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-slate-800">{driverModal.data ? 'Edit Driver' : 'Add New Driver'}</h3>
-                            <button onClick={() => setDriverModal({ open: false, data: null })} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{driverModal.data ? 'Edit Driver' : 'Add New Driver'}</h3>
+                            <button onClick={() => setDriverModal({ open: false, data: null })} style={{ color: 'var(--text-tertiary)' }}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleSaveDriver} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
-                                <input name="name" defaultValue={driverModal.data?.name} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="e.g. Jane Doe" />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>Full Name</label>
+                                <input name="name" defaultValue={driverModal.data?.name} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="e.g. Jane Doe" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">License Number</label>
-                                <input name="license" defaultValue={driverModal.data?.license} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="Drivers License #" />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>License Number</label>
+                                <input name="license" defaultValue={driverModal.data?.license} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="Drivers License #" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Employee ID</label>
-                                <input name="employeeId" defaultValue={driverModal.data?.employeeId} className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="Optional" />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>Employee ID</label>
+                                <input name="employeeId" defaultValue={driverModal.data?.employeeId} className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="Optional" />
                             </div>
                             <button type="submit" className="w-full py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 transition-colors flex justify-center items-center gap-2">
                                 <Save size={18} />
@@ -250,33 +250,33 @@ export default function BrandLogistics() {
 
             {vehicleModal.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                    <div className="rounded-xl shadow-2xl w-full max-w-md p-6" style={{ background: 'var(--bg-card)' }}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-slate-800">{vehicleModal.data ? 'Edit Vehicle' : 'Add New Vehicle'}</h3>
-                            <button onClick={() => setVehicleModal({ open: false, data: null })} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{vehicleModal.data ? 'Edit Vehicle' : 'Add New Vehicle'}</h3>
+                            <button onClick={() => setVehicleModal({ open: false, data: null })} style={{ color: 'var(--text-tertiary)' }}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleSaveVehicle} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Make</label>
-                                    <input name="make" defaultValue={vehicleModal.data?.make} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="Ford" />
+                                    <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>Make</label>
+                                    <input name="make" defaultValue={vehicleModal.data?.make} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="Ford" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model</label>
-                                    <input name="model" defaultValue={vehicleModal.data?.model} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="Transit" />
+                                    <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>Model</label>
+                                    <input name="model" defaultValue={vehicleModal.data?.model} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="Transit" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color</label>
-                                <input name="color" defaultValue={vehicleModal.data?.color} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="White" />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>Color</label>
+                                <input name="color" defaultValue={vehicleModal.data?.color} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="White" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">License Plate</label>
-                                <input name="plate" defaultValue={vehicleModal.data?.plate} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" placeholder="ABC-123" />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>License Plate</label>
+                                <input name="plate" defaultValue={vehicleModal.data?.plate} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} placeholder="ABC-123" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Insurance Expiry</label>
-                                <input type="date" name="insuranceExpiry" defaultValue={vehicleModal.data?.insuranceExpiry} required className="w-full p-2 border border-slate-200 rounded-lg focus:border-brand-500 outline-none" />
+                                <label className="block text-xs font-bold uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>Insurance Expiry</label>
+                                <input type="date" name="insuranceExpiry" defaultValue={vehicleModal.data?.insuranceExpiry} required className="w-full p-2 rounded-lg focus:border-brand-500 outline-none" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
                             </div>
                             <button type="submit" className="w-full py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 transition-colors flex justify-center items-center gap-2">
                                 <Save size={18} />

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Download, Upload, Plug, CheckCircle2, FileText, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Download, Upload, Plug, CheckCircle2, FileText, Loader2, ExternalLink, AlertTriangle, CreditCard } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import MondayIntegrationCard from '../../components/integrations/MondayIntegrationCard';
+import ACHPaymentSettings from '../../components/brand/ACHPaymentSettings';
 
 const SUPPORTED_SYSTEMS = [
     { id: 'distru', name: 'Distru', logo: '📦', description: 'Cannabis wholesale and distribution ERP', features: ['Wholesale Orders', 'Inventory Tracking', 'Route Optimization'], status: 'active', type: 'erp' },
@@ -100,6 +101,15 @@ export default function BrandIntegrations() {
                         }`}
                 >
                     CSV Import
+                </button>
+                <button
+                    onClick={() => setActiveTab('payments')}
+                    className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${activeTab === 'payments'
+                        ? 'bg-emerald-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                >
+                    <CreditCard size={16} /> Payments
                 </button>
             </div>
 
@@ -363,6 +373,10 @@ export default function BrandIntegrations() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {activeTab === 'payments' && (
+                <ACHPaymentSettings />
             )}
         </div>
     );

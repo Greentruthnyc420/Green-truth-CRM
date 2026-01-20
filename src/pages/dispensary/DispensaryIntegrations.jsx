@@ -92,13 +92,14 @@ export default function DispensaryIntegrations() {
             </div>
 
             {/* Tabs */}
-            <div style={{ background: 'var(--bg-card)' }} className="flex gap-2 rounded-xl p-2 shadow-sm border border-slate-200">
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="flex gap-2 rounded-xl p-2 shadow-sm">
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'overview'
                         ? 'bg-purple-600 text-white shadow-lg'
-                        : 'text-slate-600 hover:bg-slate-50'
+                        : ''
                         }`}
+                    style={activeTab !== 'overview' ? { color: 'var(--text-secondary)' } : {}}
                 >
                     Overview
                 </button>
@@ -106,8 +107,9 @@ export default function DispensaryIntegrations() {
                     onClick={() => setActiveTab('export')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'export'
                         ? 'bg-purple-600 text-white shadow-lg'
-                        : 'text-slate-600 hover:bg-slate-50'
+                        : ''
                         }`}
+                    style={activeTab !== 'export' ? { color: 'var(--text-secondary)' } : {}}
                 >
                     CSV Export
                 </button>
@@ -115,8 +117,9 @@ export default function DispensaryIntegrations() {
                     onClick={() => setActiveTab('import')}
                     className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'import'
                         ? 'bg-purple-600 text-white shadow-lg'
-                        : 'text-slate-600 hover:bg-slate-50'
+                        : ''
                         }`}
+                    style={activeTab !== 'import' ? { color: 'var(--text-secondary)' } : {}}
                 >
                     CSV Import
                 </button>
@@ -126,29 +129,30 @@ export default function DispensaryIntegrations() {
             {activeTab === 'overview' && (
                 <div className="space-y-6">
                     {/* Supported POS Systems */}
-                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h2 className="text-xl font-bold text-slate-800 mb-4">Supported POS Systems</h2>
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="rounded-xl shadow-sm p-6">
+                        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Supported POS Systems</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {SUPPORTED_POS.map((pos) => (
                                 <div
                                     key={pos.id}
-                                    className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-purple-300 hover:shadow-md transition-all"
+                                    className="rounded-xl p-4 hover:shadow-md transition-all"
+                                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3">
                                             <span className="text-3xl">{pos.logo}</span>
                                             <div>
-                                                <h3 className="font-bold text-slate-800">{pos.name}</h3>
+                                                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>{pos.name}</h3>
                                                 <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                                                     <CheckCircle2 size={12} /> Active
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-slate-600 mb-3">{pos.description}</p>
+                                    <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>{pos.description}</p>
                                     <div className="space-y-1">
                                         {pos.features.map((feature, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 text-xs text-slate-500">
+                                            <div key={idx} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                                                 <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
                                                 {feature}
                                             </div>
@@ -210,8 +214,8 @@ export default function DispensaryIntegrations() {
                     */}
 
                     {/* Quick Start Guide */}
-                    <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="rounded-xl shadow-sm p-6">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <FileText size={20} className="text-purple-600" />
                             Quick Start Guide
                         </h2>
@@ -221,8 +225,8 @@ export default function DispensaryIntegrations() {
                                     1
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-800 mb-1">Place Your Order</h3>
-                                    <p className="text-sm text-slate-600">
+                                    <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Place Your Order</h3>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                         Browse products in the Marketplace and add items to your cart. Submit your order
                                         when ready.
                                     </p>
@@ -233,8 +237,8 @@ export default function DispensaryIntegrations() {
                                     2
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-800 mb-1">Wait for Confirmation</h3>
-                                    <p className="text-sm text-slate-600">
+                                    <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Wait for Confirmation</h3>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                         Once the brand confirms your order, it will appear in your Dashboard under "Active
                                         Orders".
                                     </p>
@@ -245,8 +249,8 @@ export default function DispensaryIntegrations() {
                                     3
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-800 mb-1">Export to Your POS</h3>
-                                    <p className="text-sm text-slate-600">
+                                    <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Export to Your POS</h3>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                         Click the "Export CSV..." dropdown next to any confirmed order and select your POS
                                         system. The CSV will download automatically.
                                     </p>
@@ -257,8 +261,8 @@ export default function DispensaryIntegrations() {
                                     4
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-slate-800 mb-1">Import into Your System</h3>
-                                    <p className="text-sm text-slate-600">
+                                    <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Import into Your System</h3>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                         Use your POS system's import functionality to load the CSV file. Refer to the
                                         "CSV Import" tab for system-specific instructions.
                                     </p>
@@ -274,26 +278,26 @@ export default function DispensaryIntegrations() {
             {
                 activeTab === 'export' && (
                     <div className="space-y-6">
-                        <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="rounded-xl shadow-sm p-6">
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                                 <Download size={20} className="text-purple-600" />
                                 CSV Export Guide
                             </h2>
-                            <p className="text-slate-600 mb-6">
+                            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
                                 Export your confirmed orders as CSV files formatted for your specific POS system. Each export
                                 format is tailored to match your system's import requirements.
                             </p>
 
                             <div className="space-y-4">
                                 {SUPPORTED_POS.map((pos) => (
-                                    <div key={pos.id} className="border border-slate-200 rounded-xl p-4">
+                                    <div key={pos.id} className="rounded-xl p-4" style={{ border: '1px solid var(--border-primary)' }}>
                                         <div className="flex items-center gap-3 mb-3">
                                             <span className="text-2xl">{pos.logo}</span>
-                                            <h3 className="font-bold text-slate-800">{pos.name}</h3>
+                                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>{pos.name}</h3>
                                         </div>
-                                        <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
-                                            <p className="font-semibold text-slate-700">Export Format:</p>
-                                            <ul className="list-disc list-inside text-slate-600 space-y-1">
+                                        <div className="rounded-lg p-4 text-sm space-y-2" style={{ background: 'var(--bg-secondary)' }}>
+                                            <p className="font-semibold" style={{ color: 'var(--text-secondary)' }}>Export Format:</p>
+                                            <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--text-secondary)' }}>
                                                 {pos.id === 'dutchie' && (
                                                     <>
                                                         <li>SKU, Product Name, Price, Quantity, Category</li>
@@ -343,22 +347,22 @@ export default function DispensaryIntegrations() {
             {
                 activeTab === 'import' && (
                     <div className="space-y-6">
-                        <div style={{ background: 'var(--bg-card)' }} className="rounded-xl shadow-sm border border-slate-200 p-6">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }} className="rounded-xl shadow-sm p-6">
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                                 <Upload size={20} className="text-purple-600" />
                                 CSV Import Instructions
                             </h2>
-                            <p className="text-slate-600 mb-6">
+                            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
                                 Follow these system-specific instructions to import your downloaded CSV files into your POS
                                 system.
                             </p>
 
                             <div className="space-y-6">
                                 {SUPPORTED_POS.map((pos) => (
-                                    <div key={pos.id} className="border border-slate-200 rounded-xl p-5">
+                                    <div key={pos.id} className="rounded-xl p-5" style={{ border: '1px solid var(--border-primary)' }}>
                                         <div className="flex items-center gap-3 mb-4">
                                             <span className="text-2xl">{pos.logo}</span>
-                                            <h3 className="font-bold text-slate-800 text-lg">{pos.name}</h3>
+                                            <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{pos.name}</h3>
                                         </div>
                                         <div className="space-y-3 text-sm">
                                             {pos.id === 'dutchie' && (

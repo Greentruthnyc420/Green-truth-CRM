@@ -193,5 +193,42 @@ export const PRODUCT_CATALOG = [
         subBrands: ['pines', 'smoothie-bar', 'waferz'], // Brands under this processor
         minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
         products: [] // Processor doesn't have its own products - manages sub-brands
+    },
+    {
+        id: 'jusbud',
+        name: 'JUSBUD!',
+        logo: null, // CSS-based logo placeholder
+        brandColor: '#000000', // Black background for logo
+        minimumOrder: { type: 'cases', value: 1 }, // Minimum 1 case
+        // JUSBUD COD Discount Structure:
+        // Tier 1 (1-2 cases): 10% off → $10.80/unit, $345.60/case
+        // Tier 2 (3-5 cases): 15% off → $10.20/unit, $326.40/case
+        // Tier 3 (6+ cases): 20% off → $9.60/unit, $307.20/case
+        products: [
+            {
+                id: 'jb-2pk-sour-diesel',
+                name: '2-Pack 1G Pre-Rolls - Sour Diesel',
+                description: '2-Pack of 1G Premium Pre-Rolls (2G Total)',
+                price: 12.00,
+                caseSize: 32,
+                unit: 'unit',
+                thc: '',
+                strainType: 'Sativa',
+                category: 'Pre-Roll',
+                inStock: true
+            },
+            {
+                id: 'jb-2pk-og-kush',
+                name: '2-Pack 1G Pre-Rolls - OG Kush',
+                description: '2-Pack of 1G Premium Pre-Rolls (2G Total)',
+                price: 12.00,
+                caseSize: 32,
+                unit: 'unit',
+                thc: '',
+                strainType: 'Indica',
+                category: 'Pre-Roll',
+                inStock: true
+            }
+        ]
     }
 ];

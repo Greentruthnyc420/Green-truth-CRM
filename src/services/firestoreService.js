@@ -13,7 +13,20 @@ export const LEAD_STATUS = {
 // --- USERS ---
 
 export async function createUserProfile(userId, data) {
-    const { error } = await supabase.from('users').upsert({ id: userId, ...data });
+    // Map frontend field names to database column names
+    const profileData = {
+        id: userId,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        assigned_ambassador_id: data.assigned_ambassador_id,
+        instagram_handle: data.instagramHandle || data.instagram_handle || null,
+        phone: data.phone || null,
+        address: data.address || null,
+        created_at: data.created_at || new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('users').upsert(profileData);
     if (error) console.error("Supabase createUserProfile failed", error);
 }
 
@@ -23,7 +36,38 @@ export async function getUserProfile(userId) {
         console.warn("Supabase getUserProfile failed", error);
         return null;
     }
-    return data;
+    // Map database fields to frontend expected format
+    return {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        instagramHandle: data.instagram_handle,
+        phone: data.phone,
+        address: data.address,
+        assignedAmbassadorId: data.assigned_ambassador_id,
+        createdAt: data.created_at
+    };
+}
+
+export async function updateUserProfile(userId, updates) {
+    // Map frontend field names to database column names
+    const dbUpdates = {
+        updated_at: new Date().toISOString()
+    };
+
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.instagramHandle !== undefined) dbUpdates.instagram_handle = updates.instagramHandle;
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+    if (updates.address !== undefined) dbUpdates.address = updates.address;
+    if (updates.role !== undefined) dbUpdates.role = updates.role;
+
+    const { error } = await supabase.from('users').update(dbUpdates).eq('id', userId);
+    if (error) {
+        console.error("Error updating user profile:", error);
+        return false;
+    }
+    return true;
 }
 
 export async function getAllUsers() {
@@ -32,13 +76,280 @@ export async function getAllUsers() {
         console.warn("Supabase getAllUsers failed", error);
         return [];
     }
-    return data;
+    // Map to frontend format
+    return data.map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        instagramHandle: u.instagram_handle,
+        phone: u.phone,
+        address: u.address,
+        assignedAmbassadorId: u.assigned_ambassador_id,
+        isBlocked: u.is_blocked || false,
+        createdAt: u.created_at
+    }));
 }
 
 export async function deleteUser(userId) {
     const { error } = await supabase.from('users').delete().eq('id', userId);
     if (error) {
         console.error("Error deleting user:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Block a user (prevents them from logging in)
+ * @param userId - The user's ID
+ * @returns boolean - success
+ */
+export async function blockUser(userId) {
+    const { error } = await supabase
+        .from('users')
+        .update({ is_blocked: true, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+    if (error) {
+        console.error("Error blocking user:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Unblock a user (allows them to log in again)
+ * @param userId - The user's ID
+ * @returns boolean - success
+ */
+export async function unblockUser(userId) {
+    const { error } = await supabase
+        .from('users')
+        .update({ is_blocked: false, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+    if (error) {
+        console.error("Error unblocking user:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Check if a user is blocked
+ * @param userId - The user's ID
+ * @returns boolean - true if blocked
+ */
+export async function isUserBlocked(userId) {
+    const { data, error } = await supabase
+        .from('users')
+        .select('is_blocked')
+        .eq('id', userId)
+        .single();
+    if (error || !data) return false;
+    return data.is_blocked === true;
+}
+
+/**
+ * Reassign all leads from one rep to another
+ * @param fromUserId - The original rep's ID
+ * @param toUserId - The new rep's ID
+ * @returns {count: number, success: boolean} - count of leads reassigned
+ */
+export async function reassignUserLeads(fromUserId, toUserId) {
+    // First get all leads assigned to the original rep
+    const { data: leads, error: fetchError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('assigned_ambassador_id', fromUserId);
+
+    if (fetchError) {
+        console.error("Error fetching leads for reassignment:", fetchError);
+        return { success: false, count: 0 };
+    }
+
+    if (!leads || leads.length === 0) {
+        return { success: true, count: 0 };
+    }
+
+    // Update all leads to the new rep
+    const { error: updateError } = await supabase
+        .from('leads')
+        .update({
+            assigned_ambassador_id: toUserId,
+            updated_at: new Date().toISOString()
+        })
+        .eq('assigned_ambassador_id', fromUserId);
+
+    if (updateError) {
+        console.error("Error reassigning leads:", updateError);
+        return { success: false, count: 0 };
+    }
+
+    return { success: true, count: leads.length };
+}
+
+/**
+ * Get count of leads assigned to a user
+ * @param userId - The user's ID
+ * @returns number - count of leads
+ */
+export async function getLeadCountForUser(userId) {
+    const { count, error } = await supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('assigned_ambassador_id', userId);
+
+    if (error) {
+        console.error("Error counting leads:", error);
+        return 0;
+    }
+    return count || 0;
+}
+
+// --- USER ROLES (Admin/Social Manager Management) ---
+
+/**
+ * Get all user roles from the database
+ * @returns Array of role objects: { id, email, role, grantedBy, grantedAt, isActive }
+ */
+export async function getUserRoles() {
+    const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .order('granted_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching user roles:", error);
+        return [];
+    }
+
+    return (data || []).map(r => ({
+        id: r.id,
+        email: r.email,
+        role: r.role,
+        grantedBy: r.granted_by,
+        grantedAt: r.granted_at,
+        isActive: r.is_active
+    }));
+}
+
+/**
+ * Get a specific user's role
+ * @param email - The user's email
+ * @returns Role object or null
+ */
+export async function getUserRole(email) {
+    if (!email) return null;
+
+    const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .eq('is_active', true)
+        .single();
+
+    if (error || !data) return null;
+
+    return {
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        grantedBy: data.granted_by,
+        grantedAt: data.granted_at,
+        isActive: data.is_active
+    };
+}
+
+/**
+ * Add a new user role
+ * @param email - The user's email
+ * @param role - 'super_admin', 'admin', or 'social_manager'
+ * @param grantedBy - Email of the admin granting the role
+ * @returns Success boolean
+ */
+export async function addUserRole(email, role, grantedBy) {
+    if (!email || !role || !grantedBy) {
+        console.error("Missing required fields for addUserRole");
+        return false;
+    }
+
+    const validRoles = ['super_admin', 'admin', 'social_manager'];
+    if (!validRoles.includes(role)) {
+        console.error("Invalid role:", role);
+        return false;
+    }
+
+    const { error } = await supabase.from('user_roles').upsert({
+        email: email.toLowerCase(),
+        role: role,
+        granted_by: grantedBy,
+        granted_at: new Date().toISOString(),
+        is_active: true
+    }, { onConflict: 'email' });
+
+    if (error) {
+        console.error("Error adding user role:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Update an existing user role
+ * @param email - The user's email
+ * @param updates - { role?, isActive? }
+ * @param updatedBy - Email of admin making the change
+ * @returns Success boolean
+ */
+export async function updateUserRole(email, updates, updatedBy) {
+    if (!email) return false;
+
+    const dbUpdates = {};
+    if (updates.role !== undefined) {
+        const validRoles = ['super_admin', 'admin', 'social_manager'];
+        if (!validRoles.includes(updates.role)) {
+            console.error("Invalid role:", updates.role);
+            return false;
+        }
+        dbUpdates.role = updates.role;
+    }
+    if (updates.isActive !== undefined) {
+        dbUpdates.is_active = updates.isActive;
+    }
+
+    // Track who made the change
+    if (updatedBy) {
+        dbUpdates.granted_by = updatedBy;
+        dbUpdates.granted_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+        .from('user_roles')
+        .update(dbUpdates)
+        .eq('email', email.toLowerCase());
+
+    if (error) {
+        console.error("Error updating user role:", error);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Remove a user role (hard delete)
+ * @param email - The user's email
+ * @returns Success boolean
+ */
+export async function removeUserRole(email) {
+    if (!email) return false;
+
+    const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('email', email.toLowerCase());
+
+    if (error) {
+        console.error("Error removing user role:", error);
         return false;
     }
     return true;
@@ -699,14 +1010,23 @@ export async function addActivation(data) {
     const { data: activation, error } = await supabase.from('activations').insert([{
         brand_id: data.brandId,
         dispensary_id: data.dispensaryId,
-        date_of_activation: data.dateOfActivation || (data.datePreferences ? data.datePreferences[0] : null), // Default to 1st pref if no date
+        date_of_activation: data.dateOfActivation || data.date || (data.datePreferences ? data.datePreferences[0] : null),
         rep_id: data.repId,
         activation_type: data.activationType,
         photos: data.photos || [],
         notes: data.notes || '',
-        status: data.status || 'Scheduled', // Default to Scheduled if not provided
+        status: data.status || 'Scheduled',
         date_preferences: data.datePreferences || [],
         requested_by: data.requestedBy || null,
+        start_time: data.timeStart || data.startTime || null,
+        end_time: data.timeEnd || data.endTime || null,
+        region: data.region || 'NYC',
+        miles_traveled: data.milesTraveled || 0,
+        toll_amount: data.tollAmount || 0,
+        // Recurring activation fields
+        is_recurring: data.isRecurring || false,
+        recurrence_days: data.recurrenceDays || null,
+        parent_activation_id: data.parentActivationId || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     }]).select().single();
@@ -1098,23 +1418,31 @@ export async function getActivations() {
         return [];
     }
     return (data || []).map(a => ({
-        id: a.id, // Fixed: use a.id instead of a.activation_id
+        id: a.id,
         brandId: a.brand_id,
         dispensaryId: a.dispensary_id,
         dateOfActivation: a.date_of_activation,
-        // Helper: use dateOfActivation as 'date' for frontend compat
         date: a.date_of_activation,
-        startTime: '12:00', // Default start time if missing
-        endTime: '16:00',   // Default end time if missing
+        startTime: a.start_time || '12:00',
+        endTime: a.end_time || '16:00',
         repId: a.rep_id,
+        repName: a.rep_name,
         activationType: a.activation_type,
         photos: a.photos || [],
         notes: a.notes,
         status: a.status || 'Scheduled',
         datePreferences: a.date_preferences || [],
         requestedBy: a.requested_by,
+        address: a.address,
+        region: a.region || 'NYC',
+        milesTraveled: a.miles_traveled,
+        tollAmount: a.toll_amount,
+        // Recurring activation fields
+        isRecurring: a.is_recurring || false,
+        recurrenceDays: a.recurrence_days,
+        parentActivationId: a.parent_activation_id,
         createdAt: a.created_at,
-        updated_at: a.updated_at
+        updatedAt: a.updated_at
     }));
 }
 

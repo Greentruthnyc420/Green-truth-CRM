@@ -372,29 +372,36 @@ const AdminInvoiceGenerator = () => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-slate-900">Invoice Generator</h1>
-                    <p className="text-slate-500">Create itemized invoices for brands</p>
+                    <h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Invoice Generator</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>Create itemized invoices for brands</p>
                 </div>
             </div>
 
-            {/* Builder Mode */}
             {!showPreview && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
+                <div className="themed-card rounded-2xl p-6 shadow-sm space-y-6">
                     {/* Invoice Configuration */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Invoice Type</label>
-                                <div className="flex p-1 bg-slate-100 rounded-lg w-fit">
+                                <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Invoice Type</label>
+                                <div className="flex p-1 rounded-lg w-fit" style={{ background: 'var(--bg-secondary)' }}>
                                     <button
                                         onClick={() => setInvoiceType('brand')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${invoiceType === 'brand' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${invoiceType === 'brand' ? 'shadow' : ''}`}
+                                        style={{
+                                            background: invoiceType === 'brand' ? 'var(--bg-card)' : 'transparent',
+                                            color: invoiceType === 'brand' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                        }}
                                     >
                                         Brand Invoice
                                     </button>
                                     <button
                                         onClick={() => setInvoiceType('dispensary')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${invoiceType === 'dispensary' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${invoiceType === 'dispensary' ? 'shadow' : ''}`}
+                                        style={{
+                                            background: invoiceType === 'dispensary' ? 'var(--bg-card)' : 'transparent',
+                                            color: invoiceType === 'dispensary' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                        }}
                                     >
                                         Dispensary Invoice
                                     </button>
@@ -402,12 +409,13 @@ const AdminInvoiceGenerator = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">
+                                <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
                                     {invoiceType === 'brand' ? 'Select Brand' : 'Select Dispensary'}
                                 </label>
                                 {invoiceType === 'brand' ? (
                                     <select
-                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                        className="w-full p-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                                         value={selectedBrand}
                                         onChange={(e) => handleEntitySelect(e.target.value)}
                                     >
@@ -418,7 +426,8 @@ const AdminInvoiceGenerator = () => {
                                     </select>
                                 ) : (
                                     <select
-                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                        className="w-full p-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                                         value={selectedDispensary}
                                         onChange={(e) => handleEntitySelect(e.target.value)}
                                     >
@@ -431,12 +440,13 @@ const AdminInvoiceGenerator = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Bill To (Email)</label>
+                                <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Bill To (Email)</label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--text-tertiary)' }} />
                                     <input
                                         type="email"
-                                        className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                        className="w-full pl-10 p-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                                         placeholder="billing@company.com"
                                         value={selectedRecipient}
                                         onChange={(e) => setSelectedRecipient(e.target.value)}
@@ -445,18 +455,18 @@ const AdminInvoiceGenerator = () => {
                             </div>
                         </div>
 
-                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                            <h3 className="font-bold text-slate-800 mb-4">Invoice Summary</h3>
+                        <div className="p-6 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                            <h3 className="font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Invoice Summary</h3>
                             <div className="space-y-3 mb-6">
-                                <div className="flex justify-between text-slate-500">
+                                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
                                     <span>Subtotal</span>
                                     <span>${calculateTotal().toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-slate-500">
+                                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
                                     <span>Tax (0%)</span>
                                     <span>$0.00</span>
                                 </div>
-                                <div className="pt-3 border-t border-slate-200 flex justify-between font-bold text-lg text-slate-900">
+                                <div className="pt-3 flex justify-between font-bold text-lg" style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
                                     <span>Total Due</span>
                                     <span>${calculateTotal().toFixed(2)}</span>
                                 </div>
@@ -464,7 +474,8 @@ const AdminInvoiceGenerator = () => {
                             <button
                                 onClick={handlePreview}
                                 disabled={lineItems.length === 0}
-                                className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-3 rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}
                             >
                                 <FileText size={18} />
                                 Generate Invoice PDF
@@ -475,11 +486,12 @@ const AdminInvoiceGenerator = () => {
                     {/* Line Items */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-bold text-slate-700">Line Items</h3>
+                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Line Items</h3>
                             <div className="flex gap-2">
                                 <button
                                     onClick={addManualItem}
-                                    className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center gap-1 transition-colors"
+                                    className="px-3 py-1.5 text-sm rounded-lg flex items-center gap-1 transition-colors"
+                                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                                 >
                                     <Plus size={16} /> Add Item
                                 </button>
@@ -502,22 +514,22 @@ const AdminInvoiceGenerator = () => {
                             </div>
                         </div>
 
-                        <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-primary)' }}>
                             <table className="w-full text-sm">
-                                <thead className="bg-slate-50 border-b border-slate-200">
+                                <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
                                     <tr>
-                                        <th className="px-4 py-3 text-left font-bold text-slate-500">Description</th>
-                                        <th className="px-4 py-3 text-right font-bold text-slate-500 w-24">Qty</th>
-                                        <th className="px-4 py-3 text-right font-bold text-slate-500 w-24">Rate</th>
-                                        <th className="px-4 py-3 text-right font-bold text-slate-500 w-32">Amount</th>
-                                        <th className="px-4 py-3 text-center font-bold text-slate-500 w-16">Evid.</th>
+                                        <th className="px-4 py-3 text-left font-bold" style={{ color: 'var(--text-secondary)' }}>Description</th>
+                                        <th className="px-4 py-3 text-right font-bold w-24" style={{ color: 'var(--text-secondary)' }}>Qty</th>
+                                        <th className="px-4 py-3 text-right font-bold w-24" style={{ color: 'var(--text-secondary)' }}>Rate</th>
+                                        <th className="px-4 py-3 text-right font-bold w-32" style={{ color: 'var(--text-secondary)' }}>Amount</th>
+                                        <th className="px-4 py-3 text-center font-bold w-16" style={{ color: 'var(--text-secondary)' }}>Evid.</th>
                                         <th className="px-4 py-3 w-10"></th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody style={{ borderColor: 'var(--border-primary)' }}>
                                     {lineItems.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic">
+                                            <td colSpan="6" className="px-4 py-8 text-center italic" style={{ color: 'var(--text-tertiary)' }}>
                                                 No items added. Import work or add manually.
                                             </td>
                                         </tr>
@@ -565,7 +577,7 @@ const AdminInvoiceGenerator = () => {
                                                             onChange={(e) => updateLineItem(idx, 'rate', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td className="px-4 py-2 text-right font-bold text-slate-700">
+                                                    <td className="px-4 py-2 text-right font-bold" style={{ color: 'var(--text-primary)' }}>
                                                         ${parseFloat(item.amount || 0).toFixed(2)}
                                                     </td>
                                                     <td className="px-4 py-2 text-center">
@@ -628,10 +640,10 @@ const AdminInvoiceGenerator = () => {
                                     )}
                                 </tbody>
                                 {lineItems.length > 0 && (
-                                    <tfoot className="bg-slate-50 font-bold border-t border-slate-200">
+                                    <tfoot className="font-bold" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
                                         <tr>
-                                            <td colSpan="4" className="px-4 py-3 text-right text-slate-600">Total:</td>
-                                            <td className="px-4 py-3 text-right text-emerald-600">
+                                            <td colSpan="4" className="px-4 py-3 text-right" style={{ color: 'var(--text-secondary)' }}>Total:</td>
+                                            <td className="px-4 py-3 text-right" style={{ color: 'var(--success)' }}>
                                                 ${calculateTotal().toFixed(2)}
                                             </td>
                                             <td></td>
@@ -644,9 +656,10 @@ const AdminInvoiceGenerator = () => {
 
                     {/* Notes */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-500 mb-1">Notes</label>
+                        <label className="block text-sm font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>Notes</label>
                         <textarea
-                            className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm h-24 resize-none"
+                            className="w-full p-3 rounded-xl text-sm h-24 resize-none"
+                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                             placeholder="Payment instructions, thank you note, etc."
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
@@ -657,7 +670,8 @@ const AdminInvoiceGenerator = () => {
                         <button
                             onClick={handlePreview}
                             disabled={!selectedBrand || lineItems.length === 0}
-                            className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-6 py-3 font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}
                         >
                             <Eye size={18} /> Preview Invoice
                         </button>

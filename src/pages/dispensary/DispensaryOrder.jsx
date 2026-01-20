@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Search, Filter, Plus, Minus, X, ArrowRight, Loader, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, Search, Filter, Plus, Minus, X, ArrowRight, Loader, CheckCircle2, Tag, CreditCard, Banknote } from 'lucide-react';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import { useAuth } from '../../contexts/AuthContext';
 import { addSale, getUserProfile, getLead } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { sendAdminNotification, createOrderEmail } from '../../services/adminNotifications';
+import { calculateApplicableDeals } from '../../services/dealService';
 
 export default function DispensaryOrder() {
     const [cart, setCart] = useState([]);
@@ -13,6 +14,8 @@ export default function DispensaryOrder() {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [submitting, setSubmitting] = useState(false);
     const [profile, setProfile] = useState(null);
+    const [paymentMethod, setPaymentMethod] = useState('invoice');
+    const [dealInfo, setDealInfo] = useState({ appliedDeals: [], totalDiscount: 0, finalTotal: 0 });
 
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -61,6 +64,27 @@ export default function DispensaryOrder() {
 
     const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+    // Calculate applicable deals when cart or payment method changes
+    useEffect(() => {
+        async function calcDeals() {
+            if (cart.length === 0) {
+                setDealInfo({ appliedDeals: [], totalDiscount: 0, originalTotal: 0, finalTotal: 0 });
+                return;
+            }
+            const cartItems = cart.map(item => ({
+                productId: item.id,
+                brandId: item.brandId,
+                quantity: item.quantity,
+                price: item.price,
+                category: item.category,
+                caseSize: item.caseSize || 1 // Include caseSize for tiered discount calculation
+            }));
+            const result = await calculateApplicableDeals(cartItems, paymentMethod);
+            setDealInfo(result);
+        }
+        calcDeals();
+    }, [cart, paymentMethod]);
+
     const handlePlaceOrder = async () => {
         setSubmitting(true);
         try {
@@ -83,9 +107,12 @@ export default function DispensaryOrder() {
                 dispensaryId: profile.dispensaryId,
                 dispensaryName: profile.dispensaryName,
                 licenseNumber: profile.licenseNumber,
-                totalAmount: cartTotal,
+                totalAmount: dealInfo.finalTotal || cartTotal,
+                subtotal: cartTotal,
+                discount: dealInfo.totalDiscount || 0,
+                appliedDeals: dealInfo.appliedDeals || [],
                 brands: productsByBrand,
-                paymentTerms: 'COD', // Default for self-service
+                paymentTerms: paymentMethod === 'cod' ? 'COD' : 'Invoice',
                 status: 'pending',
                 orderSource: 'Dispensary Portal',
                 createdBy: currentUser.uid,
@@ -145,16 +172,16 @@ export default function DispensaryOrder() {
         <div className="pb-32">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Place Order</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Select products from our full catalog.</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>Place Order</h1>
+                    <p className="mt-1 font-medium" style={{ color: 'var(--text-secondary)' }}>Select products from our full catalog.</p>
                 </div>
                 <div className="hidden md:flex gap-2">
                     {categories.map(cat => (
                         <button
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
-                            className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 border border-slate-100'
-                                }`}
+                            className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white' : ''}`}
+                            style={selectedCategory !== cat ? { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' } : {}}
                         >
                             {cat}
                         </button>
@@ -166,11 +193,12 @@ export default function DispensaryOrder() {
                 {/* Catalog Section */}
                 <div className="flex-1 space-y-6">
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={20} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-emerald-600" style={{ color: 'var(--text-tertiary)' }} size={20} />
                         <input
                             type="text"
                             placeholder="Search products or brands..."
-                            className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-100 bg-white shadow-sm focus:border-emerald-500 outline-none transition-all"
+                            className="w-full pl-12 pr-4 py-4 rounded-2xl shadow-sm focus:border-emerald-500 outline-none transition-all"
+                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -178,20 +206,21 @@ export default function DispensaryOrder() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {filteredProducts.map(product => (
-                            <div key={product.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                            <div key={product.id} className="p-5 rounded-[2rem] shadow-sm hover:shadow-md transition-all group" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">{product.brandName}</span>
-                                        <h3 className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{product.name}</h3>
-                                        <p className="text-xs text-slate-400 mt-1">{product.unit || 'Unit'}</p>
+                                        <h3 className="font-bold group-hover:text-emerald-700 transition-colors" style={{ color: 'var(--text-primary)' }}>{product.name}</h3>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{product.unit || 'Unit'}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-lg font-black text-slate-900">${product.price.toFixed(2)}</p>
+                                        <p className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>${product.price.toFixed(2)}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => addToCart(product)}
-                                    className="w-full py-3 bg-slate-50 text-slate-600 font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-3 font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                                 >
                                     <Plus size={18} /> Add to Cart
                                 </button>
@@ -202,7 +231,7 @@ export default function DispensaryOrder() {
 
                 {/* Cart Section */}
                 <div className="w-full lg:w-80 shrink-0">
-                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 sticky top-24 overflow-hidden">
+                    <div className="rounded-[2rem] shadow-xl sticky top-24 overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
                         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
                             <h3 className="font-bold">Your Cart</h3>
                             <div className="bg-emerald-500 text-white text-[10px] font-black px-2 py-1 rounded-full">{cart.length}</div>
@@ -210,7 +239,7 @@ export default function DispensaryOrder() {
 
                         <div className="p-4 max-h-[40vh] overflow-y-auto min-h-[200px]">
                             {cart.length === 0 ? (
-                                <div className="text-center py-12 text-slate-300">
+                                <div className="text-center py-12" style={{ color: 'var(--text-tertiary)' }}>
                                     <ShoppingBag size={40} className="mx-auto mb-2 opacity-20" />
                                     <p className="text-sm font-medium">Cart is empty</p>
                                 </div>
@@ -219,10 +248,10 @@ export default function DispensaryOrder() {
                                     {cart.map(item => (
                                         <div key={item.id} className="flex justify-between items-center group animate-in slide-in-from-right-4">
                                             <div className="flex-1">
-                                                <p className="text-sm font-bold text-slate-800 truncate leading-tight">{item.name}</p>
-                                                <p className="text-[10px] text-slate-400 font-medium">${item.price} x {item.quantity}</p>
+                                                <p className="text-sm font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>{item.name}</p>
+                                                <p className="text-[10px] font-medium" style={{ color: 'var(--text-tertiary)' }}>${item.price} x {item.quantity}</p>
                                             </div>
-                                            <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-1 opacity-100">
+                                            <div className="flex items-center gap-2 rounded-lg p-1 opacity-100" style={{ background: 'var(--bg-secondary)' }}>
                                                 <button onClick={() => removeFromCart(item.id)} className="p-1 hover:text-red-500"><Minus size={14} /></button>
                                                 <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
                                                 <button onClick={() => addToCart(item)} className="p-1 hover:text-emerald-600"><Plus size={14} /></button>
@@ -233,11 +262,72 @@ export default function DispensaryOrder() {
                             )}
                         </div>
 
-                        <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-slate-500 uppercase">Subtotal</span>
-                                <span className="text-xl font-black text-slate-900">${cartTotal.toFixed(2)}</span>
+                        <div className="p-6 space-y-4" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
+                            {/* Payment Method Selector */}
+                            <div>
+                                <p className="text-xs font-bold uppercase mb-2" style={{ color: 'var(--text-tertiary)' }}>Payment Method</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setPaymentMethod('invoice')}
+                                        className={`flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${paymentMethod === 'invoice' ? 'bg-emerald-600 text-white' : ''}`}
+                                        style={paymentMethod !== 'invoice' ? { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' } : {}}
+                                    >
+                                        <CreditCard size={16} /> Invoice
+                                    </button>
+                                    <button
+                                        onClick={() => setPaymentMethod('cod')}
+                                        className={`flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${paymentMethod === 'cod' ? 'bg-emerald-600 text-white' : ''}`}
+                                        style={paymentMethod !== 'cod' ? { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' } : {}}
+                                    >
+                                        <Banknote size={16} /> COD
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* Subtotal */}
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>${cartTotal.toFixed(2)}</span>
+                            </div>
+
+                            {/* Applied Deals */}
+                            {dealInfo.appliedDeals.length > 0 && (
+                                <div className="space-y-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+                                    {dealInfo.appliedDeals.map((deal, idx) => (
+                                        <div key={idx} className="flex justify-between items-center text-sm">
+                                            <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                                <Tag size={14} />
+                                                <span>
+                                                    {deal.name}
+                                                    {deal._tierApplied && (
+                                                        <span className="ml-1 text-xs opacity-75">
+                                                            ({deal._tierApplied.minCases}-{deal._tierApplied.maxCases || '+'} cases)
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </span>
+                                            <span className="font-bold text-emerald-600">-${deal.discountAmount.toFixed(2)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Discount Line */}
+                            {dealInfo.totalDiscount > 0 && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-emerald-600">Total Savings</span>
+                                    <span className="font-bold text-emerald-600">-${dealInfo.totalDiscount.toFixed(2)}</span>
+                                </div>
+                            )}
+
+                            {/* Final Total */}
+                            <div className="flex justify-between items-center pt-2 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                                <span className="text-sm font-bold uppercase" style={{ color: 'var(--text-secondary)' }}>Total</span>
+                                <span className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
+                                    ${(dealInfo.finalTotal || cartTotal).toFixed(2)}
+                                </span>
+                            </div>
+
                             <button
                                 onClick={handlePlaceOrder}
                                 disabled={cart.length === 0 || submitting}

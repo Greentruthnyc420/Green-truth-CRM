@@ -22,6 +22,7 @@ import Schedule from './pages/Schedule';
 import PrivateRoute from './components/PrivateRoute';
 import LandingPage from './pages/LandingPage'; // Import the new LandingPage component
 import GatewayLanding from './pages/GatewayLanding';
+// TourTestPage removed - tours are initiated from dashboards now
 import { NotificationProvider } from './contexts/NotificationContext';
 
 // Admin Portal Imports
@@ -43,11 +44,12 @@ import LegacyAdminDashboard from './pages/AdminDashboard'; // Restored as Legacy
 import AdminWorkflow from './components/admin/views/AdminWorkflow';
 import AdminInvoiceGenerator from './components/admin/views/AdminInvoiceGenerator';
 import AmbassadorOverview from './components/admin/AmbassadorOverview';
-import AdminLogistics from './components/admin/views/AdminLogistics';
+import AdminLogistics from './components/admin/views/AdminLogistics'; // TEMPORARILY HIDDEN FOR LAUNCH
 import AdminIntegrations from './pages/admin/AdminIntegrations';
 import AdminBrands from './components/admin/views/AdminBrands';
 import AdminCollections from './components/admin/views/AdminCollections';
 import DispensaryDetail from './pages/admin/DispensaryDetail';
+import AdminRoleManagement from './components/admin/views/AdminRoleManagement';
 
 // Brand Portal Imports
 import BrandLogin from './pages/brand/BrandLogin';
@@ -63,10 +65,13 @@ import BrandNewLead from './pages/brand/BrandNewLead';
 import BrandIntegrations from './pages/brand/BrandIntegrations';
 import MondayCallback from './pages/brand/MondayCallback';
 import BrandSyncHistory from './pages/brand/BrandSyncHistory';
-import BrandLogistics from './pages/brand/BrandLogistics';
+// TEMPORARILY HIDDEN FOR LAUNCH - BrandLogistics
+// import BrandLogistics from './pages/brand/BrandLogistics';
 import BrandFulfillment from './pages/brand/BrandFulfillment';
 import BrandPipeline from './pages/brand/BrandPipeline';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
+import BrandDeals from './pages/brand/BrandDeals';
+import BrandProducts from './pages/brand/BrandProducts';
 
 // Dispensary Portal Imports
 import DispensaryVerification from './pages/dispensary/DispensaryVerification';
@@ -89,6 +94,8 @@ import DriverDashboard from './pages/driver/DriverDashboard';
 // Onboarding
 import ContractorOnboarding from './pages/ContractorOnboarding';
 import OnboardingRoute from './components/OnboardingRoute';
+import CompensationPortal from './pages/CompensationPortal';
+import ProfileSettings from './pages/ProfileSettings';
 
 function App() {
   return (
@@ -100,6 +107,8 @@ function App() {
 
         {/* Gateway Landing Page */}
         <Route path="/gateway" element={<GatewayLanding />} />
+
+        {/* Tour Testing Page removed - tours initiated from dashboards */}
 
         {/* Admin Portal (New) */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -117,17 +126,20 @@ function App() {
             <Route path="pipeline" element={<AdminGrowth />} /> {/* Reusing AdminGrowth component for Pipeline view */}
             <Route path="growth" element={<LegacyAdminDashboard />} /> {/* Legacy Console is now the main Growth view */}
             <Route path="integrations" element={<AdminIntegrations />} />
-            <Route path="logistics" element={<AdminLogistics />} />
+            {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}
+            {/* <Route path="logistics" element={<AdminLogistics />} /> */}
             <Route path="brands" element={<AdminBrands />} />
             <Route path="brands/:brandId" element={<AdminBrands />} />
             <Route path="collections" element={<AdminCollections />} />
             <Route path="dispensary/:id" element={<DispensaryDetail />} />
+            <Route path="roles" element={<AdminRoleManagement />} />
           </Route>
         </Route>
 
         {/* Sales Ambassador Portal */}
         <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<ContractorOnboarding />} />
+        <Route path="/compensation-guide" element={<CompensationPortal />} />
 
         <Route element={<PrivateRoute />}>
           <Route element={<OnboardingRoute />}>
@@ -146,6 +158,7 @@ function App() {
               <Route path="payouts/wages" element={<WagesPayouts />} />
               <Route path="accounts/active" element={<ActiveAccounts />} />
               <Route path="accounts" element={<Accounts />} />
+              <Route path="settings" element={<ProfileSettings />} />
               {/* Legacy Admin Routes Restored */}
               <Route path="admin" element={<AdminDashboard />} />
               <Route path="brand-oversight" element={<BrandOversight />} />
@@ -172,8 +185,11 @@ function App() {
             <Route path="pipeline" element={<BrandPipeline />} />
             <Route path="integrations" element={<BrandIntegrations />} />
             <Route path="sync-history" element={<BrandSyncHistory />} />
-            <Route path="logistics" element={<BrandLogistics />} />
+            {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}
+            {/* <Route path="logistics" element={<BrandLogistics />} /> */}
             <Route path="fulfillment" element={<BrandFulfillment />} />
+            <Route path="deals" element={<BrandDeals />} />
+            <Route path="products" element={<BrandProducts />} />
           </Route>
         </Route>
 

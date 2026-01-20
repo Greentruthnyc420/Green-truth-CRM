@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet, Banknote } from 'lucide-react';
+import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet, Banknote, BookOpen, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMyDispensaries, getSales, getUserActivations } from '../services/firestoreService';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
@@ -13,14 +13,21 @@ import {
     OWNER_EMAIL
 } from '../services/compensationService';
 import RepSignupLink from '../components/RepSignupLink';
+import SalesRepChatbot from '../components/SalesRepChatbot';
+import OnboardingTour from '../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../data/tourSteps';
 
 const StatCard = ({ title, value, subtext, icon: IconComponent, trend, highlight, secondaryValue }) => (
-    <div className={`themed-card p-6 rounded-xl ${highlight ? 'ring-4' : ''} shadow-sm hover:shadow-md transition-all`}
+    <div className={`themed-card p-6 rounded-xl ${highlight ? 'ring-4' : ''} shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group`}
         style={highlight ? { borderColor: 'var(--accent-primary)', boxShadow: 'var(--glow-accent)' } : {}}
     >
         <div className="flex justify-between items-start mb-4">
-            <div className="p-3 rounded-lg" style={{ background: 'var(--accent-primary)', opacity: highlight ? 1 : 0.2 }}>
-                <IconComponent size={24} style={{ color: highlight ? 'var(--text-inverse)' : 'var(--accent-primary)' }} />
+            <div className="p-3 rounded-lg transition-all group-hover:scale-110"
+                style={{
+                    background: highlight ? 'var(--accent-primary)' : 'rgba(16, 185, 129, 0.15)',
+                }}
+            >
+                <IconComponent size={24} style={{ color: highlight ? 'var(--text-inverse)' : '#10b981' }} />
             </div>
             {trend && (
                 <div className="flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-full"
@@ -89,6 +96,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [milestoneMessage, setMilestoneMessage] = useState(null);
     const [showMilestoneParams, setShowMilestoneParams] = useState(null);
+    const [showTour, setShowTour] = useState(false);
 
     useEffect(() => {
         const loadData = async () => {
@@ -254,8 +262,20 @@ export default function Dashboard() {
             )}
 
             <div className="mb-6">
-                <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Welcome back, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'Ambassador')}!</h1>
-                <p style={{ color: 'var(--text-secondary)' }}>Here's your compensation breakdown.</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Welcome back, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'Ambassador')}!</h1>
+                        <p style={{ color: 'var(--text-secondary)' }}>Here's your compensation breakdown.</p>
+                    </div>
+                    <button
+                        onClick={() => setShowTour(true)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}
+                    >
+                        <HelpCircle size={16} />
+                        Replay Tour
+                    </button>
+                </div>
                 {milestoneMessage && (
                     <div className="mt-4 p-4 bg-gradient-to-r from-brand-100 via-white to-brand-100 border border-brand-200 text-brand-800 rounded-xl flex items-center justify-between gap-3 shadow-md animate-slideIn">
                         <div className="flex items-center gap-3">
@@ -334,21 +354,36 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="themed-card rounded-xl p-6 shadow-lg flex justify-between items-center"
                     style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}>
                     <div>
-                        <h2 className="text-xl font-bold mb-1">Manage Your Territory</h2>
-                        <p className="text-brand-100 text-sm">Track activations and purchase history for your doors.</p>
+                        <h2 className="text-xl font-bold mb-1 text-white">Manage Your Territory</h2>
+                        <p className="text-white/80 text-sm">Track activations and purchase history for your doors.</p>
                     </div>
                     <Link
                         to="/app/my-dispensaries"
-                        className="px-6 py-2 rounded-lg font-bold transition-colors shadow-sm"
-                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-inverse)' }}
+                        className="px-6 py-2 rounded-lg font-bold transition-all shadow-md hover:scale-105 bg-white text-emerald-600 hover:bg-gray-50"
                     >
                         View My Doors
                     </Link>
                 </div>
+
+                {/* Compensation Guide Quick Action */}
+                <Link
+                    to="/compensation-guide"
+                    className="themed-card rounded-xl p-6 shadow-lg flex items-center gap-4 hover:scale-[1.02] transition-all"
+                    style={{ background: 'linear-gradient(135deg, #6c5ce7, #0984e3)' }}
+                >
+                    <div className="p-3 rounded-xl bg-white/20">
+                        <BookOpen size={28} className="text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-white">Compensation Guide</h2>
+                        <p className="text-white/80 text-sm">View pay rates, bonuses & AI tools</p>
+                    </div>
+                </Link>
+
                 <RepSignupLink />
             </div>
 
@@ -429,7 +464,19 @@ export default function Dashboard() {
                     )}
                 </div>
             </div>
+
+            {/* AI Chatbot */}
+            <SalesRepChatbot />
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('sales_rep')}
+                    isFirstTime={false}
+                    onComplete={() => setShowTour(false)}
+                    tourKey="sales_rep_replay"
+                />
+            )}
         </div >
     );
 }
-

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { useBrandAuth, AVAILABLE_BRANDS } from '../../contexts/BrandAuthContext';
-import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle, KeyRound } from 'lucide-react';
+import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle, KeyRound, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase';
@@ -186,6 +186,7 @@ export default function BrandLogin() {
         '7': 'waferz',
         '8': 'pines',
         '9': 'flx-extracts', // Processor
+        '10': 'jusbud', // JUSBUD!
     };
 
     const handleDevLogin = async (brandIdOverride = null) => {
@@ -388,12 +389,21 @@ export default function BrandLogin() {
                         </div>
 
                         {(import.meta.env.DEV || window.location.hostname === 'localhost') && (
-                            <div className="mt-8 pt-8 border-t border-slate-800/50 flex justify-center">
+                            <div className="mt-8 pt-8 border-t border-slate-800/50 flex flex-col gap-3 items-center">
                                 <button
                                     onClick={() => handleDevLogin()}
                                     className="px-6 py-2 bg-slate-900/50 border border-amber-500/20 rounded-full text-amber-500 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/10 transition-all flex items-center gap-2"
                                 >
                                     <Shield size={14} /> Master Developer Bypass
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        sessionStorage.setItem('triggerTour', 'brand');
+                                        handleDevLogin();
+                                    }}
+                                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-full text-sm font-bold hover:from-amber-600 hover:to-orange-700 transition-all flex items-center gap-2 shadow-lg shadow-amber-900/30"
+                                >
+                                    <Play size={16} /> 🎬 Take Tour
                                 </button>
                             </div>
                         )}

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, Search, Plus, Minus, X, ArrowRight, Loader, Store, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { ShoppingBag, Search, Plus, Minus, X, ArrowRight, Loader, Store, CheckCircle2, Tag } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { addSale, getUserProfile, getLead } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
+import { calculateApplicableDeals } from '../../services/dealService';
 
 export default function DispensaryMarketplace() {
     const { cart, addToCart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
@@ -18,6 +19,8 @@ export default function DispensaryMarketplace() {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [paymentTerms, setPaymentTerms] = useState('COD'); // New state for payment terms
     const [editingQuantity, setEditingQuantity] = useState({}); // Track values while user is editing
+    const [dealCalculation, setDealCalculation] = useState(null); // Store calculated deals
+    const [calculatingDeals, setCalculatingDeals] = useState(false);
 
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -76,6 +79,49 @@ export default function DispensaryMarketplace() {
     }, [allProducts, searchTerm, selectedBrand]);
 
     const commissionFee = cartTotal * 0.05; // 5% Commission for GreenTruth
+
+    // Calculate applicable deals when checkout opens or payment method changes
+    useEffect(() => {
+        async function calculateDeals() {
+            if (!isCheckoutOpen || cart.length === 0) {
+                setDealCalculation(null);
+                return;
+            }
+
+            setCalculatingDeals(true);
+            try {
+                // Prepare cart items for deal calculation
+                const cartItemsForDeals = cart.map(item => ({
+                    productId: item.id,
+                    brandId: item.brandId,
+                    quantity: item.quantity,
+                    price: item.orderType === 'case' ? item.price * (item.caseSize || 1) : item.price,
+                    caseSize: item.caseSize || 1,
+                    category: item.category
+                }));
+
+                // Map payment terms to deal service format
+                const paymentMethodMap = { 'COD': 'cod', 'Net 14': 'invoice', 'Net 30': 'invoice' };
+                const paymentMethod = paymentMethodMap[paymentTerms] || 'invoice';
+
+                const result = await calculateApplicableDeals(cartItemsForDeals, paymentMethod);
+                setDealCalculation(result);
+            } catch (error) {
+                console.error('Error calculating deals:', error);
+                setDealCalculation(null);
+            } finally {
+                setCalculatingDeals(false);
+            }
+        }
+
+        calculateDeals();
+    }, [isCheckoutOpen, cart, paymentTerms]);
+
+    // Calculate final totals with discounts
+    const discount = dealCalculation?.totalDiscount || 0;
+    const finalTotal = dealCalculation?.finalTotal || cartTotal;
+    const appliedDeals = dealCalculation?.appliedDeals || [];
+
 
     const handleConfirmOrder = async () => {
         if (!profile) {
@@ -181,17 +227,21 @@ export default function DispensaryMarketplace() {
                 };
             });
 
-            // Prepare Sale Payload
+            // Prepare Sale Payload with discounts applied
             const salePayload = {
                 dispensaryId: profile.dispensaryId || currentUser.uid,
                 dispensaryName: profile.dispensaryName || profile.name || 'Unknown Dispensary',
+                dispensaryAddress: profile.address || '',
                 licenseNumber: profile.licenseNumber || '',
-                totalAmount: cartTotal,
+                subtotal: cartTotal,
+                discountAmount: discount,
+                totalAmount: finalTotal,
+                appliedDeals: appliedDeals.map(d => ({ name: d.name, type: d.type, discountValue: d.discountValue, discountAmount: d.discountAmount })),
                 brands: productsByBrand, // Structure compatible with Order processing
                 paymentTerms: paymentTerms,
                 status: 'Pending Approval',
                 orderSource: 'Dispensary Portal',
-                commissionEarned: commissionFee,
+                commissionEarned: finalTotal * 0.05,
                 createdBy: currentUser.uid,
                 createdAt: new Date().toISOString()
             };
@@ -202,8 +252,8 @@ export default function DispensaryMarketplace() {
                     const lead = await getLead(profile.dispensaryId);
                     if (lead && lead.repAssigned) {
                         salePayload.representativeName = lead.repAssigned;
-                        // Optional Rep Commission calculation
-                        salePayload.repCommission = cartTotal * 0.02;
+                        // Optional Rep Commission calculation (on discounted total)
+                        salePayload.repCommission = finalTotal * 0.02;
                     }
                 } catch (err) {
                     console.warn("Failed to fetch lead for attribution", err);
@@ -236,7 +286,7 @@ export default function DispensaryMarketplace() {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>Marketplace</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Browse verified brands and order directly.</p>
+                    <p className="mt-1 font-medium" style={{ color: 'var(--text-secondary)' }}>Browse verified brands and order directly.</p>
                 </div>
 
                 {/* Brand Filters */}
@@ -279,9 +329,9 @@ export default function DispensaryMarketplace() {
 
                     {filteredProducts.length === 0 ? (
                         <div className="text-center py-20 rounded-[2rem] border border-dashed" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                            <Store className="mx-auto text-slate-300 mb-4" size={48} />
-                            <h3 className="text-lg font-bold text-slate-700">No products found</h3>
-                            <p className="text-slate-400">Try adjusting your filters.</p>
+                            <Store className="mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} size={48} />
+                            <h3 className="text-lg font-bold" style={{ color: 'var(--text-secondary)' }}>No products found</h3>
+                            <p style={{ color: 'var(--text-tertiary)' }}>Try adjusting your filters.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -303,8 +353,8 @@ export default function DispensaryMarketplace() {
                                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">{product.brandName}</span>
                                                 {product.thc && <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{product.thc}</span>}
                                             </div>
-                                            <h3 className="font-bold text-slate-800 text-lg leading-tight mb-1 group-hover:text-emerald-700 transition-colors">{product.name}</h3>
-                                            <p className="text-sm text-slate-400 font-medium mb-4 line-clamp-2" title={product.description}>{product.description}</p>
+                                            <h3 className="font-bold text-lg leading-tight mb-1 group-hover:text-emerald-700 transition-colors" style={{ color: 'var(--text-primary)' }}>{product.name}</h3>
+                                            <p className="text-sm font-medium mb-4 line-clamp-2" style={{ color: 'var(--text-tertiary)' }} title={product.description}>{product.description}</p>
 
                                             {/* Order Type Toggle */}
                                             <div className="flex bg-slate-100 p-1 rounded-xl w-fit mb-4">
@@ -325,12 +375,12 @@ export default function DispensaryMarketplace() {
 
                                         <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
                                             <div>
-                                                <p className="text-xl font-black text-slate-900">${displayPrice.toFixed(2)}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                                <p className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>${displayPrice.toFixed(2)}</p>
+                                                <p className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-tertiary)' }}>
                                                     PER {selectedType === 'case' ? `CASE (${product.caseSize || 1} units)` : 'UNIT'}
                                                 </p>
                                                 {selectedType === 'case' && (
-                                                    <p className="text-[9px] text-slate-300">${product.price.toFixed(2)}/unit</p>
+                                                    <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>${product.price.toFixed(2)}/unit</p>
                                                 )}
                                             </div>
 
@@ -366,7 +416,7 @@ export default function DispensaryMarketplace() {
 
                         <div className="p-4 max-h-[50vh] overflow-y-auto">
                             {cart.length === 0 ? (
-                                <div className="text-center py-12 text-slate-300">
+                                <div className="text-center py-12" style={{ color: 'var(--text-tertiary)' }}>
                                     <ShoppingBag size={40} className="mx-auto mb-2 opacity-20" />
                                     <p className="text-sm font-medium">Add items to start</p>
                                 </div>
@@ -377,10 +427,10 @@ export default function DispensaryMarketplace() {
                                             ? item.price * (item.caseSize || 1)
                                             : item.price;
                                         return (
-                                            <div key={item.cartItemId} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                                            <div key={item.cartItemId} className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
                                                 <div className="flex-1 min-w-0 mr-2">
-                                                    <p className="text-sm font-bold text-slate-800 truncate">{item.name}</p>
-                                                    <p className="text-[10px] text-slate-500">
+                                                    <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{item.name}</p>
+                                                    <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
                                                         ${itemPrice.toFixed(2)}/{item.orderType} • {item.brandName}
                                                     </p>
                                                 </div>
@@ -444,10 +494,10 @@ export default function DispensaryMarketplace() {
                             )}
                         </div>
 
-                        <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-3">
+                        <div className="p-6 space-y-3" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="font-medium text-slate-500">Subtotal</span>
-                                <span className="font-bold text-slate-900">${cartTotal.toFixed(2)}</span>
+                                <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>${cartTotal.toFixed(2)}</span>
                             </div>
 
                             <button
@@ -466,21 +516,65 @@ export default function DispensaryMarketplace() {
             {isCheckoutOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
                     <div className="w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" style={{ background: 'var(--bg-card)' }}>
-                        <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-                            <h2 className="text-2xl font-extrabold text-slate-900">Confirm Order</h2>
-                            <button onClick={() => setIsCheckoutOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                        <div className="p-8 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                            <h2 className="text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>Confirm Order</h2>
+                            <button onClick={() => setIsCheckoutOpen(false)} className="p-2 rounded-full transition-colors" style={{ color: 'var(--text-tertiary)' }}>
                                 <X size={24} />
                             </button>
                         </div>
 
                         <div className="p-8 space-y-6">
-                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 font-medium">Order Total</span>
-                                    <span className="text-3xl font-black text-slate-900">${cartTotal.toFixed(2)}</span>
+                            <div className="p-6 rounded-3xl space-y-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                {/* Subtotal */}
+                                <div className="flex justify-between items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    <span>Subtotal</span>
+                                    <span className="font-bold">${cartTotal.toFixed(2)}</span>
                                 </div>
-                                <div className="h-px bg-slate-200 w-full" />
-                                <div className="flex justify-between items-center text-sm text-slate-500">
+
+                                {/* Applied Deals */}
+                                {calculatingDeals ? (
+                                    <div className="flex items-center gap-2 text-sm text-emerald-600">
+                                        <Loader size={14} className="animate-spin" />
+                                        <span>Calculating deals...</span>
+                                    </div>
+                                ) : appliedDeals.length > 0 && (
+                                    <div className="space-y-2">
+                                        {appliedDeals.map((deal, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-sm text-emerald-600">
+                                                <span className="flex items-center gap-1">
+                                                    <Tag size={14} />
+                                                    {deal.name} ({deal.discountValue}% off)
+                                                </span>
+                                                <span className="font-bold">-${deal.discountAmount.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="h-px w-full" style={{ background: 'var(--border-primary)' }} />
+
+                                {/* Final Order Total */}
+                                <div className="flex justify-between items-center">
+                                    <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>Order Total</span>
+                                    <div className="text-right">
+                                        {discount > 0 && (
+                                            <span className="text-sm line-through mr-2" style={{ color: 'var(--text-tertiary)' }}>
+                                                ${cartTotal.toFixed(2)}
+                                            </span>
+                                        )}
+                                        <span className="text-3xl font-black" style={{ color: discount > 0 ? '#059669' : 'var(--text-primary)' }}>
+                                            ${finalTotal.toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {discount > 0 && (
+                                    <div className="bg-emerald-50 text-emerald-700 text-xs font-bold p-2 rounded-xl text-center">
+                                        🎉 You're saving ${discount.toFixed(2)} with this order!
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
                                     <span>Items Count</span>
                                     <span className="font-bold">{cart.reduce((a, b) => a + b.quantity, 0)}</span>
                                 </div>
@@ -488,9 +582,9 @@ export default function DispensaryMarketplace() {
                                     <span>Status</span>
                                     <span className="font-bold bg-emerald-100 px-2 py-0.5 rounded-full text-xs uppercase tracking-wide">Pending Approval</span>
                                 </div>
-                                <div className="flex justify-between items-center text-xs text-slate-400 mt-2">
+                                <div className="flex justify-between items-center text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
                                     <span>Platform Fee (Included)</span>
-                                    <span>${commissionFee.toFixed(2)} (5%)</span>
+                                    <span>${(finalTotal * 0.05).toFixed(2)} (5%)</span>
                                 </div>
                             </div>
 
@@ -504,11 +598,12 @@ export default function DispensaryMarketplace() {
 
                             {/* Payment Terms Selection */}
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Select Payment Terms</label>
+                                <label className="block text-sm font-bold mb-2" style={{ color: 'var(--text-secondary)' }}>Select Payment Terms</label>
                                 <select
                                     value={paymentTerms}
                                     onChange={(e) => setPaymentTerms(e.target.value)}
-                                    className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:border-emerald-500 focus:ring-emerald-500 outline-none transition-all appearance-none font-medium text-slate-700"
+                                    className="w-full p-4 rounded-2xl focus:border-emerald-500 focus:ring-emerald-500 outline-none transition-all appearance-none font-medium"
+                                    style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                                 >
                                     <option value="COD">COD (Cash on Delivery)</option>
                                     <option value="Net 14">Net 14</option>
@@ -519,7 +614,7 @@ export default function DispensaryMarketplace() {
                             </div>
 
                             <div className="space-y-3">
-                                <p className="text-sm text-slate-500 leading-relaxed text-center px-4">
+                                <p className="text-sm leading-relaxed text-center px-4" style={{ color: 'var(--text-secondary)' }}>
                                     By confirming, you agree to pay the total amount upon delivery via <strong>{paymentTerms}</strong>.
                                 </p>
                             </div>
@@ -527,7 +622,8 @@ export default function DispensaryMarketplace() {
                             <div className="flex gap-3 pt-2">
                                 <button
                                     onClick={() => setIsCheckoutOpen(false)}
-                                    className="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-50 rounded-2xl transition-colors"
+                                    className="flex-1 py-4 font-bold rounded-2xl transition-colors"
+                                    style={{ color: 'var(--text-secondary)' }}
                                 >
                                     Cancel
                                 </button>

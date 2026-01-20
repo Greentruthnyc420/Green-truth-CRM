@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     ShoppingCart, Package, Search, Truck, X,
-    CheckCircle, Calendar, Filter, AlertCircle
+    CheckCircle, Calendar, Filter, AlertCircle, Loader,
+    MapPin, FileCheck
 } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { BRAND_LICENSES } from '../../contexts/BrandAuthContext';
@@ -32,6 +33,8 @@ export default function AdminOrders() {
                 return {
                     id: sale.id || 'N/A',
                     dispensary: sale.dispensaryName || 'Unknown',
+                    dispensaryAddress: sale.dispensaryAddress || sale.address || '',
+                    licenseNumber: sale.licenseNumber || sale.ocmNumber || '',
                     contact: sale.contactPerson || sale.userName || 'N/A',
                     products: (sale.items || []).map(item => ({
                         name: item.name,
@@ -43,6 +46,7 @@ export default function AdminOrders() {
                     status: sale.status || 'pending',
                     orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
                     deliveryDate: sale.deliveryDate || null,
+                    paymentTerms: sale.paymentTerms || 'COD',
                     brandIds: [...new Set((sale.items || []).map(i => i.brandId))]
                 };
             });
@@ -125,7 +129,7 @@ export default function AdminOrders() {
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent-primary)' }}></div>
             </div>
         );
     }
@@ -135,17 +139,27 @@ export default function AdminOrders() {
             {/* Filter Bar */}
             <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
                     <input
                         type="text"
                         placeholder="Search by ID or Dispensary..."
-                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none transition-colors"
+                        className="w-full pl-10 pr-4 py-2 rounded-lg outline-none transition-colors"
+                        style={{
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-primary)',
+                            color: 'var(--text-primary)'
+                        }}
                         value={orderSearch}
                         onChange={(e) => setOrderSearch(e.target.value)}
                     />
                 </div>
                 <select
-                    className="px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm focus:border-indigo-500 outline-none transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm outline-none transition-colors"
+                    style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-primary)',
+                        color: 'var(--text-primary)'
+                    }}
                     value={brandFilter}
                     onChange={(e) => setBrandFilter(e.target.value)}
                 >
@@ -154,15 +168,16 @@ export default function AdminOrders() {
                         <option key={brand.brandId} value={brand.brandId}>{brand.brandName}</option>
                     ))}
                 </select>
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
                     {['all', 'pending', 'accepted', 'fulfilled', 'rejected'].map((f) => (
                         <button
                             key={f}
                             onClick={() => setOrderFilter(f)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${orderFilter === f
-                                ? 'bg-indigo-600 text-white shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                                }`}
+                            className="px-3 py-1.5 rounded-md text-xs font-bold transition-all"
+                            style={{
+                                background: orderFilter === f ? 'var(--accent-primary)' : 'transparent',
+                                color: orderFilter === f ? 'white' : 'var(--text-secondary)'
+                            }}
                         >
                             {f.toUpperCase()}
                         </button>
@@ -177,7 +192,8 @@ export default function AdminOrders() {
                     .filter(o => brandFilter === 'all' || o.brandIds.includes(brandFilter))
                     .filter(o => o.dispensary.toLowerCase().includes(orderSearch.toLowerCase()) || o.id.toLowerCase().includes(orderSearch.toLowerCase()))
                     .length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-100">
+                    <div className="text-center py-12 rounded-xl border-2 border-dashed"
+                        style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
                         <ShoppingCart size={48} className="mx-auto mb-4 opacity-20" />
                         <p>No matches found</p>
                     </div>
@@ -194,40 +210,65 @@ export default function AdminOrders() {
                                 rejected: 'bg-red-100 text-red-700'
                             };
                             return (
-                                <div key={order.id} className="border border-slate-100 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50">
+                                <div key={order.id} className="themed-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center">
-                                                <Package size={24} className="text-slate-400" />
+                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+                                                <Package size={24} style={{ color: 'var(--text-tertiary)' }} />
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-slate-800">{order.id}</span>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{order.id}</span>
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[order.status]}`}>
                                                         {order.status}
                                                     </span>
+                                                    {order.paymentTerms && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-700">
+                                                            {order.paymentTerms}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <p className="text-sm text-slate-500 font-medium">{order.dispensary}</p>
+                                                {/* Dispensary Info - CRITICAL for order processing */}
+                                                <div className="mt-2 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{order.dispensary}</p>
+                                                    {order.dispensaryAddress && (
+                                                        <p className="text-xs flex items-center gap-1 mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                                            <MapPin size={12} className="shrink-0" />
+                                                            {order.dispensaryAddress}
+                                                        </p>
+                                                    )}
+                                                    {order.licenseNumber && (
+                                                        <p className="text-xs flex items-center gap-1 mt-1 font-bold" style={{ color: 'var(--accent-primary)' }}>
+                                                            <FileCheck size={12} className="shrink-0" />
+                                                            OCM: {order.licenseNumber}
+                                                        </p>
+                                                    )}
+                                                    {!order.dispensaryAddress && !order.licenseNumber && (
+                                                        <p className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">⚠️ Missing compliance info</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <div className="text-right">
-                                                <p className="font-black text-slate-900">${order.total.toLocaleString()}</p>
-                                                <p className="text-[10px] text-slate-400 uppercase font-bold">{order.orderDate}</p>
+                                                <p className="font-black" style={{ color: 'var(--text-primary)' }}>${order.total.toLocaleString()}</p>
+                                                <p className="text-[10px] uppercase font-bold" style={{ color: 'var(--text-tertiary)' }}>{order.orderDate}</p>
                                             </div>
                                             <div className="flex gap-2">
                                                 {order.status === 'pending' && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAcceptOrder(order.id)}
-                                                            className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                                                            className="p-2 rounded-lg transition-colors"
+                                                            style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--info)' }}
                                                             title="Accept"
                                                         >
                                                             <CheckCircle size={18} />
                                                         </button>
                                                         <button
                                                             onClick={() => handleRejectOrder(order.id)}
-                                                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                                            className="p-2 rounded-lg transition-colors"
+                                                            style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)' }}
                                                             title="Reject"
                                                         >
                                                             <X size={18} />
@@ -237,7 +278,8 @@ export default function AdminOrders() {
                                                 {order.status === 'accepted' && (
                                                     <button
                                                         onClick={() => handleFulfillOrder(order.id)}
-                                                        className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                                                        className="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                                                        style={{ background: 'var(--success)', color: 'white' }}
                                                     >
                                                         <Truck size={14} /> FULFILL
                                                     </button>
@@ -245,19 +287,21 @@ export default function AdminOrders() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="p-3 bg-slate-50/50 flex flex-wrap gap-2">
+                                    <div className="p-3 flex flex-wrap gap-2" style={{ background: 'var(--bg-secondary)' }}>
                                         {order.products.map((p, i) => (
-                                            <span key={i} className="px-2 py-1 bg-white border border-slate-100 rounded-md text-[11px] font-medium text-slate-600 flex items-center gap-2">
-                                                <span className="w-4 h-4 bg-slate-100 rounded text-[10px] flex items-center justify-center font-bold">{p.quantity}</span>
+                                            <span key={i} className="px-2 py-1 rounded-md text-[11px] font-medium flex items-center gap-2"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)' }}>
+                                                <span className="w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold" style={{ background: 'var(--bg-tertiary)' }}>{p.quantity}</span>
                                                 {p.name}
-                                                <span className="text-slate-300 ml-1">
+                                                <span style={{ color: 'var(--text-tertiary)' }} className="ml-1">
                                                     {BRAND_LICENSES[Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === p.brandId)]?.brandName || 'Unknown Brand'}
                                                 </span>
                                             </span>
                                         ))}
                                     </div>
                                     {order.deliveryDate && (
-                                        <div className="px-4 py-2 bg-indigo-50/50 border-t border-indigo-50 text-[11px] text-indigo-700 font-bold flex items-center gap-2">
+                                        <div className="px-4 py-2 text-[11px] font-bold flex items-center gap-2"
+                                            style={{ background: 'rgba(99, 102, 241, 0.1)', borderTop: '1px solid var(--border-primary)', color: 'var(--info)' }}>
                                             <Calendar size={12} /> DELIVERY SCHEDULED: {order.deliveryDate}
                                         </div>
                                     )}
@@ -271,39 +315,46 @@ export default function AdminOrders() {
             {/* Delivery Date Modal */}
             {deliveryModal.open && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-slideUp">
+                    <div className="themed-card rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-slideUp">
                         <div className="p-8">
-                            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--info)' }}>
                                 <Calendar size={32} />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-900 mb-2">Schedule Delivery</h3>
-                            <p className="text-slate-500 mb-6">Specify the anticipated delivery arrival date for this order.</p>
+                            <h3 className="text-2xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Schedule Delivery</h3>
+                            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Specify the anticipated delivery arrival date for this order.</p>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-black uppercase text-slate-400 mb-1 ml-1 tracking-widest">
+                                    <label className="block text-xs font-black uppercase mb-1 ml-1 tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
                                         Delivery Date
                                     </label>
                                     <input
                                         type="date"
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all font-bold text-slate-700"
+                                        className="w-full p-4 rounded-2xl outline-none transition-all font-bold"
+                                        style={{
+                                            background: 'var(--bg-secondary)',
+                                            border: '1px solid var(--border-primary)',
+                                            color: 'var(--text-primary)'
+                                        }}
                                         value={deliveryModal.date}
                                         onChange={(e) => setDeliveryModal(prev => ({ ...prev, date: e.target.value }))}
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+                        <div className="p-6 flex gap-3" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
                             <button
                                 onClick={() => setDeliveryModal({ open: false, orderId: null, date: '' })}
-                                className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl transition-all"
+                                className="flex-1 py-4 font-bold rounded-2xl transition-all"
+                                style={{ color: 'var(--text-secondary)' }}
                             >
                                 CANCEL
                             </button>
                             <button
                                 onClick={confirmAcceptOrder}
                                 disabled={!deliveryModal.date || processing}
-                                className="flex-[2] py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+                                className="flex-[2] py-4 font-black rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all flex items-center justify-center gap-2"
+                                style={{ background: 'var(--info)', color: 'white' }}
                             >
                                 {processing ? <Loader size={20} className="animate-spin text-white" /> : <CheckCircle size={20} />}
                                 CONFIRM & ACCEPT

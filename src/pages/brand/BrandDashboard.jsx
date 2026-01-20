@@ -5,18 +5,21 @@ import {
     Package, ShoppingCart, DollarSign,
     TrendingUp, AlertCircle, CheckCircle, Clock,
     ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Sparkles, UserPlus, Gift, ArrowRight,
-    Store, RefreshCw, Boxes, TrendingDown, X, Trophy
+    Store, RefreshCw, Boxes, TrendingDown, X, Trophy, HelpCircle
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie
 } from 'recharts';
-import { getSales as getAllSales, getAllShifts } from '../../services/firestoreService';
+import { getSales as getAllSales, getAllShifts, getActivations } from '../../services/firestoreService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import ActivationFormModal from '../../components/ActivationFormModal';
+import BrandChatbot from '../../components/BrandChatbot';
 
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import FLXProcessorDashboard from './FLXProcessorDashboard';
+import OnboardingTour from '../../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../../data/tourSteps';
 
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
@@ -47,9 +50,11 @@ export default function BrandDashboard() {
         monthOverMonthGrowth: 0
     });
     const [brandLeads, setBrandLeads] = useState([]);
+    const [upcomingActivations, setUpcomingActivations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [isTop10ModalOpen, setIsTop10ModalOpen] = useState(false);
+    const [showTour, setShowTour] = useState(false);
 
     // Set active brand when user loads
     useEffect(() => {
@@ -99,12 +104,28 @@ export default function BrandDashboard() {
             setLoading(true);
             try {
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
-                const { getBrandLeads } = await import('../../services/firestoreService');
+                const { getBrandLeads, getActivations: fetchActivations } = await import('../../services/firestoreService');
 
-                const [metrics, leads] = await Promise.all([
+                const [metrics, leads, activations] = await Promise.all([
                     calculateBrandMetrics(activeBrandId, currentBrandName),
-                    getBrandLeads(activeBrandId)
+                    getBrandLeads(activeBrandId),
+                    fetchActivations()
                 ]);
+
+                // Filter upcoming activations for this brand
+                const now = new Date();
+                const upcoming = activations
+                    .filter(a => {
+                        const aDate = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        return aDate >= now && (a.brandId === activeBrandId || a.brandName === currentBrandName);
+                    })
+                    .sort((a, b) => {
+                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                        return dateA - dateB;
+                    })
+                    .slice(0, 10);
+                setUpcomingActivations(upcoming);
 
                 // Fetch sample requests count manually for now (or integrate into metrics service later)
                 // Assuming we have a collection 'sample_requests'
@@ -168,15 +189,19 @@ export default function BrandDashboard() {
                         {/* Brand Selector for Multi-Brand Users */}
                         {brandUser?.allowedBrands && brandUser.allowedBrands.length > 1 && (
                             <div className="relative group">
-                                <button className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors">
+                                <button className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-colors" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                                     Switch Brand <ArrowRight size={12} />
                                 </button>
-                                <div className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block z-50" style={{ background: 'var(--bg-card)' }}>
+                                <div className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-50" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
                                     {brandUser.allowedBrands.map(b => (
                                         <button
                                             key={b.brandId}
                                             onClick={() => setActiveBrandId(b.brandId)}
-                                            className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-slate-50 transition-colors ${activeBrandId === b.brandId ? 'text-emerald-600 bg-emerald-50' : 'text-slate-600'}`}
+                                            className="w-full text-left px-4 py-3 text-sm font-medium transition-colors"
+                                            style={{
+                                                background: activeBrandId === b.brandId ? 'var(--accent-primary-soft)' : 'transparent',
+                                                color: activeBrandId === b.brandId ? 'var(--accent-primary)' : 'var(--text-secondary)'
+                                            }}
                                         >
                                             {b.brandName}
                                         </button>
@@ -185,9 +210,17 @@ export default function BrandDashboard() {
                             </div>
                         )}
                     </div>
-                    <p className="text-slate-500 mt-1 font-medium italic">Welcome back! Here's your brand performance at a glance.</p>
+                    <p className="mt-1 font-medium italic" style={{ color: 'var(--text-secondary)' }}>Welcome back! Here's your brand performance at a glance.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowTour(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all hover:scale-105"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}
+                    >
+                        <HelpCircle size={16} />
+                        <span className="hidden md:inline">Replay Tour</span>
+                    </button>
                     <Link
                         to="/brand/new-lead"
                         className="themed-card flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all hover:border-[var(--accent-primary)]"
@@ -229,22 +262,22 @@ export default function BrandDashboard() {
                     </Link>
                 )}
                 {/* Revenue */}
-                <div className="themed-card p-6 rounded-xl shadow-sm">
+                <Link to="/brand/invoices/greentruth" className="themed-card p-6 rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group">
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-success">
                             <DollarSign size={24} />
                         </div>
-                        <span className="flex items-center gap-1 text-sm font-medium" style={{ color: 'var(--success)' }}>
+                        <span className="flex items-center gap-1 text-sm font-medium group-hover:underline" style={{ color: 'var(--success)' }}>
                             <ArrowUpRight size={16} />
-                            Real-time
+                            View Details
                         </span>
                     </div>
                     <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.revenue)}</p>
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Revenue</p>
-                </div>
+                </Link>
 
                 {/* Orders */}
-                <div className="themed-card p-6 rounded-xl shadow-sm">
+                <Link to="/brand/orders" className="themed-card p-6 rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group">
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-info">
                             <ShoppingCart size={24} />
@@ -254,8 +287,8 @@ export default function BrandDashboard() {
                         </span>
                     </div>
                     <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.orderCount}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total orders</p>
-                </div>
+                    <p className="text-sm group-hover:underline" style={{ color: 'var(--text-secondary)' }}>Total orders • Click to view</p>
+                </Link>
 
                 {/* Average Order Value (AOV) */}
                 <div className="themed-card p-6 rounded-xl shadow-sm">
@@ -269,7 +302,7 @@ export default function BrandDashboard() {
                 </div>
 
                 {/* Outstanding Invoices */}
-                <div className="themed-card p-6 rounded-xl shadow-sm">
+                <Link to="/brand/invoices/dispensary" className="themed-card p-6 rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group">
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
                             <AlertCircle size={24} />
@@ -279,13 +312,13 @@ export default function BrandDashboard() {
                         </span>
                     </div>
                     <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(financials.outstandingInvoices)}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Outstanding Invoices</p>
-                </div>
+                    <p className="text-sm group-hover:underline" style={{ color: 'var(--text-secondary)' }}>Outstanding Invoices • Click to view</p>
+                </Link>
 
                 {/* Top Selling Product */}
-                <div
-                    className="themed-card p-6 rounded-xl shadow-sm cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setIsTop10ModalOpen(true)}
+                <Link
+                    to="/brand/products"
+                    className="themed-card p-6 rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
                 >
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
@@ -296,8 +329,8 @@ export default function BrandDashboard() {
                         </span>
                     </div>
                     <p className="text-xl font-bold truncate" style={{ color: 'var(--text-primary)' }} title={financials.topProduct}>{financials.topProduct}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Top Selling Product <span className="text-xs" style={{ color: 'var(--accent-primary)' }}>• Click for Top 10</span></p>
-                </div>
+                    <p className="text-sm group-hover:underline" style={{ color: 'var(--text-secondary)' }}>Top Selling Product • <span style={{ color: 'var(--accent-primary)' }}>View All Analytics</span></p>
+                </Link>
 
                 {/* GreenTruth Owed (5% Commission) */}
                 <div className="themed-card p-6 rounded-xl shadow-sm relative overflow-hidden group">
@@ -359,7 +392,7 @@ export default function BrandDashboard() {
             {/* Performance Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Store Reach */}
-                <div className="themed-card p-6 rounded-xl shadow-sm">
+                <Link to="/brand/map" className="themed-card p-6 rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group">
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-info">
                             <Store size={24} />
@@ -369,8 +402,8 @@ export default function BrandDashboard() {
                         </span>
                     </div>
                     <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.storeReach}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Unique Stores Reached</p>
-                </div>
+                    <p className="text-sm group-hover:underline" style={{ color: 'var(--text-secondary)' }}>Unique Stores • View Map</p>
+                </Link>
 
                 {/* Reorder Rate */}
                 <div className="themed-card p-6 rounded-xl shadow-sm">
@@ -387,7 +420,7 @@ export default function BrandDashboard() {
                 </div>
 
                 {/* Units Sold */}
-                <div className="themed-card p-6 rounded-xl shadow-sm">
+                <Link to="/brand/products" className="themed-card p-6 rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group">
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center icon-bg-warning">
                             <Boxes size={24} />
@@ -397,8 +430,8 @@ export default function BrandDashboard() {
                         </span>
                     </div>
                     <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{financials.unitsSold.toLocaleString()}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Units Sold</p>
-                </div>
+                    <p className="text-sm group-hover:underline" style={{ color: 'var(--text-secondary)' }}>Total Units Sold • View Products</p>
+                </Link>
 
                 {/* Month-over-Month Growth */}
                 <div className="themed-card p-6 rounded-xl shadow-sm">
@@ -553,8 +586,10 @@ export default function BrandDashboard() {
                                 <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${lead.leadStatus === 'active' ? 'bg-emerald-100 text-emerald-700' :
                                     lead.leadStatus === 'samples_delivered' ? 'bg-blue-100 text-blue-700' :
                                         lead.leadStatus === 'samples_requested' ? 'bg-amber-100 text-amber-700' :
-                                            'bg-slate-100 text-slate-500'
-                                    }`}>
+                                            ''
+                                    }`}
+                                    style={lead.leadStatus !== 'active' && lead.leadStatus !== 'samples_delivered' && lead.leadStatus !== 'samples_requested' ? { background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' } : {}}
+                                >
                                     {lead.leadStatus?.replace('_', ' ') || 'New'}
                                 </span>
                             </div>
@@ -608,15 +643,42 @@ export default function BrandDashboard() {
                                         className="flex items-center gap-3 p-3 rounded-xl transition-colors"
                                         style={{ background: 'var(--bg-secondary)' }}
                                     >
-                                        <div
-                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                                            style={{ background: product.color, color: 'white' }}
-                                        >
-                                            #{product.rank}
-                                        </div>
+                                        {/* Product Image or Rank Badge */}
+                                        {product.menuProduct?.imageUrl ? (
+                                            <div className="relative">
+                                                <img
+                                                    src={product.menuProduct.imageUrl}
+                                                    alt={product.name}
+                                                    className="w-12 h-12 rounded-lg object-cover"
+                                                />
+                                                <div
+                                                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                                                    style={{ background: product.color, color: 'white' }}
+                                                >
+                                                    {product.rank}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className="w-12 h-12 rounded-lg flex items-center justify-center text-sm font-bold"
+                                                style={{ background: product.color, color: 'white' }}
+                                            >
+                                                #{product.rank}
+                                            </div>
+                                        )}
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
-                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{product.value.toLocaleString()} units sold</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{product.value.toLocaleString()} units sold</p>
+                                                {product.menuProduct?.price && (
+                                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--success)' }}>
+                                                        ${product.menuProduct.price}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {product.menuProduct?.category && (
+                                                <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{product.menuProduct.category}</p>
+                                            )}
                                         </div>
                                         <div className="text-right">
                                             <div className="w-16 h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-primary)' }}>
@@ -640,6 +702,40 @@ export default function BrandDashboard() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Brand Analytics Chatbot */}
+            <BrandChatbot
+                brandContext={{
+                    brandName: currentBrandName,
+                    totalRevenue: financials.revenue,
+                    totalOrders: financials.orderCount,
+                    unitsSold: financials.unitsSold,
+                    storeReach: financials.storeReach,
+                    outstandingInvoices: financials.outstandingInvoices,
+                    monthOverMonthGrowth: financials.monthOverMonthGrowth ? `${financials.monthOverMonthGrowth > 0 ? '+' : ''}${financials.monthOverMonthGrowth.toFixed(1)}%` : null,
+                    topProducts: financials.top10Products?.slice(0, 5) || [],
+                    upcomingActivations: upcomingActivations.map(a => ({
+                        date: (a.date?.toDate ? a.date.toDate() : new Date(a.date)).toLocaleDateString(),
+                        dispensaryName: a.dispensaryName,
+                        repName: a.repName || 'TBD'
+                    })),
+                    recentTrends: financials.monthOverMonthGrowth > 0
+                        ? `Sales are up ${financials.monthOverMonthGrowth.toFixed(1)}% month over month`
+                        : financials.monthOverMonthGrowth < 0
+                            ? `Sales are down ${Math.abs(financials.monthOverMonthGrowth).toFixed(1)}% - consider scheduling more activations`
+                            : 'Sales are steady this month'
+                }}
+            />
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('brand')}
+                    isFirstTime={false}
+                    onComplete={() => setShowTour(false)}
+                    tourKey="brand_replay"
+                />
             )}
         </div>
     );
