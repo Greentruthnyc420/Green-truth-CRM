@@ -1,6 +1,19 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY);
+// Lazy-initialize Resend client to prevent crash if API key is missing
+let resend = null;
+
+function getResendClient() {
+    if (!resend) {
+        const apiKey = import.meta.env.VITE_RESEND_API_KEY;
+        if (!apiKey) {
+            console.warn('⚠️ Resend API key not configured. Email notifications disabled.');
+            return null;
+        }
+        resend = new Resend(apiKey);
+    }
+    return resend;
+}
 
 // Admin email addresses for all notifications
 const ADMIN_EMAILS = [
@@ -18,7 +31,13 @@ const ADMIN_EMAILS = [
  */
 export async function sendAdminNotification({ subject, html, text }) {
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResendClient();
+        if (!client) {
+            console.warn('Email notification skipped - Resend not configured');
+            return { success: false, error: 'Resend API key not configured' };
+        }
+
+        const { data, error } = await client.emails.send({
             from: 'Green Truth CRM <notifications@thegreentruthnyc.com>',
             to: ADMIN_EMAILS,
             subject: subject,
