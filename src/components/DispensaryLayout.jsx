@@ -34,7 +34,6 @@ export default function DispensaryLayout() {
                         <DispensaryNavItem to="/dispensary/schedule" icon={<Calendar size={20} />} label="Schedule" />
                         <DispensaryNavItem to="/dispensary/marketplace" icon={<ShoppingBag size={20} />} label="Marketplace" />
                         <DispensaryNavItem to="/dispensary/orders" icon={<ShoppingCart size={20} />} label="My Orders" />
-                        <DispensaryNavItem to="/dispensary/integrations" icon={<Plug size={20} />} label="Integrations" />
 
                         {/* Divider */}
                         <div className="py-2">
@@ -135,7 +134,6 @@ export default function DispensaryLayout() {
                                     <SlideGridItem to="/dispensary/orders" icon={<ShoppingCart size={22} className="text-blue-500" />} label="Orders" onClick={() => setIsMenuOpen(false)} />
                                     <SlideGridItem to="/dispensary/schedule" icon={<Calendar size={22} className="text-indigo-500" />} label="Schedule" onClick={() => setIsMenuOpen(false)} />
                                     <SlideGridItem to="/dispensary/invoices" icon={<FileText size={22} className="text-orange-500" />} label="Invoices" onClick={() => setIsMenuOpen(false)} />
-                                    <SlideGridItem to="/dispensary/integrations" icon={<Plug size={22} className="text-purple-500" />} label="Integrations" onClick={() => setIsMenuOpen(false)} />
                                 </div>
 
                                 {/* Footer Actions */}

@@ -97,7 +97,6 @@ export default function AdminLayout() {
         { path: '/admin/territory', label: 'Territory', icon: Map },
         { path: '/admin/team', label: 'Team', icon: Users },
         { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch },
-        { path: '/admin/integrations', label: 'Integrations', icon: GitBranch },
         // Role Management only visible to super admins
         ...(showRoleManagement ? [{ path: '/admin/roles', label: 'Roles', icon: Crown }] : []),
     ];
@@ -128,16 +127,20 @@ export default function AdminLayout() {
                 `}
                 >
                     {/* Logo Area */}
-                    <div className="p-6 border-b border-white/10 flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-brand-400 to-brand-600 p-2 rounded-lg">
-                            <Activity className="text-white" size={24} />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold tracking-tight">GreenTruth</h1>
-                            <p className="text-xs text-slate-400 uppercase tracking-widest">Admin Portal</p>
+                    <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <img
+                                src="/logos/logo-main.png"
+                                alt="GreenTruth"
+                                className="h-10 w-auto object-contain"
+                            />
+                            <div>
+                                <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-sidebar)' }}>GreenTruth</h1>
+                                <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Admin Portal</p>
+                            </div>
                         </div>
                         <button
-                            className="ml-auto lg:hidden text-slate-400 hover:text-white"
+                            className="lg:hidden text-slate-400 hover:text-white"
                             onClick={() => setIsSidebarOpen(false)}
                         >
                             <X size={24} />
@@ -291,10 +294,10 @@ export default function AdminLayout() {
 
                                     <div className="grid grid-cols-3 gap-4 pb-8">
                                         <MoreMenuItem to="/admin/territory" icon={<Map className="text-brand-500" />} label="Map" onClick={() => setIsMoreMenuOpen(false)} />
-                                        <MoreMenuItem to="/admin/integrations" icon={<Settings className="text-purple-500" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
                                         <MoreMenuItem to="/admin/team" icon={<Users className="text-blue-500" />} label="Team" onClick={() => setIsMoreMenuOpen(false)} />
                                         <MoreMenuItem to="/admin/invoices" icon={<FileText className="text-emerald-500" />} label="Billables" onClick={() => setIsMoreMenuOpen(false)} />
                                         <MoreMenuItem to="/admin/pipeline" icon={<GitBranch className="text-orange-500" />} label="Pipeline" onClick={() => setIsMoreMenuOpen(false)} />
+                                        <MoreMenuItem to="/admin/collections" icon={<Archive className="text-purple-500" />} label="Collections" onClick={() => setIsMoreMenuOpen(false)} />
                                     </div>
 
                                     <div className="pt-6 mt-2 flex flex-col gap-3" style={{ borderTop: '1px solid var(--border-primary)' }}>

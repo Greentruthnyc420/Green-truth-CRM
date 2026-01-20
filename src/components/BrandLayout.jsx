@@ -155,7 +155,6 @@ export default function BrandLayout() {
                         <NavItem to="/brand/invoices/dispensary" icon={<ArrowUpRight size={20} />} label="To Dispensaries" />
                         <NavItem to="/brand/invoices/greentruth" icon={<ArrowDownLeft size={20} />} label="From GreenTruth" />
                         <NavItem to="/brand/menu" icon={<Menu size={20} />} label="Menu Editor" />
-                        <NavItem to="/brand/integrations" icon={<Settings size={20} />} label="Integrations" />
                         {(brandUser?.isProcessor || brandUser?.allowedBrands?.length > 0) && (
                             <>
                                 {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}
@@ -307,7 +306,6 @@ export default function BrandLayout() {
                                         <SlideGridItem to="/brand/menu" icon={<Package size={22} className="text-indigo-500" />} label="Menu" onClick={() => setIsMoreMenuOpen(false)} />
                                         <SlideGridItem to="/brand/deals" icon={<Tag size={22} className="text-pink-500" />} label="Deals" onClick={() => setIsMoreMenuOpen(false)} />
                                         <SlideGridItem to="/brand/invoices/greentruth" icon={<ArrowDownLeft size={22} className="text-orange-500" />} label="Invoices" onClick={() => setIsMoreMenuOpen(false)} />
-                                        <SlideGridItem to="/brand/integrations" icon={<Settings size={22} className="text-slate-500" />} label="Settings" onClick={() => setIsMoreMenuOpen(false)} />
                                     </div>
 
                                     {/* Footer Actions */}

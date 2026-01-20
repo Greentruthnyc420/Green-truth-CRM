@@ -47,11 +47,14 @@ export default function AdminLayout() {
             >
                 {/* Logo Area */}
                 <div className="h-20 flex items-center justify-between border-b p-4" style={{ borderColor: 'var(--border-primary)' }}>
-                    <div className="flex items-center justify-center flex-1">
-                        {isSidebarOpen ? (
-                            <span className="text-xl font-bold text-white tracking-wider">ADMIN PORTAL</span>
-                        ) : (
-                            <span className="text-xl font-bold text-white md:block hidden">AP</span>
+                    <div className="flex items-center justify-center flex-1 gap-2">
+                        <img
+                            src="/logos/logo-main.png"
+                            alt="GreenTruth"
+                            className={`${isSidebarOpen ? 'h-10' : 'h-8'} w-auto object-contain`}
+                        />
+                        {isSidebarOpen && (
+                            <span className="text-sm font-bold text-white tracking-wider hidden md:block">Admin</span>
                         )}
                     </div>
                     {isSidebarOpen && window.innerWidth <= 768 && (
@@ -86,13 +89,6 @@ export default function AdminLayout() {
                         to="/app/admin"
                         icon={<ShieldCheck size={20} />}
                         label="Legacy Console"
-                        isOpen={isSidebarOpen}
-                    />
-
-                    <AdminNavItem
-                        to="/admin/integrations"
-                        icon={<Settings size={20} />}
-                        label="Integrations"
                         isOpen={isSidebarOpen}
                     />
 
@@ -217,7 +213,6 @@ export default function AdminLayout() {
 
                                 <div className="grid grid-cols-3 gap-4 pb-8">
                                     <MoreMenuItem to="/app/map" icon={<Map className="text-indigo-500" />} label="Lead Map" onClick={() => setIsMoreMenuOpen(false)} />
-                                    <MoreMenuItem to="/admin/integrations" icon={<Settings className="text-purple-500" />} label="Integrations" onClick={() => setIsMoreMenuOpen(false)} />
                                     <MoreMenuItem to="/app/schedule" icon={<Calendar className="text-blue-500" />} label="Schedule" onClick={() => setIsMoreMenuOpen(false)} />
                                     <MoreMenuItem to="/app/history" icon={<History className="text-slate-500" />} label="History" onClick={() => setIsMoreMenuOpen(false)} />
                                     <MoreMenuItem to="/app" icon={<ArrowLeftRight className="text-emerald-500" />} label="Field App" onClick={() => setIsMoreMenuOpen(false)} />
