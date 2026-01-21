@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useBrandAuth, BRAND_LICENSES, AVAILABLE_BRANDS } from '../contexts/BrandAuthContext';
 import { useNotification } from '../contexts/NotificationContext';
-// Imports
 import {
-    getAllShifts,
+    getAllActivations,
     updateShiftStatus,
     getSales,
     getLeads,
@@ -120,7 +119,7 @@ export default function AdminDashboard() {
             setLoading(true);
             try {
                 const [allShifts, allSales, allLeads, allActivations] = await Promise.all([
-                    getAllShifts(),
+                    getAllActivations(),
                     getSales(),
                     getLeads(),
                     getActivations()

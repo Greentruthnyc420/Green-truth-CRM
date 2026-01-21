@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllUsers, getAllShifts, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser, getAllBrands, getLeads } from '../../../services/firestoreService';
+import { getAllUsers, getAllActivations, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser, getAllBrands, getLeads } from '../../../services/firestoreService';
 import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2, Ban, RefreshCw, UserX, UserCheck } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -28,7 +28,7 @@ export default function AdminTeam() {
                 // Fetch all data for computation
                 const [users, shifts, sales, integrationsSnapshot] = await Promise.all([
                     getAllUsers(),
-                    getAllShifts(),
+                    getAllActivations(),
                     getSales(),
                     getDocs(collection(db, 'brand_integrations'))
                 ]);

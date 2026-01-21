@@ -579,6 +579,10 @@ export async function addLead(leadData) {
         lead_status: initialStatus,
         location: leadData.location,
         license_image_url: leadData.licenseImageUrl,
+        // Attribution tracking - who added this lead
+        created_by_name: leadData.createdByName || leadData.repAssigned || null,
+        created_by_type: leadData.createdBy || 'rep', // 'rep' | 'brand' | 'dispensary'
+        owner_brand_id: leadData.ownerBrandId || null, // For brand-owned leads
         created_at: new Date().toISOString()
     }]).select().single();
 
@@ -617,18 +621,37 @@ export async function getLeads() {
 
 export async function getBrandLeads(brandId) {
     // Get leads that belong to a specific brand
-    // Leads can be associated with a brand via the active_brands array or brand_id
+    // Leads can be associated with a brand via owner_brand_id or active_brands array
+    // Note: brand_id column was removed from leads table; use owner_brand_id instead
     const { data, error } = await supabase
         .from('leads')
         .select('*')
-        .or(`brand_id.eq.${brandId},active_brands.cs.{${brandId}}`);
+        .or(`owner_brand_id.eq.${brandId},active_brands.cs.{${brandId}}`);
 
     if (error) {
         console.error('Error fetching brand leads:', error);
         return [];
     }
 
-    return data.map(l => ({
+    // Filter out rep-added leads that are still in prospect status
+    // Brands should only see: 1) leads they added themselves, or 2) leads that have progressed past prospect
+    const filteredData = data.filter(l => {
+        const createdByType = l.created_by_type || 'rep';
+        const status = l.lead_status || 'prospect';
+        const isOwnedByThisBrand = l.owner_brand_id === brandId;
+
+        // Always show brand's own leads
+        if (isOwnedByThisBrand || createdByType === 'brand') {
+            return true;
+        }
+        // For rep-added leads, only show if they've moved past prospect status
+        if (createdByType === 'rep' && status === 'prospect') {
+            return false;
+        }
+        return true;
+    });
+
+    return filteredData.map(l => ({
         id: l.id,
         dispensaryName: l.dispensary_name,
         licenseNumber: l.license_number,
@@ -645,7 +668,11 @@ export async function getBrandLeads(brandId) {
         location: l.location,
         licenseImageUrl: l.license_image_url,
         createdAt: l.created_at,
-        userId: l.assigned_ambassador_id
+        userId: l.assigned_ambassador_id,
+        // Attribution fields for display
+        createdByName: l.created_by_name || l.rep_assigned_name || 'Unknown',
+        createdByType: l.created_by_type || 'rep',
+        ownerBrandId: l.owner_brand_id
     }));
 }
 

@@ -4,7 +4,7 @@ import { useBrandAuth } from '../contexts/BrandAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { MobileThemeBar } from './ThemeSwitcher';
 import LayoutTourWrapper from './LayoutTourWrapper';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, GitBranch, MoreHorizontal, Tag, Link2, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, GitBranch, MoreHorizontal, Tag, Link2, LogOut, ShieldCheck, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandUnifiedSettingsMenu from './BrandUnifiedSettingsMenu';
 
@@ -286,7 +286,6 @@ export default function BrandLayout() {
                                         <MobileThemeBar />
                                     </div>
 
-                                    {/* Navigation Grid */}
                                     <div className="px-4 py-4 grid grid-cols-4 gap-3">
                                         <SlideGridItem to="/brand" icon={<LayoutDashboard size={22} />} label="Dashboard" onClick={() => setIsMoreMenuOpen(false)} />
                                         <SlideGridItem to="/brand/pipeline" icon={<GitBranch size={22} className="text-amber-500" />} label="Pipeline" onClick={() => setIsMoreMenuOpen(false)} />
@@ -296,6 +295,8 @@ export default function BrandLayout() {
                                         <SlideGridItem to="/brand/menu" icon={<Package size={22} className="text-indigo-500" />} label="Menu" onClick={() => setIsMoreMenuOpen(false)} />
                                         <SlideGridItem to="/brand/deals" icon={<Tag size={22} className="text-pink-500" />} label="Deals" onClick={() => setIsMoreMenuOpen(false)} />
                                         <SlideGridItem to="/brand/invoices/greentruth" icon={<ArrowDownLeft size={22} className="text-orange-500" />} label="Invoices" onClick={() => setIsMoreMenuOpen(false)} />
+                                        <SlideGridItem to="/admin" icon={<ShieldCheck size={22} className="text-red-500" />} label="Admin" onClick={() => setIsMoreMenuOpen(false)} />
+                                        <SlideGridItem to="/app" icon={<Users size={22} className="text-blue-500" />} label="Sales" onClick={() => setIsMoreMenuOpen(false)} />
                                     </div>
 
                                     {/* Footer Actions */}

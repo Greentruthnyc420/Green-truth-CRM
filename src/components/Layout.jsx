@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, Building2, Navigation, Calendar, Menu, X, Settings, MoreHorizontal, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, Building2, Navigation, Calendar, Menu, X, Settings, MoreHorizontal, HelpCircle, LogOut } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';

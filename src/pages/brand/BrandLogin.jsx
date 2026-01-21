@@ -11,7 +11,7 @@ import { getAdminBrandByEmail, markBrandPasswordChanged } from '../../services/f
 const DEFAULT_LOGO = '/logos/partner-6.png';
 
 export default function BrandLogin() {
-    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin, brandUser, availableBrands } = useBrandAuth();
+    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin, brandUser, availableBrands, checkBrandHasUsers } = useBrandAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || '/brand';
@@ -53,12 +53,28 @@ export default function BrandLogin() {
         return brand?.logo || DEFAULT_LOGO;
     };
 
-    const handleBrandSelect = (brand) => {
+
+    const handleBrandSelect = async (brand) => {
         setSelectedBrand(brand);
         setAccessCode(''); // Reset code
-        setStep('gate'); // Move to Gate step
         setError('');
         setSuccessMessage('');
+
+        // Check if this brand already has users - if so, skip the gate
+        try {
+            const hasUsers = await checkBrandHasUsers(brand.brandId);
+            if (hasUsers) {
+                // Brand already set up - go straight to login (no signup for new users without invite)
+                setStep('auth');
+                setAuthMode('login'); // Only login available, signup requires invite
+            } else {
+                // First user for this brand - require gate code for initial setup
+                setStep('gate');
+            }
+        } catch (err) {
+            console.warn('[BrandLogin] Failed to check brand users, showing gate:', err);
+            setStep('gate'); // Default to gate if check fails
+        }
     };
 
     const handleCredentialsSubmit = async (e) => {
@@ -391,15 +407,26 @@ export default function BrandLogin() {
                                 >
                                     <Shield size={14} /> Master Developer Bypass
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        sessionStorage.setItem('triggerTour', 'brand');
-                                        handleDevLogin();
-                                    }}
-                                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-full text-sm font-bold hover:from-amber-600 hover:to-orange-700 transition-all flex items-center gap-2 shadow-lg shadow-amber-900/30"
-                                >
-                                    <Play size={16} /> 🎬 Take Tour
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            sessionStorage.setItem('triggerTour', 'brand');
+                                            handleDevLogin('honey-king');
+                                        }}
+                                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-full text-sm font-bold hover:from-amber-600 hover:to-orange-700 transition-all flex items-center gap-2 shadow-lg shadow-amber-900/30"
+                                    >
+                                        <Play size={16} /> 🏷️ Brand Tour
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            sessionStorage.setItem('triggerTour', 'processor');
+                                            handleDevLogin('flx-extracts');
+                                        }}
+                                        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full text-sm font-bold hover:from-purple-600 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-900/30"
+                                    >
+                                        <Play size={16} /> 🏭 Processor Tour
+                                    </button>
+                                </div>
                             </div>
                         )}
 

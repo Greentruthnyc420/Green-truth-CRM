@@ -164,6 +164,89 @@ export function BrandAuthProvider({ children }) {
         return unsubscribe;
     }, []);
 
+    // Check if a brand already has registered users (to skip secret gate)
+    async function checkBrandHasUsers(brandId) {
+        try {
+            const { data, error } = await supabase
+                .from('brand_users')
+                .select('uid')
+                .eq('brandId', brandId)
+                .limit(1);
+
+            if (error) throw error;
+            return data && data.length > 0;
+        } catch (err) {
+            console.warn('[BrandAuth] Failed to check brand users:', err);
+            return false; // Default to requiring gate if check fails
+        }
+    }
+
+    // Create an invite for a new team member
+    async function createTeamInvite(email, role = 'member') {
+        if (!brandUser) throw new Error('Must be logged in to invite team members');
+
+        const inviteToken = crypto.randomUUID();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
+
+        try {
+            const { error } = await supabase.from('brand_invites').insert([{
+                brand_id: brandUser.brandId,
+                license_number: brandUser.licenseNumber,
+                email: email.toLowerCase(),
+                role: role,
+                invite_token: inviteToken,
+                expires_at: expiresAt.toISOString(),
+                invited_by: brandUser.uid,
+                created_at: new Date().toISOString()
+            }]);
+
+            if (error) throw error;
+            return { success: true, token: inviteToken };
+        } catch (err) {
+            console.error('[BrandAuth] Failed to create invite:', err);
+            throw new Error('Failed to create invite. Please try again.');
+        }
+    }
+
+    // Get pending invites for a brand
+    async function getPendingInvites() {
+        if (!brandUser) return [];
+
+        try {
+            const { data, error } = await supabase
+                .from('brand_invites')
+                .select('*')
+                .eq('brand_id', brandUser.brandId)
+                .is('accepted_at', null)
+                .gt('expires_at', new Date().toISOString());
+
+            if (error) throw error;
+            return data || [];
+        } catch (err) {
+            console.warn('[BrandAuth] Failed to get invites:', err);
+            return [];
+        }
+    }
+
+    // Get team members for a brand
+    async function getTeamMembers() {
+        if (!brandUser) return [];
+
+        try {
+            const { data, error } = await supabase
+                .from('brand_users')
+                .select('*')
+                .eq('brandId', brandUser.brandId);
+
+            if (error) throw error;
+            return data || [];
+        } catch (err) {
+            console.warn('[BrandAuth] Failed to get team members:', err);
+            return [];
+        }
+    }
+
     // Validate license number and return brand info if valid
     function validateLicense(licenseNumber) {
         const normalized = licenseNumber?.toUpperCase().trim();
@@ -472,7 +555,12 @@ export function BrandAuthProvider({ children }) {
         impersonateBrand,
         switchBrand,
         resetPassword,
-        logoutBrand
+        logoutBrand,
+        // Team management functions
+        checkBrandHasUsers,
+        createTeamInvite,
+        getPendingInvites,
+        getTeamMembers
     };
 
     return (

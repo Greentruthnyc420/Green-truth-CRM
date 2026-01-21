@@ -16,7 +16,12 @@ export default function DispensaryInvoices() {
 
     useEffect(() => {
         async function loadInvoices() {
-            if (!currentUser) return;
+            // Handle dev mode where currentUser may be null
+            if (!currentUser) {
+                // In dev mode or if not logged in, just show empty state
+                setLoading(false);
+                return;
+            }
 
             try {
                 const p = await getUserProfile(currentUser.uid);

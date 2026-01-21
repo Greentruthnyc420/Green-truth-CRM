@@ -76,7 +76,7 @@ export default function SalesRepChatbot() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-xl hover:scale-110 transition-all group"
+                className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50 p-4 rounded-full shadow-xl hover:scale-110 transition-all group"
                 style={{ background: 'linear-gradient(135deg, #10b981, #0ea5e9)' }}
             >
                 <MessageCircle size={28} className="text-white" />
@@ -89,7 +89,7 @@ export default function SalesRepChatbot() {
 
     return (
         <div
-            className={`fixed bottom-6 right-6 z-50 shadow-2xl rounded-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-72 h-14' : 'w-96 h-[500px]'
+            className={`fixed bottom-24 md:bottom-6 right-2 md:right-6 z-50 shadow-2xl rounded-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-72 h-14' : 'w-[calc(100vw-1rem)] md:w-96 h-[65vh] md:h-[500px] max-h-[500px]'
                 }`}
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}
         >

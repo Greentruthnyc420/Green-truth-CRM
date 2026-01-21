@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getBrandLeads, updateLead, deleteLead, LEAD_STATUS } from '../../services/firestoreService';
-import { TrendingUp, Store, Trash2, ChevronDown, UserPlus, Phone, Mail, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { TrendingUp, Store, Trash2, ChevronDown, UserPlus, Phone, Mail, MapPin, Calendar as CalendarIcon, User } from 'lucide-react';
 
 export default function BrandPipeline() {
     const { brandUser } = useBrandAuth();
@@ -181,7 +181,7 @@ export default function BrandPipeline() {
                                     <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Dispensary</th>
                                     <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Status</th>
                                     <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--text-tertiary)' }}>Contact</th>
-                                    <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--text-tertiary)' }}>Added</th>
+                                    <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--text-tertiary)' }}>Added By</th>
                                     <th className="py-3 px-6 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -243,10 +243,16 @@ export default function BrandPipeline() {
                                             )}
                                         </td>
                                         <td className="py-4 px-6 hidden lg:table-cell">
-                                            <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
-                                                <CalendarIcon size={10} />
-                                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'Unknown'}
-                                            </p>
+                                            <div>
+                                                <p className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
+                                                    <User size={10} />
+                                                    {lead.createdByName || 'Unknown'}
+                                                </p>
+                                                <p className="text-[10px] flex items-center gap-1 mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                                    <CalendarIcon size={8} />
+                                                    {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : ''}
+                                                </p>
+                                            </div>
                                         </td>
                                         <td className="py-4 px-6 text-right">
                                             <button

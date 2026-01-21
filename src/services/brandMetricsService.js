@@ -1,4 +1,4 @@
-import { getSales as getAllSales, getAllShifts, getBrandProducts } from './firestoreService';
+import { getSales as getAllSales, getAllActivations, getBrandProducts } from './firestoreService';
 
 /**
  * Calculate brand-specific financial metrics
@@ -8,9 +8,9 @@ import { getSales as getAllSales, getAllShifts, getBrandProducts } from './fires
  */
 export async function calculateBrandMetrics(brandId, brandName) {
     try {
-        const [allSales, allShifts, menuProducts] = await Promise.all([
+        const [allSales, allActivations, menuProducts] = await Promise.all([
             getAllSales(),
-            getAllShifts(),
+            getAllActivations(),
             getBrandProducts(brandId)
         ]);
 
@@ -253,7 +253,7 @@ export async function calculateBrandMetrics(brandId, brandName) {
         // 2. Calculate Activation Costs (Filtered by Brand)
         const { calculateAgencyShiftCost } = await import('../utils/pricing');
 
-        const brandShifts = allShifts.filter(s =>
+        const brandShifts = allActivations.filter(s =>
             s.brands?.includes(brandName) ||
             s.brandId === brandId ||
             (s.dispensaryName && allSales.some(sale => sale.dispensaryName === s.dispensaryName && sale.items?.some(i => i.brandId === brandId)))

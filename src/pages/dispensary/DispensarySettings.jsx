@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Bell, Users, Plus, Mail, Trash2, Save, Loader, ChevronRight, Shield, ShoppingCart, Package, Eye, X, Check } from 'lucide-react';
+import { Settings, Bell, Users, Plus, Mail, Trash2, Save, Loader, Shield, ShoppingCart, Package, Eye, X, Check, Palette, HelpCircle, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../services/supabaseClient';
-import { getNotificationPreferences, saveNotificationPreferences, NOTIFICATION_TYPES } from '../../services/notificationPreferencesService';
+import { getNotificationPreferences, saveNotificationPreferences } from '../../services/notificationPreferencesService';
+import OnboardingTour from '../../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../../data/tourSteps';
 
 const TEAM_ROLES = [
     { id: 'admin', label: 'Admin', description: 'Full access to all features', icon: Shield, color: 'purple' },
@@ -14,13 +18,16 @@ const TEAM_ROLES = [
 ];
 
 export default function DispensarySettings() {
-    const { currentUser } = useAuth();
+    const { currentUser, logout } = useAuth();
     const { showNotification } = useNotification();
+    const { theme, setTheme } = useTheme();
+    const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState(null);
-    const [activeTab, setActiveTab] = useState('notifications');
+    const [activeTab, setActiveTab] = useState('general');
+    const [showTour, setShowTour] = useState(false);
 
     // Notification preferences
     const [notificationPrefs, setNotificationPrefs] = useState({});
@@ -40,7 +47,11 @@ export default function DispensarySettings() {
     }, [currentUser]);
 
     const loadData = async () => {
-        if (!currentUser?.uid) return;
+        // Handle dev mode where currentUser may be null
+        if (!currentUser?.uid) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             // Load profile
@@ -49,17 +60,25 @@ export default function DispensarySettings() {
             setNotificationEmail(p?.notificationEmail || currentUser.email);
 
             // Load notification preferences
-            const prefs = await getNotificationPreferences(currentUser.uid);
-            if (prefs) setNotificationPrefs(prefs);
+            try {
+                const prefs = await getNotificationPreferences(currentUser.uid);
+                if (prefs) setNotificationPrefs(prefs);
+            } catch (err) {
+                console.warn('Could not load notification preferences:', err);
+            }
 
-            // Load team members
-            const { data: members } = await supabase
-                .from('dispensary_team_members')
-                .select('*')
-                .eq('dispensary_id', currentUser.uid)
-                .order('created_at', { ascending: true });
+            // Load team members (handle if table doesn't exist)
+            try {
+                const { data: members, error } = await supabase
+                    .from('dispensary_team_members')
+                    .select('*')
+                    .eq('dispensary_id', currentUser.uid)
+                    .order('created_at', { ascending: true });
 
-            if (members) setTeamMembers(members);
+                if (!error && members) setTeamMembers(members);
+            } catch (err) {
+                console.warn('Could not load team members:', err);
+            }
         } catch (error) {
             console.error('Error loading settings:', error);
         } finally {
@@ -158,10 +177,20 @@ export default function DispensarySettings() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="flex gap-2 p-1 rounded-xl overflow-x-auto" style={{ background: 'var(--bg-secondary)' }}>
+                <button
+                    onClick={() => setActiveTab('general')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === 'general' ? 'shadow-sm' : ''}`}
+                    style={{
+                        background: activeTab === 'general' ? 'var(--bg-card)' : 'transparent',
+                        color: activeTab === 'general' ? 'var(--text-primary)' : 'var(--text-tertiary)'
+                    }}
+                >
+                    <Settings size={18} /> General
+                </button>
                 <button
                     onClick={() => setActiveTab('notifications')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === 'notifications' ? 'shadow-sm' : ''}`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === 'notifications' ? 'shadow-sm' : ''}`}
                     style={{
                         background: activeTab === 'notifications' ? 'var(--bg-card)' : 'transparent',
                         color: activeTab === 'notifications' ? 'var(--text-primary)' : 'var(--text-tertiary)'
@@ -171,7 +200,7 @@ export default function DispensarySettings() {
                 </button>
                 <button
                     onClick={() => setActiveTab('team')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === 'team' ? 'shadow-sm' : ''}`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === 'team' ? 'shadow-sm' : ''}`}
                     style={{
                         background: activeTab === 'team' ? 'var(--bg-card)' : 'transparent',
                         color: activeTab === 'team' ? 'var(--text-primary)' : 'var(--text-tertiary)'
@@ -180,6 +209,66 @@ export default function DispensarySettings() {
                     <Users size={18} /> Team
                 </button>
             </div>
+
+            {/* General Tab */}
+            {activeTab === 'general' && (
+                <div className="space-y-6">
+                    {/* Theme Selection */}
+                    <div className="rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                        <h3 className="font-bold flex items-center gap-2 mb-4" style={{ color: 'var(--text-primary)' }}>
+                            <Palette size={18} className="text-purple-600" />
+                            Theme
+                        </h3>
+                        <div className="grid grid-cols-3 gap-3">
+                            {[{ id: 'light', label: 'Light', icon: Sun }, { id: 'dark', label: 'Dark', icon: Moon }, { id: 'system', label: 'System', icon: Monitor }].map(t => (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setTheme(t.id)}
+                                    className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all ${theme === t.id ? 'ring-2 ring-emerald-500' : ''}`}
+                                    style={{ background: 'var(--bg-secondary)' }}
+                                >
+                                    <t.icon size={24} className={theme === t.id ? 'text-emerald-600' : ''} style={{ color: theme !== t.id ? 'var(--text-secondary)' : undefined }} />
+                                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Help Tour */}
+                    <div className="rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                        <h3 className="font-bold flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
+                            <HelpCircle size={18} className="text-blue-600" />
+                            Help & Tour
+                        </h3>
+                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                            Take a guided tour of the dispensary portal to learn about all available features.
+                        </p>
+                        <button
+                            onClick={() => setShowTour(true)}
+                            className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <HelpCircle size={18} /> Start Tour
+                        </button>
+                    </div>
+
+                    {/* Sign Out */}
+                    <div className="rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                        <h3 className="font-bold flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
+                            <LogOut size={18} className="text-red-600" />
+                            Account
+                        </h3>
+                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                            Sign out of your dispensary account.
+                        </p>
+                        <button
+                            onClick={async () => { await logout(); navigate('/dispensary/login'); }}
+                            className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <LogOut size={18} /> Sign Out
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Notifications Tab */}
             {activeTab === 'notifications' && (
@@ -423,6 +512,16 @@ export default function DispensarySettings() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('dispensary')}
+                    isFirstTime={false}
+                    onComplete={() => setShowTour(false)}
+                    tourKey="dispensary_settings_tour"
+                />
             )}
         </div>
     );

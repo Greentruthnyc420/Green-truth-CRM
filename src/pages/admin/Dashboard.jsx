@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DollarSign, Users, Award, TrendingUp, Store, Wallet, PiggyBank, Banknote, Percent, Target, Calendar, FileText, UserCheck, CircleDollarSign, HelpCircle } from 'lucide-react';
-import { getSales, getAllShifts, getLeads, LEAD_STATUS } from '../../services/firestoreService';
+import { getSales, getAllActivations, getLeads, LEAD_STATUS } from '../../services/firestoreService';
 import { calculateTotalLifetimeBonuses, calculateReimbursement } from '../../services/compensationService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
@@ -100,9 +100,9 @@ export default function Dashboard() {
     useEffect(() => {
         async function fetchAnalytics() {
             try {
-                const [sales, allShifts, allLeads] = await Promise.all([
+                const [sales, allActivations, allLeads] = await Promise.all([
                     getSales(),
-                    getAllShifts(),
+                    getAllActivations(),
                     getLeads()
                 ]);
 
@@ -115,7 +115,7 @@ export default function Dashboard() {
                 let totalWages = 0;
                 let totalReimbursements = 0;
 
-                allShifts.forEach(s => {
+                allActivations.forEach(s => {
                     // Use calculateAgencyShiftCost from pricing.js (same as Financials)
                     activationRevenue += calculateAgencyShiftCost(s);
                     totalWages += (parseFloat(s.hoursWorked) || 0) * HOURLY_RATE;
@@ -139,7 +139,7 @@ export default function Dashboard() {
                     if (!userStoreSets[uid]) userStoreSets[uid] = new Set();
                     userStoreSets[uid].add(name);
                 };
-                allShifts.forEach(s => addStore(s.userId, s.dispensaryName));
+                allActivations.forEach(s => addStore(s.userId, s.dispensaryName));
                 sales.forEach(s => addStore(s.userId, s.dispensaryName));
                 allLeads.forEach(l => addStore(l.userId, l.dispensaryName));
 

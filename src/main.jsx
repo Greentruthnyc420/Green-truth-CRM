@@ -9,21 +9,28 @@ import { CartProvider } from './contexts/CartContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
-        <ThemeProvider>
-          <AuthProvider>
-            <BrandAuthProvider>
-              <CartProvider>
-                <App />
-              </CartProvider>
-            </BrandAuthProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
-  </StrictMode>,
-)
+// Firebase Auth Handler Bypass
+// When Firebase opens a popup for OAuth, it loads /__/auth/handler
+// We should NOT render the React app on these paths - let Firebase handle them
+if (window.location.pathname.startsWith('/__/')) {
+  // This is a Firebase reserved path - do not render React app
+  console.log('[Firebase Auth] Reserved path detected, skipping React app render');
+} else {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <ThemeProvider>
+            <AuthProvider>
+              <BrandAuthProvider>
+                <CartProvider>
+                  <App />
+                </CartProvider>
+              </BrandAuthProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, User, Tag, Clock, Loader, AlertCircle } from 'lucide-react';
 import { BRAND_LICENSES } from '../contexts/BrandAuthContext';
-import { getAllUsers, addActivation, updateActivation, getAllShifts, getSales, getUserProfile } from '../services/firestoreService';
+import { getAllUsers, addActivation, updateActivation, getAllActivations, getSales, getUserProfile } from '../services/firestoreService';
 import { createManagerEvent } from '../services/calendarService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,7 +34,7 @@ export default function NewActivationModal({ isOpen, onClose, onSave, leads }) {
 
             // 2. Fetch all unique IDs from Shifts and Sales to find active reps
             const [allShifts, allSales] = await Promise.all([
-                getAllShifts(),
+                getAllActivations(),
                 getSales()
             ]);
 

@@ -183,14 +183,12 @@ export function AuthProvider({ children }) {
             console.error("Error Code:", error.code);
             console.error("Error Message:", error.message);
 
-            if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
-                console.warn("Popup failed, falling back to Redirect method...");
-                try {
-                    await signInWithRedirect(auth, googleProvider);
-                    return;
-                } catch (redirectError) {
-                    console.error("Redirect Fallback failed:", redirectError);
-                }
+            if (error.code === 'auth/popup-closed-by-user') {
+                throw new Error('Sign-in popup was closed. Please try again.');
+            }
+
+            if (error.code === 'auth/popup-blocked') {
+                throw new Error('Popup was blocked by your browser. Please allow popups for this site and try again.');
             }
 
             if (error.message && error.message.includes("Access Restricted")) {

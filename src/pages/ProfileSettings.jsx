@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '../services/firestoreService';
 import { useNotification } from '../contexts/NotificationContext';
-import { User, Instagram, Phone, MapPin, Save, Loader, ArrowLeft, Settings, Palette, HelpCircle, LogOut, ChevronRight, Bell, Mail } from 'lucide-react';
+import { User, Instagram, Phone, MapPin, Save, Loader, ArrowLeft, Settings, Palette, HelpCircle, LogOut, ChevronRight, Bell, Mail, ShieldCheck } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import OnboardingTour from '../components/onboarding/OnboardingTour';
@@ -152,6 +152,23 @@ export default function ProfileSettings() {
             {/* Quick Actions */}
             <div className="themed-card rounded-2xl p-4 space-y-2">
                 <h3 className="font-bold text-sm px-2 pb-2" style={{ color: 'var(--text-secondary)' }}>Quick Actions</h3>
+
+                {/* Admin Portal - Only for admins */}
+                {currentUser?.email && Array.isArray(ADMIN_EMAILS) && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()) && (
+                    <NavLink
+                        to="/admin"
+                        className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-purple-50 transition-all group text-left"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                            <ShieldCheck size={20} className="text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Admin Portal</p>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Manage team & operations</p>
+                        </div>
+                        <ChevronRight size={20} className="text-slate-300 group-hover:text-purple-500 transition-colors" />
+                    </NavLink>
+                )}
 
                 {/* Theme */}
                 <button

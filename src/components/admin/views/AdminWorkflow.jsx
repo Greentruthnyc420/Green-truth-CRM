@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, FileText, Download, Loader, AlertTriangle, Gift } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
-import { getAllShifts, updateShiftStatus, markRepAsPaid, getUserProfile, resetDatabase } from '../../../services/firestoreService';
+import { getAllActivations, updateShiftStatus, markRepAsPaid, getUserProfile, resetDatabase } from '../../../services/firestoreService';
 import SampleRequests from '../../SampleRequests';
 
 export default function AdminWorkflow() {
@@ -19,10 +19,10 @@ export default function AdminWorkflow() {
     const fetchPendingShifts = async () => {
         setLoading(true);
         try {
-            const allShifts = await getAllShifts();
+            const allShifts = await getAllActivations();
             const pending = allShifts.filter(s => s.status === 'pending');
 
-            // Enrich with user names if needed, though getAllShifts might already render user IDs. 
+            // Enrich with user names if needed, though getAllActivations might already render user IDs. 
             // Ideally we'd map userIds to names here or use a helper, but for simplicity we'll show ID or fetch names if specific
             setShifts(pending);
         } catch (error) {

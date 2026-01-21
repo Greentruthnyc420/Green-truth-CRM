@@ -11,7 +11,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie
 } from 'recharts';
-import { getSales as getAllSales, getAllShifts, getActivations } from '../../services/firestoreService';
+import { getSales as getAllSales, getAllActivations, getActivations } from '../../services/firestoreService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import ActivationFormModal from '../../components/ActivationFormModal';
 import BrandChatbot from '../../components/BrandChatbot';
