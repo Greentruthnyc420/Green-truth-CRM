@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllUsers, getAllShifts, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser } from '../../../services/firestoreService';
+import { getAllUsers, getAllShifts, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser, getAllBrands, getLeads } from '../../../services/firestoreService';
 import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2, Ban, RefreshCw, UserX, UserCheck } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -90,14 +90,13 @@ export default function AdminTeam() {
                 // 1. Sales Ambassadors: role === 'rep' OR role === 'admin' (for visibility)
                 const ambassadors = effectiveUsers.filter(u => u.role === 'rep' || u.role === 'admin');
 
-                // 2. Brand Partners: ONLY role === 'brand' (strict filter)
-                const brands = effectiveUsers.filter(u => u.role === 'brand');
+                // 2. Brand Partners: Fetch from brands table (NOT users table)
+                const brands = await getAllBrands();
 
-                // 3. Dispensary Partners: role === 'dispensary', 'lead', or 'sale'
-                // This captures clients who have logged in via the dispensary portal
-                const dispensaries = effectiveUsers.filter(u =>
-                    u.role === 'dispensary' || u.role === 'lead' || u.role === 'sale'
-                );
+                // 3. Dispensary Partners: Fetch from leads table where status is 'active'
+                // These are dispensaries that are actively doing business with us
+                const allLeads = await getLeads();
+                const dispensaries = allLeads.filter(l => l.leadStatus === 'active');
 
 
                 // Calculate stats for ambassadors ONLY
@@ -437,7 +436,7 @@ export default function AdminTeam() {
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
-                                                            {(partner.name?.[0] || 'D').toUpperCase()}
+                                                            {(partner.dispensaryName?.[0] || 'D').toUpperCase()}
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{partner.dispensaryName || partner.name || 'Unnamed Dispensary'}</p>

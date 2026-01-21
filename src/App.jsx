@@ -22,7 +22,7 @@ import Schedule from './pages/Schedule';
 import PrivateRoute from './components/PrivateRoute';
 import LandingPage from './pages/LandingPage'; // Import the new LandingPage component
 import GatewayLanding from './pages/GatewayLanding';
-// TourTestPage removed - tours are initiated from dashboards now
+// DEV: TourTestPage removed - use dev login buttons instead
 import { NotificationProvider } from './contexts/NotificationContext';
 
 // Admin Portal Imports
@@ -49,6 +49,7 @@ import AdminBrands from './components/admin/views/AdminBrands';
 import AdminCollections from './components/admin/views/AdminCollections';
 import DispensaryDetail from './pages/admin/DispensaryDetail';
 import AdminRoleManagement from './components/admin/views/AdminRoleManagement';
+import AdminActivationRequests from './components/admin/views/AdminActivationRequests';
 
 // Brand Portal Imports
 import BrandLogin from './pages/brand/BrandLogin';
@@ -104,7 +105,7 @@ function App() {
         {/* Gateway Landing Page */}
         <Route path="/gateway" element={<GatewayLanding />} />
 
-        {/* Tour Testing Page removed - tours initiated from dashboards */}
+        {/* Dev tour testing done via login page dev buttons */}
 
         {/* Admin Portal (New) */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -114,6 +115,7 @@ function App() {
             <Route index element={<NewAdminDashboard />} />
             <Route path="dashboard" element={<NewAdminDashboard />} />
             <Route path="workflow" element={<AdminWorkflow />} />
+            <Route path="activations" element={<AdminActivationRequests />} />
             <Route path="financials" element={<AdminFinancials />} />
             <Route path="invoices" element={<AdminInvoiceGenerator />} />
             <Route path="territory" element={<AdminTerritory />} />

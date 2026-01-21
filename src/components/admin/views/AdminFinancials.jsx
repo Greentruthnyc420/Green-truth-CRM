@@ -544,9 +544,12 @@ export default function AdminFinancials() {
 
             {/* Commissions Ledger */}
             <div className="themed-card rounded-xl overflow-hidden">
-                <button
+                <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setCommissionsOpen(!commissionsOpen)}
-                    className="w-full p-4 flex justify-between items-center transition-colors" style={{ borderBottom: '1px solid var(--border-primary)', background: 'rgba(0,0,0,0.05)' }}
+                    onKeyDown={(e) => e.key === 'Enter' && setCommissionsOpen(!commissionsOpen)}
+                    className="w-full p-4 flex justify-between items-center transition-colors cursor-pointer" style={{ borderBottom: '1px solid var(--border-primary)', background: 'rgba(0,0,0,0.05)' }}
                 >
                     <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Commissions Ledger</h2>
                     <div className="flex items-center gap-3">
@@ -564,7 +567,7 @@ export default function AdminFinancials() {
                         </div>
                         {commissionsOpen ? <ChevronUp size={20} style={{ color: 'var(--text-tertiary)' }} /> : <ChevronDown size={20} style={{ color: 'var(--text-tertiary)' }} />}
                     </div>
-                </button>
+                </div>
 
                 {commissionsOpen && (
                     <div className="overflow-x-auto">
@@ -660,9 +663,12 @@ export default function AdminFinancials() {
 
             {/* Activations Ledger */}
             <div className="themed-card rounded-xl overflow-hidden">
-                <button
+                <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setActivationsOpen(!activationsOpen)}
-                    className="w-full p-4 flex justify-between items-center transition-colors" style={{ borderBottom: '1px solid var(--border-primary)', background: 'rgba(0,0,0,0.05)' }}
+                    onKeyDown={(e) => e.key === 'Enter' && setActivationsOpen(!activationsOpen)}
+                    className="w-full p-4 flex justify-between items-center transition-colors cursor-pointer" style={{ borderBottom: '1px solid var(--border-primary)', background: 'rgba(0,0,0,0.05)' }}
                 >
                     <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Activations Ledger</h2>
                     <div className="flex items-center gap-3">
@@ -680,7 +686,7 @@ export default function AdminFinancials() {
                         </div>
                         {activationsOpen ? <ChevronUp size={20} style={{ color: 'var(--text-tertiary)' }} /> : <ChevronDown size={20} style={{ color: 'var(--text-tertiary)' }} />}
                     </div>
-                </button>
+                </div>
 
                 {activationsOpen && (
                     <div className="overflow-x-auto">

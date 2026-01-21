@@ -368,6 +368,33 @@ export async function getBrandUsers(brandId) {
     return data;
 }
 
+/**
+ * Get all brands from the brands table
+ * Used for Brand Partners display on Admin Team page
+ */
+export async function getAllBrands() {
+    const { data, error } = await supabase
+        .from('brands')
+        .select('*')
+        .order('name', { ascending: true });
+
+    if (error) {
+        console.warn("Supabase getAllBrands failed", error);
+        return [];
+    }
+
+    return data.map(b => ({
+        id: b.id,
+        name: b.name,
+        status: b.status,
+        commissionRate: b.commission_rate,
+        contractStart: b.contract_start,
+        contacts: b.contacts,
+        email: b.email || null,
+        createdAt: b.created_at
+    }));
+}
+
 // --- ACTIVATIONS (Shift Completion) ---
 // Note: "Logging a shift" means creating/completing an activation
 // The shifts table is deprecated - all shift data goes into activations

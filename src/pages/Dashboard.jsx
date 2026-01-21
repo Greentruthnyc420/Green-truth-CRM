@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet, Banknote, BookOpen, HelpCircle } from 'lucide-react';
+import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet, Banknote, BookOpen, HelpCircle, Bell, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMyDispensaries, getSales, getUserActivations } from '../services/firestoreService';
+import { getActivationRequestsForRep } from '../services/activationRequestService';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import {
     calculateHourlyRate,
@@ -16,6 +17,7 @@ import RepSignupLink from '../components/RepSignupLink';
 import SalesRepChatbot from '../components/SalesRepChatbot';
 import OnboardingTour from '../components/onboarding/OnboardingTour';
 import { getTourSteps } from '../data/tourSteps';
+import ActivationRequestCard from '../components/rep/ActivationRequestCard';
 
 const StatCard = ({ title, value, subtext, icon: IconComponent, trend, highlight, secondaryValue }) => (
     <div className={`themed-card p-6 rounded-xl ${highlight ? 'ring-4' : ''} shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group`}
@@ -97,18 +99,22 @@ export default function Dashboard() {
     const [milestoneMessage, setMilestoneMessage] = useState(null);
     const [showMilestoneParams, setShowMilestoneParams] = useState(null);
     const [showTour, setShowTour] = useState(false);
+    const [activationRequests, setActivationRequests] = useState([]);
 
     useEffect(() => {
         const loadData = async () => {
             if (!currentUser) return;
             setLoading(true);
             try {
-                // Fetch Data using real User ID
                 const userId = currentUser.uid;
                 const dispensaries = await getMyDispensaries(userId);
                 const allSales = await getSales();
                 const sales = allSales.filter(s => s.userId === userId);
                 const activations = await getUserActivations(userId);
+
+                // Fetch incoming activation requests for this rep
+                const incomingRequests = await getActivationRequestsForRep(userId);
+                setActivationRequests(incomingRequests);
 
                 // 1. Store Count & Hourly Rate
                 const count = dispensaries.length;
@@ -386,6 +392,39 @@ export default function Dashboard() {
 
                 <RepSignupLink />
             </div>
+
+            {/* Incoming Activation Requests Section */}
+            {activationRequests.length > 0 && (
+                <div className="themed-card rounded-xl shadow-lg overflow-hidden border-2 border-amber-300">
+                    <div className="p-5 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-200 rounded-xl relative">
+                                <Bell size={22} className="text-amber-700" />
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                    {activationRequests.length}
+                                </span>
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-amber-900">Incoming Activation Requests</h2>
+                                <p className="text-xs text-amber-700">Brands are requesting you for activations</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-5 space-y-4 bg-gradient-to-b from-amber-50/50 to-white">
+                        {activationRequests.map(request => (
+                            <ActivationRequestCard
+                                key={request.id}
+                                request={request}
+                                userId={currentUser?.uid}
+                                onResponded={(action) => {
+                                    // Refresh requests after responding
+                                    setActivationRequests(prev => prev.filter(r => r.id !== request.id));
+                                }}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Payment History Section */}
             {

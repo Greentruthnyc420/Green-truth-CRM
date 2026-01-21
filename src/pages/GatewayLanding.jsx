@@ -81,6 +81,16 @@ export default function GatewayLanding() {
         glow: 'shadow-slate-500/50'
     };
 
+    // Driver Portal - Coming Soon
+    const driverPortal = {
+        id: 'driver',
+        title: 'Driver Portal',
+        description: 'View routes & delivery assignments',
+        icon: Truck,
+        color: 'from-blue-500 to-cyan-600',
+        comingSoon: true
+    };
+
     // Generate random floating particles
     const particles = Array.from({ length: 15 }).map((_, i) => ({
         id: i,
@@ -266,8 +276,8 @@ export default function GatewayLanding() {
                         ))}
                     </div>
 
-                    {/* Admin Portal - Centered Below */}
-                    <div className="flex justify-center">
+                    {/* Admin & Driver Portals - Centered Below */}
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
                         <motion.button
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -310,6 +320,31 @@ export default function GatewayLanding() {
                                 )}
                             </div>
                         </motion.button>
+
+                        {/* Driver Portal - Coming Soon */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1.1, duration: 0.5 }}
+                            className="relative group perspective-1000 w-full max-w-xs cursor-not-allowed"
+                        >
+                            {/* Coming Soon Badge */}
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 px-4 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full text-white text-xs font-bold tracking-wider shadow-lg shadow-blue-500/30">
+                                COMING SOON
+                            </div>
+
+                            {/* Card Content - Disabled look */}
+                            <div className="relative bg-slate-900/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-8 transition-all duration-300 h-full flex flex-col items-center text-center opacity-60">
+                                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${driverPortal.color} flex items-center justify-center mb-6 shadow-lg opacity-70`}>
+                                    <driverPortal.icon size={36} className="text-white" />
+                                </div>
+
+                                <h3 className="text-2xl font-bold text-white/80 mb-3">{driverPortal.title}</h3>
+                                <p className="text-slate-500 text-sm leading-relaxed">{driverPortal.description}</p>
+
+                                <p className="mt-4 text-xs text-blue-400/80 font-medium">In Development</p>
+                            </div>
+                        </motion.div>
                     </div>
                 </motion.div>
 

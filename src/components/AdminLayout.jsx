@@ -47,15 +47,12 @@ export default function AdminLayout() {
             >
                 {/* Logo Area */}
                 <div className="h-20 flex items-center justify-between border-b p-4" style={{ borderColor: 'var(--border-primary)' }}>
-                    <div className="flex items-center justify-center flex-1 gap-2">
+                    <div className="flex items-center justify-center flex-1">
                         <img
                             src="/logos/logo-main.png"
-                            alt="GreenTruth"
-                            className={`${isSidebarOpen ? 'h-10' : 'h-8'} w-auto object-contain`}
+                            alt="The Green Truth"
+                            className={`${isSidebarOpen ? 'h-20' : 'h-12'} w-auto object-contain`}
                         />
-                        {isSidebarOpen && (
-                            <span className="text-sm font-bold text-white tracking-wider hidden md:block">Admin</span>
-                        )}
                     </div>
                     {isSidebarOpen && window.innerWidth <= 768 && (
                         <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white">
@@ -153,7 +150,7 @@ export default function AdminLayout() {
                     <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">
                         {currentUser?.email?.[0].toUpperCase() || 'A'}
                     </div>
-                </div>
+                </div >
 
                 <div className="p-4 md:p-8 pb-24 md:pb-8">
                     <Outlet />
@@ -232,8 +229,8 @@ export default function AdminLayout() {
                         </>
                     )}
                 </AnimatePresence>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }
 

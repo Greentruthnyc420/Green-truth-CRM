@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getInvoices } from '../../services/invoiceService';
+import { supabase } from '../../services/supabaseClient';
 import {
     FileText, ArrowUpRight, AlertTriangle,
-    CreditCard, Download, ExternalLink, Clock, X, Eye
+    CreditCard, Download, ExternalLink, Clock, X, Eye, Copy, Check, DollarSign, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 export default function BrandInvoicesGreenTruth() {
@@ -11,6 +12,9 @@ export default function BrandInvoicesGreenTruth() {
     const [invoices, setInvoices] = useState({ outstanding: [], history: [] });
     const [loading, setLoading] = useState(true);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [paymentInfo, setPaymentInfo] = useState(null);
+    const [showPaymentInfo, setShowPaymentInfo] = useState(false);
+    const [copiedField, setCopiedField] = useState(null);
 
     useEffect(() => {
         const fetchInvoices = async () => {
@@ -29,7 +33,31 @@ export default function BrandInvoicesGreenTruth() {
             }
         };
         fetchInvoices();
+        fetchPaymentInfo();
     }, [brandUser]);
+
+    const fetchPaymentInfo = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('company_settings')
+                .select('*')
+                .eq('company_id', 'greentruth')
+                .single();
+            if (data) setPaymentInfo(data);
+        } catch (err) {
+            console.log('No GreenTruth payment info found');
+        }
+    };
+
+    const copyToClipboard = async (text, field) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedField(field);
+            setTimeout(() => setCopiedField(null), 2000);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+    };
 
     const totalPayable = invoices.outstanding.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
     const totalPaid = invoices.history.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
@@ -91,6 +119,117 @@ export default function BrandInvoicesGreenTruth() {
                     </div>
                 </div>
             </div>
+
+            {/* Pay GreenTruth - Collapsible Section */}
+            {paymentInfo && (
+                <div className="rounded-xl overflow-hidden shadow-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                    <button
+                        onClick={() => setShowPaymentInfo(!showPaymentInfo)}
+                        className="w-full p-4 flex items-center justify-between hover:bg-emerald-50/30 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center">
+                                <DollarSign size={20} className="text-white" />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Pay GreenTruth</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>View ACH & payment details to send payments</p>
+                            </div>
+                        </div>
+                        {showPaymentInfo ? (
+                            <ChevronUp size={20} style={{ color: 'var(--text-tertiary)' }} />
+                        ) : (
+                            <ChevronDown size={20} style={{ color: 'var(--text-tertiary)' }} />
+                        )}
+                    </button>
+
+                    {showPaymentInfo && (
+                        <div className="p-6 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* ACH Info */}
+                                {paymentInfo.routing_number && (
+                                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                        <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                            <CreditCard size={18} />
+                                            ACH / Bank Transfer
+                                        </h4>
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-slate-500">Pay to:</span>
+                                                <span className="font-bold text-slate-800">{paymentInfo.business_name || 'The Green Truth LLC'}</span>
+                                            </div>
+                                            {paymentInfo.bank_name && (
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-slate-500">Bank:</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-mono font-medium">{paymentInfo.bank_name}</span>
+                                                        <button onClick={() => copyToClipboard(paymentInfo.bank_name, 'bank')} className="p-1 hover:bg-slate-200 rounded">
+                                                            {copiedField === 'bank' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-slate-400" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-slate-500">Routing:</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="font-mono font-medium">{paymentInfo.routing_number}</span>
+                                                    <button onClick={() => copyToClipboard(paymentInfo.routing_number, 'routing')} className="p-1 hover:bg-slate-200 rounded">
+                                                        {copiedField === 'routing' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-slate-400" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-slate-500">Account:</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="font-mono font-medium">{paymentInfo.account_number}</span>
+                                                    <button onClick={() => copyToClipboard(paymentInfo.account_number, 'account')} className="p-1 hover:bg-slate-200 rounded">
+                                                        {copiedField === 'account' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-slate-400" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-slate-500">Type:</span>
+                                                <span className="font-medium capitalize">{paymentInfo.account_type || 'Checking'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* PayPal */}
+                                {paymentInfo.paypal_email && (
+                                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                        <h4 className="font-bold text-blue-700 mb-3">PayPal</h4>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-blue-600">Email:</span>
+                                            <div className="flex items-center gap-1">
+                                                <span className="font-medium">{paymentInfo.paypal_email}</span>
+                                                <button onClick={() => copyToClipboard(paymentInfo.paypal_email, 'paypal')} className="p-1 hover:bg-blue-100 rounded">
+                                                    {copiedField === 'paypal' ? <Check size={14} className="text-blue-600" /> : <Copy size={14} className="text-blue-400" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Payment Instructions */}
+                            {paymentInfo.payment_instructions && (
+                                <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                    <h4 className="font-bold text-amber-700 mb-2">Payment Instructions</h4>
+                                    <p className="text-sm text-amber-800">{paymentInfo.payment_instructions}</p>
+                                </div>
+                            )}
+
+                            {/* Contact */}
+                            {(paymentInfo.contact_email || paymentInfo.contact_phone) && (
+                                <div className="mt-4 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Questions? Contact: {paymentInfo.contact_email || paymentInfo.contact_phone}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Outstanding Invoices */}
             <div className="rounded-xl shadow-sm overflow-hidden mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>

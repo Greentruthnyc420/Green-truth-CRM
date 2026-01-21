@@ -86,9 +86,14 @@ export async function createDealRule(rule) {
         created_by: rule.createdBy
     };
 
-    // Add tiers for tiered COD discount
+    // Add tiers for tiered discounts
     if (rule.tiers) {
         insertData.tiers = JSON.stringify(rule.tiers);
+    }
+
+    // Add discount_meta for BOGO, threshold bonus, etc.
+    if (rule.discountMeta) {
+        insertData.discount_meta = JSON.stringify(rule.discountMeta);
     }
 
     const { data, error } = await supabase
@@ -104,6 +109,7 @@ export async function createDealRule(rule) {
 
     return data;
 }
+
 
 /**
  * Update an existing deal rule
@@ -126,6 +132,7 @@ export async function updateDealRule(id, updates) {
     if (updates.productIds !== undefined) updateData.product_ids = updates.productIds;
     if (updates.category !== undefined) updateData.category = updates.category;
     if (updates.tiers !== undefined) updateData.tiers = JSON.stringify(updates.tiers);
+    if (updates.discountMeta !== undefined) updateData.discount_meta = JSON.stringify(updates.discountMeta);
 
     updateData.updated_at = new Date().toISOString();
 
@@ -143,6 +150,7 @@ export async function updateDealRule(id, updates) {
 
     return data;
 }
+
 
 /**
  * Delete a deal rule (soft delete by deactivating)
@@ -169,7 +177,7 @@ export async function deleteDealRule(id) {
 
 /**
  * Calculate which deals apply to a cart and return total discount
- * @param {Array} cartItems - Array of cart items with { productId, brandId, quantity, price }
+ * @param {Array} cartItems - Array of cart items with { productId, brandId, quantity, price, caseSize }
  * @param {string} paymentMethod - 'cod' | 'invoice' | 'credit'
  * @returns {Promise<Object>} - { appliedDeals: Array, totalDiscount: number, finalTotal: number }
  */
@@ -191,6 +199,10 @@ export async function calculateApplicableDeals(cartItems, paymentMethod = 'invoi
     // Calculate cart totals
     const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalCases = cartItems.reduce((sum, item) => {
+        const caseSize = item.caseSize || 1;
+        return sum + Math.ceil(item.quantity / caseSize);
+    }, 0);
 
     const appliedDeals = [];
     let totalDiscount = 0;
@@ -216,17 +228,14 @@ export async function calculateApplicableDeals(cartItems, paymentMethod = 'invoi
                 break;
 
             case 'tiered_cod_discount':
-                if (paymentMethod === 'cod' && rule.tiers) {
-                    // Calculate total cases from cart items
-                    const totalCases = cartItems.reduce((sum, item) => {
-                        const caseSize = item.caseSize || 1;
-                        return sum + Math.ceil(item.quantity / caseSize);
-                    }, 0);
+            case 'tiered_volume':
+                // Handle tiered discounts (both COD-specific and general volume)
+                if ((rule.rule_type === 'tiered_cod_discount' && paymentMethod !== 'cod')) {
+                    break; // COD tier requires COD payment
+                }
 
-                    // Parse tiers from JSON if stored as string
+                if (rule.tiers) {
                     const tiers = typeof rule.tiers === 'string' ? JSON.parse(rule.tiers) : rule.tiers;
-
-                    // Find applicable tier
                     const sortedTiers = [...tiers].sort((a, b) => a.minCases - b.minCases);
                     let applicableTier = null;
 
@@ -245,10 +254,13 @@ export async function calculateApplicableDeals(cartItems, paymentMethod = 'invoi
 
                     if (applicableTier) {
                         applies = true;
-                        // Override discount_value with tier's discount
-                        rule.discount_type = 'percentage';
-                        rule.discount_value = applicableTier.discountPercent;
-                        rule._tierApplied = applicableTier; // Store for reference
+                        // Check if tier has per-case discount or percentage
+                        if (applicableTier.perCaseDiscount) {
+                            discountAmount = totalCases * applicableTier.perCaseDiscount;
+                        } else if (applicableTier.discountPercent) {
+                            discountAmount = cartTotal * (applicableTier.discountPercent / 100);
+                        }
+                        rule._tierApplied = applicableTier;
                     }
                 }
                 break;
@@ -265,23 +277,69 @@ export async function calculateApplicableDeals(cartItems, paymentMethod = 'invoi
                     applies = true;
                 }
                 break;
+
+            case 'bogo':
+                // Buy X Get Y Free
+                const discountMeta = rule.discount_meta ?
+                    (typeof rule.discount_meta === 'string' ? JSON.parse(rule.discount_meta) : rule.discount_meta) : {};
+                const buyQty = discountMeta.buyQuantity || 4;
+                const freeQty = discountMeta.freeQuantity || 1;
+
+                if (totalCases >= buyQty) {
+                    applies = true;
+                    // Calculate free items value (use average item price)
+                    const avgPrice = cartTotal / totalCases;
+                    const freeSets = Math.floor(totalCases / (buyQty + freeQty));
+                    discountAmount = freeSets * freeQty * avgPrice;
+                }
+                break;
+
+            case 'threshold_bonus':
+                // Credit/bonus for orders over threshold
+                const thresholdMeta = rule.discount_meta ?
+                    (typeof rule.discount_meta === 'string' ? JSON.parse(rule.discount_meta) : rule.discount_meta) : {};
+                const threshold = thresholdMeta.thresholdAmount || rule.min_order_value || 0;
+
+                if (cartTotal >= threshold) {
+                    applies = true;
+                    // thresholdMeta.bonusType can be 'credit', 'free_shipping', 'percentage'
+                    if (thresholdMeta.bonusType === 'credit' || thresholdMeta.bonusType === 'fixed') {
+                        discountAmount = thresholdMeta.bonusValue || rule.discount_value || 0;
+                    } else if (thresholdMeta.bonusType === 'percentage') {
+                        discountAmount = cartTotal * ((thresholdMeta.bonusValue || rule.discount_value || 0) / 100);
+                    }
+                }
+                break;
         }
 
-        if (applies) {
-            // Calculate discount amount
-            if (rule.discount_type === 'percentage') {
-                discountAmount = cartTotal * (rule.discount_value / 100);
-            } else if (rule.discount_type === 'fixed') {
-                discountAmount = rule.discount_value;
+        // If the discount wasn't calculated in the switch, calculate based on discount_type
+        if (applies && discountAmount === 0) {
+            switch (rule.discount_type) {
+                case 'percentage':
+                    discountAmount = cartTotal * (rule.discount_value / 100);
+                    break;
+                case 'fixed':
+                    discountAmount = rule.discount_value;
+                    break;
+                case 'per_unit':
+                    discountAmount = totalQuantity * rule.discount_value;
+                    break;
+                case 'per_case':
+                    discountAmount = totalCases * rule.discount_value;
+                    break;
+                // tiered types are handled in the switch above
             }
+        }
 
+        if (applies && discountAmount > 0) {
             appliedDeals.push({
                 id: rule.id,
                 name: rule.name,
                 type: rule.rule_type,
                 discountType: rule.discount_type,
                 discountValue: rule.discount_value,
-                discountAmount: discountAmount
+                discountAmount: discountAmount,
+                tierApplied: rule._tierApplied || null
             });
 
             totalDiscount += discountAmount;
@@ -296,6 +354,7 @@ export async function calculateApplicableDeals(cartItems, paymentMethod = 'invoi
     };
 }
 
+
 // =============================================================================
 // DEAL RULE TYPES
 // =============================================================================
@@ -304,13 +363,20 @@ export const DEAL_RULE_TYPES = [
     { value: 'bulk_discount', label: 'Bulk Discount', description: 'Discount for orders over a certain value or quantity' },
     { value: 'cod_discount', label: 'Cash on Delivery', description: 'Flat discount for paying cash on delivery' },
     { value: 'tiered_cod_discount', label: 'Tiered COD Discount', description: 'Case-based tiered discounts for COD orders' },
+    { value: 'tiered_volume', label: 'Tiered Volume Discount', description: 'Percentage discount tiers based on case quantity' },
     { value: 'first_order', label: 'First Order', description: 'Discount for first-time customers' },
-    { value: 'category_discount', label: 'Category Discount', description: 'Discount on specific product categories' }
+    { value: 'category_discount', label: 'Category Discount', description: 'Discount on specific product categories' },
+    { value: 'bogo', label: 'Buy X Get Y Free', description: 'Buy a certain quantity and get free items' },
+    { value: 'threshold_bonus', label: 'Threshold Bonus', description: 'Free credit or bonus for orders over a threshold' }
 ];
 
 export const DISCOUNT_TYPES = [
-    { value: 'percentage', label: 'Percentage (%)', example: '10% off' },
-    { value: 'fixed', label: 'Fixed Amount ($)', example: '$50 off' }
+    { value: 'percentage', label: 'Percentage (%)', example: '10% off', description: 'Discount as percent of order' },
+    { value: 'fixed', label: 'Fixed Amount ($)', example: '$50 off', description: 'Flat dollar discount' },
+    { value: 'per_unit', label: 'Per Unit ($)', example: '$2 off per unit', description: 'Dollar off per unit ordered' },
+    { value: 'per_case', label: 'Per Case ($)', example: '$20 off per case', description: 'Dollar off per case ordered' },
+    { value: 'tiered_percentage', label: 'Tiered Percentage', example: '5+ cases = 10%', description: 'Percentage scales with volume' },
+    { value: 'tiered_per_case', label: 'Tiered $ Per Case', example: '5+ cases = $10/case off', description: 'Per-case discount scales with volume' }
 ];
 
 export const APPLIES_TO_OPTIONS = [
@@ -318,6 +384,7 @@ export const APPLIES_TO_OPTIONS = [
     { value: 'category', label: 'Specific Category' },
     { value: 'specific_products', label: 'Specific Products' }
 ];
+
 
 /**
  * Calculate tiered discount based on total cases ordered

@@ -1,15 +1,19 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, LogOut, Bell, Plug, Calendar, Menu, X, FileText, ShoppingCart, MoreHorizontal, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, LogOut, Bell, Plug, Calendar, Menu, X, FileText, ShoppingCart, MoreHorizontal, Settings, Palette, HelpCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
 import LayoutTourWrapper from './LayoutTourWrapper';
+import OnboardingTour from './onboarding/OnboardingTour';
+import { getTourSteps } from '../data/tourSteps';
 
 export default function DispensaryLayout() {
     const { currentUser, logout } = useAuth();
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    const [isThemeOpen, setIsThemeOpen] = React.useState(false);
+    const [showTour, setShowTour] = React.useState(false);
 
     const handleLogout = async () => {
         await logout();
@@ -25,8 +29,8 @@ export default function DispensaryLayout() {
             <div className="min-h-screen flex flex-col md:flex-row" style={{ background: 'var(--bg-primary)' }}>
                 {/* Desktop Sidebar */}
                 <aside className="hidden md:flex flex-col w-64 border-r h-screen sticky top-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                    <div className="p-8 border-b border-slate-50">
-                        <img src="/logos/logo-main.png" alt="Logo" className="h-12 w-auto object-contain" />
+                    <div className="p-4 border-b border-slate-50">
+                        <img src="/logos/logo-main.png" alt="The Green Truth" className="h-20 w-auto object-contain" />
                     </div>
 
                     <nav className="flex-1 p-4 space-y-1">
@@ -43,7 +47,27 @@ export default function DispensaryLayout() {
 
                     </nav>
 
-                    <div className="p-4 border-t border-slate-100">
+                    <div className="p-4 border-t border-slate-100 space-y-2">
+                        {/* Theme Toggle */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsThemeOpen(!isThemeOpen)}
+                                className="w-full flex items-center gap-3 p-3 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all font-medium"
+                            >
+                                <Palette size={20} /> Theme
+                            </button>
+                            <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
+                        </div>
+
+                        {/* Help Tour */}
+                        <button
+                            onClick={() => setShowTour(true)}
+                            className="w-full flex items-center gap-3 p-3 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all font-medium"
+                        >
+                            <HelpCircle size={20} /> Help Tour
+                        </button>
+
+                        {/* Sign Out */}
                         <button
                             onClick={handleLogout}
                             className="w-full flex items-center gap-3 p-3 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all font-medium"
@@ -62,7 +86,7 @@ export default function DispensaryLayout() {
                     >
                         <Menu size={24} />
                     </button>
-                    <img src="/logos/logo-main.png" alt="Logo" className="h-10 w-auto" />
+                    <img src="/logos/logo-main.png" alt="The Green Truth" className="h-16 w-auto" />
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs">
                         {currentUser?.displayName?.[0] || 'D'}
                     </div>
@@ -151,6 +175,16 @@ export default function DispensaryLayout() {
                         </>
                     )}
                 </AnimatePresence>
+
+                {/* Tour Overlay */}
+                {showTour && (
+                    <OnboardingTour
+                        steps={getTourSteps('dispensary')}
+                        isFirstTime={false}
+                        onComplete={() => setShowTour(false)}
+                        tourKey="dispensary_settings_tour"
+                    />
+                )}
             </div>
         </LayoutTourWrapper>
     );

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import OnboardingTour, { TourTriggerButton } from './onboarding/OnboardingTour';
+import OnboardingTour from './onboarding/OnboardingTour';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { getTourSteps } from '../data/tourSteps';
+import { HelpCircle } from 'lucide-react';
 
 /**
  * Layout Tour Wrapper
@@ -17,7 +18,7 @@ export default function LayoutTourWrapper({
     userEmail,
     userId,
     children,
-    showReplayButton = true
+    showReplayButton = false // Default to false - Help is now in Settings pages
 }) {
     const {
         isFirstTime,
@@ -91,11 +92,16 @@ export default function LayoutTourWrapper({
                 />
             )}
 
-            {/* Replay button (shown in a floating position when tour is completed) */}
-            {showReplayButton && tourCompleted && !showTour && (
-                <div className="fixed bottom-24 right-6 z-40">
-                    <TourTriggerButton onClick={handleReplay} />
-                </div>
+            {/* Replay button - positioned at bottom-left corner, subtle and out of the way */}
+            {showReplayButton && !showTour && (
+                <button
+                    onClick={handleReplay}
+                    className="fixed bottom-4 left-4 z-30 flex items-center gap-2 px-3 py-2 bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg border border-slate-700 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white hover:shadow-xl transition-all group"
+                    title="Replay Tour"
+                >
+                    <HelpCircle size={16} className="text-emerald-400 group-hover:rotate-12 transition-transform" />
+                    <span className="hidden sm:inline">Help</span>
+                </button>
             )}
         </>
     );

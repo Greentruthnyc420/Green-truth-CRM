@@ -289,82 +289,77 @@ export default function Login() {
                     </button>
 
                     {import.meta.env.DEV && (
-                        <div className="space-y-3 mt-4">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    devLogin('omar@thegreentruthnyc.com');
-                                    navigate('/app/admin');
-                                }}
-                                className="w-full bg-slate-800 text-slate-300 border border-slate-700 py-3 rounded-xl font-medium text-sm hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2 group"
-                            >
-                                <Shield size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-                                <span>Log in as <span className="text-white font-bold">Admin</span> (Dev)</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    devLogin('rep@thegreentruthnyc.com');
-                                    navigate('/app');
-                                }}
-                                className="w-full bg-slate-100 text-slate-500 border border-slate-200 py-3 rounded-xl font-medium text-sm hover:bg-slate-200 hover:text-slate-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Users size={16} />
-                                <span>Log in as <span className="text-slate-700 font-bold">Sales Rep</span> (Dev)</span>
-                            </button>
+                        <div className="space-y-2 mt-4 p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                            <p className="text-xs font-bold text-slate-500 text-center mb-3">🧪 DEV MODE - Test Tours</p>
 
-                            {/* Take Tour Button */}
+                            {/* Sales Rep Tour */}
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // Log in as demo rep and trigger tour
                                     devLogin('rep@thegreentruthnyc.com');
                                     sessionStorage.setItem('triggerTour', 'sales_rep');
                                     navigate('/app');
                                 }}
-                                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200"
+                                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2"
                             >
-                                <Play size={16} />
-                                <span>🎬 Take Tour</span>
+                                <Play size={14} />
+                                Sales Rep Tour (16 steps)
                             </button>
 
-                            {/* Developer Reset Button */}
-                            <div className="pt-4 border-t border-red-100 mt-4">
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        if (!window.confirm('🚨 DANGER: This will DELETE ALL test data (sales, activations, leads, etc.).\n\nAre you absolutely sure?')) return;
-                                        if (!window.confirm('⚠️ FINAL WARNING: This action cannot be undone.\n\nType "DELETE" and click OK to proceed...')) return;
+                            {/* Admin Tour */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    devLogin('omar@thegreentruthnyc.com');
+                                    sessionStorage.setItem('triggerTour', 'super_admin');
+                                    navigate('/admin');
+                                }}
+                                className="w-full bg-gradient-to-r from-slate-600 to-slate-800 text-white py-2.5 rounded-lg font-bold text-sm hover:from-slate-700 hover:to-slate-900 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Shield size={14} />
+                                Super Admin Tour (13 steps)
+                            </button>
 
-                                        setLoading(true);
-                                        setError('');
-                                        try {
-                                            const { devResetAllData } = await import('../services/firestoreService');
-                                            const result = await devResetAllData();
-                                            if (result.success) {
-                                                setSuccess(result.message);
-                                            } else {
-                                                setError(result.message);
-                                            }
-                                        } catch (err) {
-                                            setError('Failed to reset data: ' + err.message);
-                                        } finally {
-                                            setLoading(false);
-                                        }
-                                    }}
-                                    disabled={loading}
-                                    className="w-full bg-red-50 text-red-600 border-2 border-dashed border-red-300 py-3 rounded-xl font-bold text-sm hover:bg-red-100 hover:border-red-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    {loading ? (
-                                        <Loader size={16} className="animate-spin" />
-                                    ) : (
-                                        <>
-                                            🗑️ Reset All Test Data
-                                        </>
-                                    )}
-                                </button>
-                                <p className="text-[10px] text-center text-red-400 mt-2">Deletes: Sales, Activations, Leads, Orders, Payments</p>
-                            </div>
+                            {/* Brand Tour - Single brand */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    sessionStorage.setItem('triggerTour', 'brand');
+                                    navigate('/brand/login');
+                                }}
+                                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-amber-600 hover:to-orange-700 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Play size={14} />
+                                Brand Tour (15 steps)
+                            </button>
+
+                            {/* Processor Tour - Multi-brand */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    sessionStorage.setItem('triggerTour', 'processor');
+                                    navigate('/brand/login');
+                                }}
+                                className="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-rose-600 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Play size={14} />
+                                Processor Tour (19 steps)
+                            </button>
+
+                            {/* Dispensary Tour */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    sessionStorage.setItem('triggerTour', 'dispensary');
+                                    navigate('/dispensary/verify');
+                                }}
+                                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-purple-600 hover:to-indigo-700 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Play size={14} />
+                                Dispensary Tour (13 steps)
+                            </button>
+
+                            <p className="text-[10px] text-center text-slate-400 mt-2">Note: Brand/Processor/Dispensary tours require logging in with those credentials first</p>
                         </div>
                     )}
 

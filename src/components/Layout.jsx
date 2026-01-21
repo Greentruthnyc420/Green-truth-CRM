@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings, Palette, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings, Palette, MoreHorizontal, HelpCircle } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
@@ -39,7 +39,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                 onClick={toggleSidebar}
                 className={`p-0 ${isCollapsed ? 'h-24' : 'h-64'} flex items-center justify-center bg-black overflow-hidden relative border-b border-slate-800 cursor-pointer group transition-all duration-300`}
             >
-                {/* Brand Logo Area - Increased size and using transparent light version */}
+                {/* Brand Logo Area - Using transparent logo (same as gateway) */}
                 <div className="absolute inset-0 flex items-center justify-center p-4 bg-slate-950 group-hover:bg-slate-900 transition-colors">
                     <img
                         src="/logos/logo-main.png"
@@ -223,7 +223,7 @@ export default function Layout() {
                         </button>
 
                         {/* Logo */}
-                        <img src="/logos/logo-main.png" alt="Company Logo" className="h-12 w-auto object-contain" />
+                        <img src="/logos/logo-main.png" alt="The Green Truth" className="h-14 w-auto object-contain" />
 
                         {/* User Avatar */}
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>

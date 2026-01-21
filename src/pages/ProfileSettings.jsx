@@ -2,15 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '../services/firestoreService';
 import { useNotification } from '../contexts/NotificationContext';
-import { User, Instagram, Phone, MapPin, Save, Loader, ArrowLeft, Settings } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { User, Instagram, Phone, MapPin, Save, Loader, ArrowLeft, Settings, Palette, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import ThemeSwitcher from '../components/ThemeSwitcher';
+import OnboardingTour from '../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../data/tourSteps';
 
 export default function ProfileSettings() {
-    const { currentUser } = useAuth();
+    const { currentUser, logout } = useAuth();
     const { showNotification } = useNotification();
+    const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [showTheme, setShowTheme] = useState(false);
+    const [showTour, setShowTour] = useState(false);
     const [profile, setProfile] = useState({
         name: '',
         instagramHandle: '',
@@ -74,6 +80,16 @@ export default function ProfileSettings() {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Failed to log out', error);
+            showNotification('Failed to log out', 'error');
+        }
+    };
+
     const formatInstagram = (value) => {
         return value.replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '');
     };
@@ -96,14 +112,74 @@ export default function ProfileSettings() {
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <Settings className="text-brand-600" size={24} />
-                        Profile Settings
+                        Settings
                     </h1>
-                    <p className="text-slate-500 text-sm">Update your personal information</p>
+                    <p className="text-slate-500 text-sm">Update your profile and preferences</p>
                 </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="themed-card rounded-2xl p-4 space-y-2">
+                <h3 className="font-bold text-sm px-2 pb-2" style={{ color: 'var(--text-secondary)' }}>Quick Actions</h3>
+
+                {/* Theme */}
+                <button
+                    onClick={() => setShowTheme(!showTheme)}
+                    className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-all group text-left"
+                    style={{ background: showTheme ? 'var(--bg-secondary)' : 'transparent' }}
+                >
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                        <Palette size={20} className="text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Theme</p>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Customize appearance</p>
+                    </div>
+                    <ChevronRight size={20} className="text-slate-300 group-hover:text-slate-500 transition-colors"
+                        style={{ transform: showTheme ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+
+                {/* Theme Switcher Inline */}
+                {showTheme && (
+                    <div className="px-4 py-2">
+                        <ThemeSwitcher isOpen={true} onClose={() => setShowTheme(false)} inline={true} />
+                    </div>
+                )}
+
+                {/* Help Tour */}
+                <button
+                    onClick={() => setShowTour(true)}
+                    className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-all group text-left"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <HelpCircle size={20} className="text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Dashboard Tour</p>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Learn how to use the app</p>
+                    </div>
+                    <ChevronRight size={20} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
+                </button>
+
+                {/* Sign Out */}
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-4 p-3 rounded-xl bg-red-50 hover:bg-red-100 transition-all group text-left"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                        <LogOut size={20} className="text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold text-red-700">Sign Out</p>
+                        <p className="text-xs text-red-500">Log out of your account</p>
+                    </div>
+                </button>
             </div>
 
             {/* Profile Form */}
             <form onSubmit={handleSave} className="themed-card rounded-2xl p-6 space-y-6">
+                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Profile Information</h3>
+
                 {/* Name */}
                 <div>
                     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
@@ -196,7 +272,7 @@ export default function ProfileSettings() {
 
             {/* Account Info (Read-only) */}
             <div className="themed-card rounded-2xl p-6">
-                <h3 className="font-bold text-slate-800 mb-4">Account Information</h3>
+                <h3 className="font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Account Information</h3>
                 <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                         <span className="text-slate-500">Email</span>
@@ -208,6 +284,17 @@ export default function ProfileSettings() {
                     </div>
                 </div>
             </div>
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('sales_rep')}
+                    isFirstTime={false}
+                    onComplete={() => setShowTour(false)}
+                    tourKey="sales_rep_settings_tour"
+                />
+            )}
         </div>
     );
 }
+

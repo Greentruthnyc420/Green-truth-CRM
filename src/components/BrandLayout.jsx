@@ -2,10 +2,11 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useBrandAuth } from '../contexts/BrandAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
+import { MobileThemeBar } from './ThemeSwitcher';
 import LayoutTourWrapper from './LayoutTourWrapper';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, LogOut, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, Palette, GitBranch, MoreHorizontal, Tag } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, GitBranch, MoreHorizontal, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import BrandUnifiedSettingsMenu from './BrandUnifiedSettingsMenu';
 
 export default function BrandLayout() {
     const { brandUser, logoutBrand, switchBrand } = useBrandAuth();
@@ -13,7 +14,7 @@ export default function BrandLayout() {
     const navigate = useNavigate();
 
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
-    const [isThemeOpen, setIsThemeOpen] = React.useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
     const handleLogout = () => {
         logoutBrand();
@@ -36,7 +37,7 @@ export default function BrandLayout() {
     // Format: { brandId: { top: 'Path to large sidebar logo', icon: 'Path to small icon logo' } }
     const BRAND_ASSETS = {
         'greentruth': {
-            top: '/logos/logo-main.png', // Use master logo for internal portal
+            top: '/logos/logo-main.png', // Use transparent logo (same as gateway)
             icon: '/logos/logo-main.png'
         },
         'space-poppers': {
@@ -183,26 +184,14 @@ export default function BrandLayout() {
                             </div>
                         </div>
 
-                        {/* Theme Switcher */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsThemeOpen(!isThemeOpen)}
-                                className="w-full flex items-center gap-3 p-2 rounded-lg transition-colors"
-                                style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
-                            >
-                                <Palette size={20} />
-                                <span className="font-medium text-sm">Theme</span>
-                            </button>
-                            <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
-                        </div>
-
+                        {/* Settings */}
                         <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center gap-3 p-2 rounded-lg transition-colors"
-                            style={{ color: 'var(--text-sidebar)' }}
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="w-full flex items-center gap-3 p-2 rounded-lg transition-colors hover:opacity-80"
+                            style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
                         >
-                            <LogOut size={20} />
-                            <span className="font-medium text-sm">Sign Out</span>
+                            <Settings size={20} />
+                            <span className="font-medium text-sm">Settings</span>
                         </button>
                     </div>
                 </aside>
@@ -339,6 +328,14 @@ export default function BrandLayout() {
                     </div>
                 </main>
             </div>
+
+            {/* Unified Settings Menu */}
+            <BrandUnifiedSettingsMenu
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                brandUser={brandUser}
+                onLogout={handleLogout}
+            />
         </LayoutTourWrapper>
     );
 }

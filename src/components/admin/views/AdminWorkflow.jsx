@@ -162,7 +162,7 @@ export default function AdminWorkflow() {
                                         return (
                                             <tr key={shift.id} className="transition-colors" style={{ ':hover': { background: 'var(--bg-secondary)' } }}>
                                                 <td className="py-3 px-6"><input type="checkbox" checked={selectedShiftIds.includes(shift.id)} onChange={() => toggleShiftSelection(shift.id)} className="rounded border-slate-300 focus:ring-brand-500" /></td>
-                                                <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{shift.userId.substring(0, 8)}...</td>
+                                                <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{(shift.userId || shift.repId || 'Unknown').substring(0, 8)}...</td>
                                                 <td className="py-3 px-6 font-medium" style={{ color: 'var(--text-primary)' }}>{shift.dispensaryName}</td>
                                                 <td className="py-3 px-6" style={{ color: 'var(--text-secondary)' }}>
                                                     {(() => {

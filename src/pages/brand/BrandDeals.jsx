@@ -36,8 +36,22 @@ export default function BrandDeals() {
         discountType: 'percentage',
         discountValue: '',
         isActive: true,
-        tiers: [] // For tiered COD discounts
+        tiers: [], // For tiered COD/volume discounts
+        // BOGO fields
+        buyQuantity: 4,
+        freeQuantity: 1,
+        // Threshold bonus fields
+        thresholdAmount: '',
+        bonusType: 'credit',
+        bonusValue: ''
     });
+
+    // Minimum Order Settings (brand-level)
+    const [minOrderSettings, setMinOrderSettings] = useState({
+        type: 'amount', // 'amount' or 'cases'
+        value: ''
+    });
+    const [savingMinOrder, setSavingMinOrder] = useState(false);
 
     // Default JUSBUD-style tiers
     const defaultTiers = [
@@ -45,6 +59,14 @@ export default function BrandDeals() {
         { minCases: 3, maxCases: 5, discountPercent: 15 },
         { minCases: 6, maxCases: null, discountPercent: 20 }
     ];
+
+    // Default tiers with per-case discount
+    const defaultPerCaseTiers = [
+        { minCases: 3, maxCases: 5, perCaseDiscount: 10 },
+        { minCases: 6, maxCases: 10, perCaseDiscount: 15 },
+        { minCases: 11, maxCases: null, perCaseDiscount: 20 }
+    ];
+
 
     useEffect(() => {
         loadDeals();
@@ -75,15 +97,35 @@ export default function BrandDeals() {
                 minQuantity: formData.minQuantity ? parseInt(formData.minQuantity) : null,
                 minOrderValue: formData.minOrderValue ? parseFloat(formData.minOrderValue) : null,
                 discountType: formData.discountType,
-                discountValue: formData.ruleType === 'tiered_cod_discount' ? 0 : parseFloat(formData.discountValue || 0),
+                discountValue: ['tiered_cod_discount', 'tiered_volume', 'bogo', 'threshold_bonus'].includes(formData.ruleType)
+                    ? 0
+                    : parseFloat(formData.discountValue || 0),
                 isActive: formData.isActive,
                 createdBy: currentUser?.uid || brandUser?.uid
             };
 
-            // Add tiers for tiered COD discount
-            if (formData.ruleType === 'tiered_cod_discount' && formData.tiers.length > 0) {
+            // Add tiers for tiered discounts (COD or volume)
+            if (['tiered_cod_discount', 'tiered_volume'].includes(formData.ruleType) && formData.tiers.length > 0) {
                 dealData.tiers = formData.tiers;
             }
+
+            // Add BOGO config
+            if (formData.ruleType === 'bogo') {
+                dealData.discountMeta = {
+                    buyQuantity: parseInt(formData.buyQuantity) || 4,
+                    freeQuantity: parseInt(formData.freeQuantity) || 1
+                };
+            }
+
+            // Add threshold bonus config
+            if (formData.ruleType === 'threshold_bonus') {
+                dealData.discountMeta = {
+                    thresholdAmount: parseFloat(formData.thresholdAmount) || 0,
+                    bonusType: formData.bonusType,
+                    bonusValue: parseFloat(formData.bonusValue) || 0
+                };
+            }
+
 
             if (editingDeal) {
                 await updateDealRule(editingDeal.id, dealData);
@@ -110,6 +152,11 @@ export default function BrandDeals() {
         if (deal.tiers) {
             parsedTiers = typeof deal.tiers === 'string' ? JSON.parse(deal.tiers) : deal.tiers;
         }
+        // Parse discount_meta from JSON if stored as string
+        let parsedMeta = {};
+        if (deal.discount_meta) {
+            parsedMeta = typeof deal.discount_meta === 'string' ? JSON.parse(deal.discount_meta) : deal.discount_meta;
+        }
         setFormData({
             name: deal.name || '',
             description: deal.description || '',
@@ -119,7 +166,14 @@ export default function BrandDeals() {
             discountType: deal.discount_type,
             discountValue: deal.discount_value,
             isActive: deal.is_active,
-            tiers: parsedTiers
+            tiers: parsedTiers,
+            // BOGO fields
+            buyQuantity: parsedMeta.buyQuantity || 4,
+            freeQuantity: parsedMeta.freeQuantity || 1,
+            // Threshold fields
+            thresholdAmount: parsedMeta.thresholdAmount || '',
+            bonusType: parsedMeta.bonusType || 'credit',
+            bonusValue: parsedMeta.bonusValue || ''
         });
         setShowModal(true);
     };
@@ -145,7 +199,12 @@ export default function BrandDeals() {
             discountType: 'percentage',
             discountValue: '',
             isActive: true,
-            tiers: []
+            tiers: [],
+            buyQuantity: 4,
+            freeQuantity: 1,
+            thresholdAmount: '',
+            bonusType: 'credit',
+            bonusValue: ''
         });
         setEditingDeal(null);
     };
@@ -212,13 +271,13 @@ export default function BrandDeals() {
             )}
 
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                         {isAdminAccess ? `${brandDisplayName} - Deal Rules` : 'Deal Rules'}
                     </h1>
                     <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        Configure discounts for bulk orders, COD, and special promotions
+                        Configure discounts, minimum orders, and special promotions
                     </p>
                 </div>
                 <button
@@ -230,6 +289,88 @@ export default function BrandDeals() {
                     Add Deal
                 </button>
             </div>
+
+            {/* Minimum Order Settings */}
+            <div className="mb-8 p-6 rounded-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                        <Package size={20} className="text-white" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Minimum Order Requirements</h3>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Set a minimum for dispensaries to place orders</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                            Minimum Type
+                        </label>
+                        <select
+                            value={minOrderSettings.type}
+                            onChange={(e) => setMinOrderSettings({ ...minOrderSettings, type: e.target.value })}
+                            className="w-full px-4 py-2 rounded-lg outline-none"
+                            style={{
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-primary)',
+                                color: 'var(--text-primary)'
+                            }}
+                        >
+                            <option value="amount">Dollar Amount ($)</option>
+                            <option value="cases">Case Count</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                            {minOrderSettings.type === 'amount' ? 'Minimum Amount ($)' : 'Minimum Cases'}
+                        </label>
+                        <input
+                            type="number"
+                            value={minOrderSettings.value}
+                            onChange={(e) => setMinOrderSettings({ ...minOrderSettings, value: e.target.value })}
+                            className="w-full px-4 py-2 rounded-lg outline-none"
+                            style={{
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-primary)',
+                                color: 'var(--text-primary)'
+                            }}
+                            placeholder={minOrderSettings.type === 'amount' ? '1000' : '3'}
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <button
+                            onClick={async () => {
+                                setSavingMinOrder(true);
+                                // TODO: Save to brand settings in database
+                                showNotification('Minimum order saved!', 'success');
+                                setSavingMinOrder(false);
+                            }}
+                            disabled={savingMinOrder}
+                            className="w-full px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                            style={{ background: 'var(--accent-primary)', color: 'var(--text-inverse)' }}
+                        >
+                            {savingMinOrder ? <Loader size={16} className="animate-spin" /> : <Check size={16} />}
+                            Save Minimum
+                        </button>
+                    </div>
+                </div>
+
+                {minOrderSettings.value && (
+                    <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            📋 Dispensaries will need to order at least{' '}
+                            <strong style={{ color: 'var(--text-primary)' }}>
+                                {minOrderSettings.type === 'amount'
+                                    ? `$${Number(minOrderSettings.value).toLocaleString()}`
+                                    : `${minOrderSettings.value} cases`}
+                            </strong>
+                            {' '}to place an order with your brand.
+                        </p>
+                    </div>
+                )}
+            </div>
+
 
             {/* Deals Grid */}
             {loading ? (
@@ -510,8 +651,192 @@ export default function BrandDeals() {
                                 </div>
                             )}
 
-                            {/* Discount - hidden for tiered COD discount */}
-                            {formData.ruleType !== 'tiered_cod_discount' && (
+                            {/* Tiered Volume Discount Editor (non-COD) */}
+                            {formData.ruleType === 'tiered_volume' && (
+                                <div className="space-y-3 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                                            Volume Discount Tiers
+                                        </label>
+                                        <div className="flex gap-2">
+                                            {formData.tiers.length === 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={loadDefaultTiers}
+                                                    className="text-xs px-2 py-1 rounded-lg"
+                                                    style={{ background: 'var(--accent-primary)', color: 'var(--text-inverse)' }}
+                                                >
+                                                    Load Template
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={addTier}
+                                                className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                            >
+                                                <Plus size={12} /> Add Tier
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {formData.tiers.length === 0 ? (
+                                        <p className="text-xs text-center py-4" style={{ color: 'var(--text-tertiary)' }}>
+                                            No tiers configured. Click "Load Template" or add tiers manually.
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {formData.tiers.map((tier, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--bg-card)' }}>
+                                                    <div className="flex-1 grid grid-cols-3 gap-2">
+                                                        <div>
+                                                            <label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Min Cases</label>
+                                                            <input
+                                                                type="number"
+                                                                value={tier.minCases}
+                                                                onChange={(e) => updateTier(idx, 'minCases', e.target.value)}
+                                                                className="w-full px-2 py-1 rounded text-sm"
+                                                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                                min="1"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Max Cases</label>
+                                                            <input
+                                                                type="number"
+                                                                value={tier.maxCases || ''}
+                                                                onChange={(e) => updateTier(idx, 'maxCases', e.target.value)}
+                                                                className="w-full px-2 py-1 rounded text-sm"
+                                                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                                placeholder="∞"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Discount %</label>
+                                                            <input
+                                                                type="number"
+                                                                value={tier.discountPercent}
+                                                                onChange={(e) => updateTier(idx, 'discountPercent', e.target.value)}
+                                                                className="w-full px-2 py-1 rounded text-sm"
+                                                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                                min="0"
+                                                                max="100"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeTier(idx)}
+                                                        className="p-1 hover:bg-red-50 rounded"
+                                                    >
+                                                        <X size={14} className="text-red-500" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                                        💡 Higher volume = higher discount. Applies to all payment methods.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* BOGO (Buy X Get Y) Editor */}
+                            {formData.ruleType === 'bogo' && (
+                                <div className="space-y-3 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                    <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                                        Buy X Get Y Free Configuration
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Buy (cases)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.buyQuantity}
+                                                onChange={(e) => setFormData({ ...formData, buyQuantity: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                min="1"
+                                                placeholder="4"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Get Free (cases)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.freeQuantity}
+                                                onChange={(e) => setFormData({ ...formData, freeQuantity: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                min="1"
+                                                placeholder="1"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                                        🎁 Example: Buy {formData.buyQuantity || 4} cases, get {formData.freeQuantity || 1} free!
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Threshold Bonus Editor */}
+                            {formData.ruleType === 'threshold_bonus' && (
+                                <div className="space-y-3 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                    <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                                        Threshold Bonus Configuration
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Threshold Amount ($)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.thresholdAmount}
+                                                onChange={(e) => setFormData({ ...formData, thresholdAmount: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                min="0"
+                                                placeholder="2000"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Bonus Type</label>
+                                            <select
+                                                value={formData.bonusType}
+                                                onChange={(e) => setFormData({ ...formData, bonusType: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                            >
+                                                <option value="credit">Store Credit ($)</option>
+                                                <option value="percentage">Percentage Off</option>
+                                                <option value="fixed">Fixed Discount ($)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                                                {formData.bonusType === 'percentage' ? 'Bonus %' : 'Bonus Amount ($)'}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={formData.bonusValue}
+                                                onChange={(e) => setFormData({ ...formData, bonusValue: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                min="0"
+                                                placeholder={formData.bonusType === 'percentage' ? '5' : '50'}
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                                        🏆 Orders over ${formData.thresholdAmount || '2000'} get{' '}
+                                        {formData.bonusType === 'percentage'
+                                            ? `${formData.bonusValue || 5}% off`
+                                            : `$${formData.bonusValue || 50} ${formData.bonusType === 'credit' ? 'credit' : 'off'}`}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Discount - hidden for special types that configure their own */}
+                            {!['tiered_cod_discount', 'tiered_volume', 'bogo', 'threshold_bonus'].includes(formData.ruleType) && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>

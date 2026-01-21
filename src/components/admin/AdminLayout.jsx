@@ -20,14 +20,13 @@ import {
     Settings,
     ShieldCheck,
     Car,
-    Palette,
     Crown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, SUPER_ADMIN_EMAILS } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import ThemeSwitcher from '../ThemeSwitcher';
 import LayoutTourWrapper from '../LayoutTourWrapper';
+import UnifiedSettingsMenu from '../UnifiedSettingsMenu';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -70,7 +69,7 @@ export default function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-    const [isThemeOpen, setIsThemeOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Check if current user is super admin
     const showRoleManagement = isSuperAdminUser ? isSuperAdminUser() : SUPER_ADMIN_EMAILS.includes(currentUser?.email?.toLowerCase());
@@ -89,6 +88,7 @@ export default function AdminLayout() {
     const navItems = [
         { path: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
         { path: '/admin/workflow', label: 'Workflow', icon: CheckSquare },
+        { path: '/admin/activations', label: 'Activations', icon: Calendar },
         { path: '/admin/financials', label: 'Financials', icon: DollarSign },
         { path: '/admin/collections', label: 'Collections', icon: FileText },
         { path: '/admin/invoices', label: 'Invoices', icon: FileText },
@@ -127,17 +127,13 @@ export default function AdminLayout() {
                 `}
                 >
                     {/* Logo Area */}
-                    <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                        <div className="flex items-center justify-center flex-1">
                             <img
                                 src="/logos/logo-main.png"
-                                alt="GreenTruth"
-                                className="h-10 w-auto object-contain"
+                                alt="The Green Truth"
+                                className="h-24 w-auto object-contain"
                             />
-                            <div>
-                                <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-sidebar)' }}>GreenTruth</h1>
-                                <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Admin Portal</p>
-                            </div>
                         </div>
                         <button
                             className="lg:hidden text-slate-400 hover:text-white"
@@ -185,33 +181,14 @@ export default function AdminLayout() {
                             </div>
                         </div>
 
-                        {/* Theme Switcher */}
-                        <div className="relative mb-2">
-                            <button
-                                onClick={() => setIsThemeOpen(!isThemeOpen)}
-                                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors text-sm font-medium"
-                                style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
-                            >
-                                <Palette size={16} />
-                                Theme
-                            </button>
-                            <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
-                        </div>
-
+                        {/* Settings */}
                         <button
-                            onClick={() => navigate('/app')}
-                            className="w-full flex items-center justify-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-purple-200 py-2 rounded-lg transition-colors text-sm font-medium mb-2"
-                        >
-                            <Activity size={16} />
-                            Sales Portal
-                        </button>
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors text-sm font-medium"
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors text-sm font-medium hover:opacity-80"
                             style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
                         >
-                            <LogOut size={16} />
-                            Sign Out
+                            <Settings size={16} />
+                            Settings
                         </button>
                     </div>
                 </aside>
@@ -316,6 +293,14 @@ export default function AdminLayout() {
                     </AnimatePresence>
                 </main>
             </div>
+
+            {/* Unified Settings Menu */}
+            <UnifiedSettingsMenu
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                portalType="admin"
+                onLogout={handleLogout}
+            />
         </LayoutTourWrapper>
     );
 }
