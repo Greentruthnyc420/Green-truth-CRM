@@ -32,9 +32,9 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
-        // Load saved theme from localStorage or default to classic
+        // Load saved theme from localStorage or default to noir-emerald
         const saved = localStorage.getItem('app-theme');
-        return saved || 'classic';
+        return saved || 'noir-emerald';
     });
 
     useEffect(() => {

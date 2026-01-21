@@ -34,7 +34,7 @@ export default function GatewayLanding() {
     const mainPortals = [
         {
             id: 'rep',
-            title: 'Sales Ambassadors',
+            title: 'Cannabis Consultants',
             description: 'Track activations, commissions & leads',
             icon: Users,
             color: 'from-emerald-500 to-green-600',
@@ -43,7 +43,7 @@ export default function GatewayLanding() {
         },
         {
             id: 'brand',
-            title: 'Brand Partners',
+            title: 'Brands / Processors',
             description: 'Manage orders, invoices & menus',
             icon: Package,
             color: 'from-amber-500 to-orange-600',

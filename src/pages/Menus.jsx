@@ -17,7 +17,7 @@ const BRAND_LOGOS = {
     'waferz': '/logos/waferz.png',
     'pines': '/logos/pines.png',
     'flx-extracts': '/logos/flx-extracts.png',
-    'jusbud': '/logos/partner-7.png'
+    'jusbud': '/logos/jusbud.png'
 };
 
 // Static menu PDFs/images

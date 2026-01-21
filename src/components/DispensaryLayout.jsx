@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, LogOut, Bell, Plug, Calendar, Menu, X, FileText, ShoppingCart, MoreHorizontal, Settings, Palette, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, LogOut, Bell, Plug, Calendar, Menu, X, FileText, ShoppingCart, MoreHorizontal, Settings, Palette, HelpCircle, Link2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
@@ -38,13 +38,9 @@ export default function DispensaryLayout() {
                         <DispensaryNavItem to="/dispensary/schedule" icon={<Calendar size={20} />} label="Schedule" />
                         <DispensaryNavItem to="/dispensary/marketplace" icon={<ShoppingBag size={20} />} label="Marketplace" />
                         <DispensaryNavItem to="/dispensary/orders" icon={<ShoppingCart size={20} />} label="My Orders" />
-
-                        {/* Divider */}
-                        <div className="py-2">
-                            <div className="border-t border-slate-100"></div>
-                        </div>
-
-
+                        <DispensaryNavItem to="/dispensary/invoices" icon={<FileText size={20} />} label="Invoices" />
+                        <DispensaryNavItem to="/dispensary/settings" icon={<Settings size={20} />} label="Settings" />
+                        <DispensaryNavItem to="/dispensary/integrations" icon={<Link2 size={20} />} label="Integrations" />
                     </nav>
 
                     <div className="p-4 border-t border-slate-100 space-y-2">
@@ -151,13 +147,13 @@ export default function DispensaryLayout() {
                                     <MobileThemeBar />
                                 </div>
 
-                                {/* Navigation Grid */}
                                 <div className="px-4 py-4 grid grid-cols-4 gap-3">
                                     <SlideGridItem to="/dispensary" icon={<LayoutDashboard size={22} />} label="Dashboard" onClick={() => setIsMenuOpen(false)} />
                                     <SlideGridItem to="/dispensary/marketplace" icon={<ShoppingBag size={22} className="text-emerald-500" />} label="Shop" onClick={() => setIsMenuOpen(false)} />
                                     <SlideGridItem to="/dispensary/orders" icon={<ShoppingCart size={22} className="text-blue-500" />} label="Orders" onClick={() => setIsMenuOpen(false)} />
                                     <SlideGridItem to="/dispensary/schedule" icon={<Calendar size={22} className="text-indigo-500" />} label="Schedule" onClick={() => setIsMenuOpen(false)} />
                                     <SlideGridItem to="/dispensary/invoices" icon={<FileText size={22} className="text-orange-500" />} label="Invoices" onClick={() => setIsMenuOpen(false)} />
+                                    <SlideGridItem to="/dispensary/settings" icon={<Settings size={22} className="text-purple-500" />} label="Settings" onClick={() => setIsMenuOpen(false)} />
                                 </div>
 
                                 {/* Footer Actions */}
@@ -186,7 +182,7 @@ export default function DispensaryLayout() {
                     />
                 )}
             </div>
-        </LayoutTourWrapper>
+        </LayoutTourWrapper >
     );
 }
 

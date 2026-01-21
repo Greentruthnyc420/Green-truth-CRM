@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader, Minimize2, TrendingUp, Calendar, DollarSign, Package } from 'lucide-react';
 import { generateBrandResponse } from '../services/geminiService';
+import { getBrandAnalytics } from '../services/analyticsService';
 
-export default function BrandChatbot({ brandContext }) {
+export default function BrandChatbot({ brandContext, brandId }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [liveContext, setLiveContext] = useState(brandContext || {});
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
@@ -14,6 +16,16 @@ export default function BrandChatbot({ brandContext }) {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Fetch live analytics when chatbot opens
+    useEffect(() => {
+        if (isOpen && brandId) {
+            getBrandAnalytics(brandId).then(data => {
+                setLiveContext(prev => ({ ...prev, ...data }));
+                console.log('[BrandChatbot] Loaded live analytics for', brandId);
+            }).catch(err => console.warn('[BrandChatbot] Failed to load analytics:', err));
+        }
+    }, [isOpen, brandId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,8 +49,8 @@ export default function BrandChatbot({ brandContext }) {
         setLoading(true);
 
         try {
-            // Pass conversation history for context-aware responses
-            const response = await generateBrandResponse(userMessage, brandContext || {}, newMessages);
+            // Pass conversation history for context-aware responses with LIVE analytics
+            const response = await generateBrandResponse(userMessage, liveContext, newMessages);
             setMessages(prev => [...prev, { role: 'assistant', content: response }]);
         } catch (error) {
             setMessages(prev => [...prev, {

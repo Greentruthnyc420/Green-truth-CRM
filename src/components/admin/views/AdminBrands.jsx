@@ -46,7 +46,9 @@ export default function AdminBrands() {
         contacts: [],
         loginEmail: '',
         tempPassword: '',
-        logo: ''
+        logo: '',
+        isProcessor: false,
+        managedBrands: []
     });
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
@@ -196,7 +198,7 @@ export default function AdminBrands() {
         const updated = [...brands, brand];
         saveBrands(updated);
         setIsAddModalOpen(false);
-        setNewBrand({ name: '', status: 'active', commissionRate: 5, contractStart: new Date().toISOString().split('T')[0], contacts: [], loginEmail: '', tempPassword: '', logo: '' });
+        setNewBrand({ name: '', status: 'active', commissionRate: 5, contractStart: new Date().toISOString().split('T')[0], contacts: [], loginEmail: '', tempPassword: '', logo: '', isProcessor: false, managedBrands: [] });
         showNotification('Brand added successfully', 'success');
     };
 
@@ -573,6 +575,21 @@ export default function AdminBrands() {
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
                                 </select>
+                            </div>
+
+                            {/* Is Processor Toggle */}
+                            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg border border-purple-100">
+                                <input
+                                    type="checkbox"
+                                    id="isProcessor"
+                                    checked={newBrand.isProcessor}
+                                    onChange={(e) => setNewBrand({ ...newBrand, isProcessor: e.target.checked })}
+                                    className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                                />
+                                <label htmlFor="isProcessor" className="flex-1">
+                                    <span className="text-sm font-medium text-slate-700">This is a Processor</span>
+                                    <p className="text-xs text-slate-500">Processors manage multiple sub-brands (like FLX Extracts)</p>
+                                </label>
                             </div>
 
                             {/* Brand Portal Access Section */}

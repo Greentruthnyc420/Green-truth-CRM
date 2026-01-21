@@ -70,6 +70,7 @@ import BrandPipeline from './pages/brand/BrandPipeline';
 import BrandPrivateRoute from './components/BrandPrivateRoute';
 import BrandDeals from './pages/brand/BrandDeals';
 import BrandProducts from './pages/brand/BrandProducts';
+import IntegrationsSettings from './pages/settings/IntegrationsSettings';
 
 // Dispensary Portal Imports
 import DispensaryVerification from './pages/dispensary/DispensaryVerification';
@@ -83,6 +84,7 @@ import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
 import DispensarySchedule from './pages/dispensary/DispensarySchedule';
 import DispensaryInvoices from './pages/dispensary/DispensaryInvoices';
 import DispensaryOrders from './pages/dispensary/DispensaryOrders';
+import DispensarySettings from './pages/dispensary/DispensarySettings';
 
 // Driver Portal Imports
 import DriverLogin from './pages/driver/DriverLogin';
@@ -93,6 +95,7 @@ import ContractorOnboarding from './pages/ContractorOnboarding';
 import OnboardingRoute from './components/OnboardingRoute';
 import CompensationPortal from './pages/CompensationPortal';
 import ProfileSettings from './pages/ProfileSettings';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function App() {
   return (
@@ -104,6 +107,7 @@ function App() {
 
         {/* Gateway Landing Page */}
         <Route path="/gateway" element={<GatewayLanding />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* Dev tour testing done via login page dev buttons */}
 
@@ -183,6 +187,7 @@ function App() {
             <Route path="fulfillment" element={<BrandFulfillment />} />
             <Route path="deals" element={<BrandDeals />} />
             <Route path="products" element={<BrandProducts />} />
+            <Route path="integrations" element={<IntegrationsSettings portalType="brand" />} />
           </Route>
         </Route>
 
@@ -198,6 +203,8 @@ function App() {
             <Route path="schedule" element={<DispensarySchedule />} />
             <Route path="orders" element={<DispensaryOrders />} />
             <Route path="invoices" element={<DispensaryInvoices />} />
+            <Route path="settings" element={<DispensarySettings />} />
+            <Route path="integrations" element={<IntegrationsSettings portalType="dispensary" />} />
           </Route>
         </Route>
 

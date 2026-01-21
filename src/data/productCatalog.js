@@ -105,26 +105,30 @@ export const PRODUCT_CATALOG = [
         id: 'space-poppers',
         name: 'Space Poppers',
         logo: '/logos/space-poppers.png',
-        minimumOrder: { type: 'cases', value: 3 }, // 3 case minimum (per user request)
+        minimumOrder: { type: 'cases', value: 1 }, // 1 case minimum for medium bags
         products: [
-            { id: 'sp-sweet-chili', name: 'Sweet Chili Popcorn', description: '100mg - Sweet caramel and spicy chili-coated kernels', price: 14.00, caseSize: 25, unit: 'unit', thc: '100mg', strainType: 'Hybrid', category: 'Edible', inStock: true },
-            { id: 'sp-sea-salt', name: 'Sea Salt Caramel Popcorn', description: '100mg - Rich, buttery caramel-coated kernels with sea salt', price: 14.00, caseSize: 25, unit: 'unit', thc: '100mg', strainType: 'Hybrid', category: 'Edible', inStock: true },
-            { id: 'sp-chicago', name: 'Chicago Style Popcorn', description: '100mg - Sweet, buttery caramel with sharp, savory cheddar', price: 14.00, caseSize: 25, unit: 'unit', thc: '100mg', strainType: 'Hybrid', category: 'Edible', inStock: true }
+            // LARGE BAGS - 100mg total, 50 kernels, 2mg per kernel
+            { id: 'sp-sweet-chili-lg', name: 'Sweet Chili Popcorn (Large)', description: '100mg - 50 kernels @ 2mg each | Sweet caramel and spicy chili-coated', price: 14.00, casePrice: 350.00, caseSize: 25, unit: 'bag', thc: '100mg', size: 'large', kernels: 50, mgPerKernel: 2, strainType: 'Hybrid', category: 'Edible', inStock: true },
+            { id: 'sp-sea-salt-lg', name: 'Sea Salt Caramel Popcorn (Large)', description: '100mg - 50 kernels @ 2mg each | Rich, buttery caramel with sea salt', price: 14.00, casePrice: 350.00, caseSize: 25, unit: 'bag', thc: '100mg', size: 'large', kernels: 50, mgPerKernel: 2, strainType: 'Hybrid', category: 'Edible', inStock: true },
+            { id: 'sp-chicago-lg', name: 'Chicago Style Popcorn (Large)', description: '100mg - 50 kernels @ 2mg each | Sweet caramel with sharp, savory cheddar', price: 14.00, casePrice: 350.00, caseSize: 25, unit: 'bag', thc: '100mg', size: 'large', kernels: 50, mgPerKernel: 2, strainType: 'Hybrid', category: 'Edible', inStock: true },
+
+            // MEDIUM BAGS - 25mg total, 25 kernels, 1mg per kernel
+            { id: 'sp-churros-md', name: 'Churros Popcorn (Medium)', description: '25mg - 25 kernels @ 1mg each | Cinnamon sugar coated churro flavor', price: 7.50, casePrice: 300.00, caseSize: 40, unit: 'bag', thc: '25mg', size: 'medium', kernels: 25, mgPerKernel: 1, strainType: 'Hybrid', category: 'Edible', inStock: true }
         ]
     },
     {
         id: 'smoothie-bar',
         name: 'Smoothie Bar',
         logo: '/logos/smoothie-bar.png',
-        minimumOrder: { type: 'amount', value: 1000 }, // $1,000 minimum
+        minimumOrder: { type: 'cases', value: 4 }, // 4 case minimum ($800/case = $3,200 min)
         products: [
-            { id: 'sb-mimosa', name: 'Mimosa x Dirty Shirley', description: 'Sativa x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Sativa', category: 'Vape', inStock: true },
-            { id: 'sb-papaya', name: 'Papaya x Lemonade', description: 'Indica x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
-            { id: 'sb-truffle', name: 'Truffle Butter x Blue Dream', description: 'Indica x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
-            { id: 'sb-black-cherry', name: 'Black Cherry x F1', description: 'Indica x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
-            { id: 'sb-peanut-butter', name: 'Peanut Butter Breath x Zack\'s Pie', description: 'Hybrid x Indica', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Hybrid', category: 'Vape', inStock: true },
-            { id: 'sb-sour-lemon', name: 'Sour Lemon OG x Pineapple Jack', description: 'Sativa x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Sativa', category: 'Vape', inStock: true },
-            { id: 'sb-lava-cake', name: 'Lava Cake x Sour Diesel', description: 'Indica x Sativa', price: 45.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true }
+            { id: 'sb-mimosa', name: 'Mimosa x Dirty Shirley', description: 'Sativa x Sativa', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Sativa', category: 'Vape', inStock: true },
+            { id: 'sb-papaya', name: 'Papaya x Lemonade', description: 'Indica x Sativa', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
+            { id: 'sb-truffle', name: 'Truffle Butter x Blue Dream', description: 'Indica x Sativa', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
+            { id: 'sb-black-cherry', name: 'Black Cherry x F1', description: 'Indica x Sativa', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true },
+            { id: 'sb-peanut-butter', name: 'Peanut Butter Breath x Zack\'s Pie', description: 'Hybrid x Indica', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Hybrid', category: 'Vape', inStock: true },
+            { id: 'sb-sour-lemon', name: 'Sour Lemon OG x Pineapple Jack', description: 'Sativa x Sativa', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Sativa', category: 'Vape', inStock: true },
+            { id: 'sb-lava-cake', name: 'Lava Cake x Sour Diesel', description: 'Indica x Sativa', price: 40.00, caseSize: 20, unit: 'unit', strainType: 'Indica', category: 'Vape', inStock: true }
         ]
     },
     {

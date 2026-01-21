@@ -1654,6 +1654,8 @@ export async function saveAdminBrand(brand) {
                 password_changed: brand.passwordChanged || false,
                 invite_sent: brand.inviteSent || false,
                 logo: brand.logo,
+                is_processor: brand.isProcessor || false,
+                managed_brands: brand.managedBrands || [],
                 created_at: brand.createdAt || new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' })

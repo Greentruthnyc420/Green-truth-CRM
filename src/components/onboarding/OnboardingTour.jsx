@@ -74,46 +74,65 @@ export default function OnboardingTour({
     const step = steps[currentStep];
     const canSkip = !isFirstTime;
 
-    // Tooltip positioning
+    // Tooltip positioning - mobile responsive
     const getTooltipStyle = () => {
+        const isMobile = window.innerWidth < 640;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // On mobile, always center horizontally with safe margins
+        if (isMobile) {
+            return {
+                top: targetRect ? Math.min(targetRect.top + targetRect.height + 16, viewportHeight - 280) : '50%',
+                left: 16,
+                right: 16,
+                maxWidth: 'calc(100vw - 32px)',
+                transform: targetRect ? 'none' : 'translateY(-50%)'
+            };
+        }
+
         if (!targetRect) {
             return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
         }
 
         const pos = step.position || 'bottom';
         const pad = 20;
+        const tooltipWidth = 320;
+
+        // Ensure tooltip stays within viewport
+        const safeLeft = Math.max(16, Math.min(targetRect.left + targetRect.width / 2 - tooltipWidth / 2, viewportWidth - tooltipWidth - 16));
 
         switch (pos) {
             case 'top':
                 return {
-                    bottom: window.innerHeight - targetRect.top + pad,
-                    left: Math.max(20, targetRect.left + targetRect.width / 2 - 160),
-                    maxWidth: 320
+                    bottom: viewportHeight - targetRect.top + pad,
+                    left: safeLeft,
+                    maxWidth: tooltipWidth
                 };
             case 'left':
                 return {
-                    top: targetRect.top + targetRect.height / 2 - 80,
-                    right: window.innerWidth - targetRect.left + pad,
-                    maxWidth: 320
+                    top: Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - 80, viewportHeight - 200)),
+                    right: viewportWidth - targetRect.left + pad,
+                    maxWidth: Math.min(tooltipWidth, targetRect.left - 32)
                 };
             case 'right':
                 return {
-                    top: targetRect.top + targetRect.height / 2 - 80,
+                    top: Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - 80, viewportHeight - 200)),
                     left: targetRect.left + targetRect.width + pad,
-                    maxWidth: 320
+                    maxWidth: Math.min(tooltipWidth, viewportWidth - targetRect.left - targetRect.width - 32)
                 };
             case 'center':
                 return {
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    maxWidth: 380
+                    maxWidth: Math.min(380, viewportWidth - 32)
                 };
             default: // bottom
                 return {
-                    top: targetRect.top + targetRect.height + pad,
-                    left: Math.max(20, targetRect.left + targetRect.width / 2 - 160),
-                    maxWidth: 320
+                    top: Math.min(targetRect.top + targetRect.height + pad, viewportHeight - 200),
+                    left: safeLeft,
+                    maxWidth: tooltipWidth
                 };
         }
     };
@@ -143,9 +162,9 @@ export default function OnboardingTour({
                 />
             )}
 
-            {/* Tooltip */}
+            {/* Tooltip - mobile responsive */}
             <div
-                className="fixed z-[10000] w-80 bg-white rounded-xl shadow-2xl overflow-hidden"
+                className="fixed z-[10000] bg-white rounded-xl shadow-2xl overflow-hidden sm:w-80"
                 style={getTooltipStyle()}
             >
                 {/* Header */}

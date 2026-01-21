@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import ActivationFormModal from '../../components/ActivationFormModal';
 import BrandChatbot from '../../components/BrandChatbot';
+import IntegrationsPreview from '../../components/IntegrationsPreview';
 
 const FLX_SUB_BRANDS = [
     { id: 'pines', name: 'Pines', color: '#10b981' },
@@ -259,6 +260,9 @@ export default function FLXProcessorDashboard() {
                 brandId={brandUser?.brandId || 'flx-extracts'}
                 brandName={brandUser?.brandName || 'FLX Extracts'}
             />
+
+            {/* Integrations Coming Soon Section */}
+            <IntegrationsPreview showPOS={true} showERP={true} portalType="processor" />
 
             {/* Brand Analytics Chatbot */}
             <BrandChatbot

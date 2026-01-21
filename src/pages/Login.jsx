@@ -152,7 +152,7 @@ export default function Login() {
                             {isRegistering ? 'Create Account' : 'Welcome Back'}
                         </h2>
                         <p className="text-slate-400 text-sm">
-                            Sales Ambassador Portal
+                            Cannabis Consultant Portal
                         </p>
                     </div>
                 </div>
@@ -292,7 +292,7 @@ export default function Login() {
                         <div className="space-y-2 mt-4 p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
                             <p className="text-xs font-bold text-slate-500 text-center mb-3">🧪 DEV MODE - Test Tours</p>
 
-                            {/* Sales Rep Tour */}
+                            {/* Canna Consultant Tour */}
                             <button
                                 type="button"
                                 onClick={() => {
@@ -303,7 +303,7 @@ export default function Login() {
                                 className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2"
                             >
                                 <Play size={14} />
-                                Sales Rep Tour (16 steps)
+                                Canna Consultant Tour (16 steps)
                             </button>
 
                             {/* Admin Tour */}

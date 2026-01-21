@@ -4,7 +4,7 @@ import { useBrandAuth } from '../contexts/BrandAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { MobileThemeBar } from './ThemeSwitcher';
 import LayoutTourWrapper from './LayoutTourWrapper';
-import { LayoutDashboard, ShoppingCart, FileText, Menu, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, GitBranch, MoreHorizontal, Tag } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Menu, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, GitBranch, MoreHorizontal, Tag, Link2, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandUnifiedSettingsMenu from './BrandUnifiedSettingsMenu';
 
@@ -156,6 +156,7 @@ export default function BrandLayout() {
                         <NavItem to="/brand/invoices/dispensary" icon={<ArrowUpRight size={20} />} label="To Dispensaries" />
                         <NavItem to="/brand/invoices/greentruth" icon={<ArrowDownLeft size={20} />} label="From GreenTruth" />
                         <NavItem to="/brand/menu" icon={<Menu size={20} />} label="Menu Editor" />
+                        <NavItem to="/brand/integrations" icon={<Link2 size={20} />} label="Integrations" />
                         {(brandUser?.isProcessor || brandUser?.allowedBrands?.length > 0) && (
                             <>
                                 {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}

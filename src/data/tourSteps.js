@@ -8,13 +8,13 @@
  * - position: 'center' for modals, 'right' for sidebar items, 'bottom' for top elements
  */
 
-// Sales Rep Tour - Comprehensive walkthrough
+// Canna Consultant Tour - Comprehensive walkthrough
 export const salesRepTourSteps = [
     // Welcome
     {
         target: 'body',
         title: 'Welcome to GreenTruth! 🌿',
-        description: 'This is your Sales Ambassador Dashboard. I\'ll give you a complete walkthrough of every feature - tracking sales, logging hours, finding leads, and earning commissions.',
+        description: 'This is your Canna Consultant Dashboard. I\'ll give you a complete walkthrough of every feature - tracking sales, logging hours, finding leads, and earning commissions.',
         position: 'center'
     },
 
@@ -140,72 +140,56 @@ export const salesRepTourSteps = [
     }
 ];
 
-// Social Manager Tour (Alyssa) - Ambassador access + scheduling visibility
+// Social Media & Cannabis Consultant Tour (Alyssa)
 export const socialManagerTourSteps = [
     {
         target: 'body',
-        title: 'Welcome, Social Manager! ✨',
-        description: 'You have ambassador access for logging sales/hours, PLUS additional visibility for content planning and team coordination.',
+        title: 'Welcome, Social Media & Canna Consultant! ✨',
+        description: 'You have consultant access for logging sales/hours, PLUS additional visibility for content planning and team coordination.',
         position: 'center'
     },
-
-    // Stats
     {
         target: '.grid',
         title: 'Your Dashboard 📊',
-        description: 'Same stats as ambassadors - your sales, hours, and commissions. Track your own performance.',
+        description: 'Same stats as consultants - your sales, hours, and commissions. Track your own performance.',
         position: 'bottom'
     },
-
-    // Ambassador features (abbreviated)
     {
         target: 'aside, .themed-sidebar',
-        title: 'Ambassador Tools 🛠️',
-        description: 'You can log sales, hours, view schedule, and add leads just like any ambassador. Use these when you do in-store activations.',
+        title: 'Consultant Tools 🛠️',
+        description: 'You can log sales, hours, view schedule, and add leads just like any consultant. Use these when you do in-store activations.',
         position: 'right'
     },
-
-    // Schedule focus
     {
         target: 'a[href="/app/schedule"]',
         title: 'Team Schedule 📅',
-        description: 'View the FULL activation calendar - all ambassadors, all dispensaries. Use this to plan content around upcoming activations.',
+        description: 'View the FULL activation calendar - all consultants, all dispensaries. Use this to plan content around upcoming activations.',
         position: 'right'
     },
-
-    // Map for content
     {
         target: 'a[href="/app/map"]',
         title: 'Content Planning Map 🗺️',
         description: 'See all dispensary locations. Plan social content around specific neighborhoods or upcoming pop-ups.',
         position: 'right'
     },
-
-    // Admin Access
     {
         target: 'body',
         title: 'Admin Portal Access 🔐',
         description: 'From the Gateway page, you can also access the Admin portal for deeper team analytics and scheduling data.',
         position: 'center'
     },
-
-    // Social Tips
     {
         target: 'body',
         title: 'Content Ideas 📸',
-        description: 'Use the schedule to know when activations are happening, then visit for behind-the-scenes content. Tag ambassadors and dispensaries for engagement!',
+        description: 'Use the schedule to know when activations are happening, then visit for behind-the-scenes content. Tag consultants and dispensaries for engagement!',
         position: 'center'
     },
-
-    // Pay info
     {
         target: 'body',
         title: 'Your Compensation 💰',
-        description: 'Same as ambassadors: $20-$30/hr for activations, 2% commission on your sales, mileage reimbursement. Plus your salary for social management.',
+        description: 'Same as consultants: $20-$30/hr for activations, 2% commission on your sales, mileage reimbursement. Plus your salary for social management.',
         position: 'center'
     },
-
-    // Final
     {
         target: 'body',
         title: 'You\'re Set! 🚀',

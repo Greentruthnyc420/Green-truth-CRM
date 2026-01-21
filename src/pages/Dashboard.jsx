@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet, Banknote, BookOpen, HelpCircle, Bell, Calendar } from 'lucide-react';
+import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet, Banknote, BookOpen, Bell, Calendar, BarChart3, Building2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMyDispensaries, getSales, getUserActivations } from '../services/firestoreService';
 import { getActivationRequestsForRep } from '../services/activationRequestService';
@@ -100,6 +100,8 @@ export default function Dashboard() {
     const [showMilestoneParams, setShowMilestoneParams] = useState(null);
     const [showTour, setShowTour] = useState(false);
     const [activationRequests, setActivationRequests] = useState([]);
+    const [weeklySales, setWeeklySales] = useState([]);
+    const [topAccounts, setTopAccounts] = useState([]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -217,6 +219,46 @@ export default function Dashboard() {
                 const recentSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
                 setRecentActivity(recentSales);
 
+                // 7. Weekly Sales Analytics (last 4 weeks)
+                const now = new Date();
+                const weeks = [];
+                for (let i = 3; i >= 0; i--) {
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - (i * 7 + now.getDay()));
+                    weekStart.setHours(0, 0, 0, 0);
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    weekEnd.setHours(23, 59, 59, 999);
+
+                    const weekSales = sales.filter(s => {
+                        const saleDate = new Date(s.date);
+                        return saleDate >= weekStart && saleDate <= weekEnd;
+                    });
+
+                    const weekTotal = weekSales.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+                    weeks.push({
+                        label: `Week ${4 - i}`,
+                        amount: weekTotal,
+                        count: weekSales.length
+                    });
+                }
+                setWeeklySales(weeks);
+
+                // 8. Top Accounts (by total sales)
+                const accountTotals = {};
+                sales.forEach(sale => {
+                    const name = sale.dispensaryName || 'Unknown';
+                    if (!accountTotals[name]) {
+                        accountTotals[name] = { name, total: 0, count: 0 };
+                    }
+                    accountTotals[name].total += parseFloat(sale.amount) || 0;
+                    accountTotals[name].count += 1;
+                });
+                const topAccountsList = Object.values(accountTotals)
+                    .sort((a, b) => b.total - a.total)
+                    .slice(0, 5);
+                setTopAccounts(topAccountsList);
+
             } catch (e) {
                 console.error("Dashboard load failed", e);
             } finally {
@@ -268,19 +310,9 @@ export default function Dashboard() {
             )}
 
             <div className="mb-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Welcome back, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'Ambassador')}!</h1>
-                        <p style={{ color: 'var(--text-secondary)' }}>Here's your compensation breakdown.</p>
-                    </div>
-                    <button
-                        onClick={() => setShowTour(true)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}
-                    >
-                        <HelpCircle size={16} />
-                        Replay Tour
-                    </button>
+                <div>
+                    <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Welcome back, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'Ambassador')}!</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>Here's your compensation breakdown.</p>
                 </div>
                 {milestoneMessage && (
                     <div className="mt-4 p-4 bg-gradient-to-r from-brand-100 via-white to-brand-100 border border-brand-200 text-brand-800 rounded-xl flex items-center justify-between gap-3 shadow-md animate-slideIn">
@@ -357,6 +389,90 @@ export default function Dashboard() {
                         icon={Award}
                     />
                 </Link>
+            </div>
+
+            {/* Analytics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Weekly Sales Chart */}
+                <div className="themed-card rounded-xl shadow-sm overflow-hidden">
+                    <div className="p-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                        <BarChart3 size={20} style={{ color: 'var(--accent-primary)' }} />
+                        <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Weekly Sales</h2>
+                    </div>
+                    <div className="p-4">
+                        {weeklySales.length > 0 ? (
+                            <div className="flex items-end justify-between gap-3 h-40">
+                                {weeklySales.map((week, idx) => {
+                                    const maxAmount = Math.max(...weeklySales.map(w => w.amount), 1);
+                                    const heightPercent = (week.amount / maxAmount) * 100;
+                                    return (
+                                        <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                                            <div className="w-full flex flex-col items-center justify-end h-32">
+                                                <p className="text-xs font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+                                                    ${week.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                </p>
+                                                <div
+                                                    className="w-full rounded-t-lg transition-all duration-500"
+                                                    style={{
+                                                        height: `${Math.max(heightPercent, 5)}%`,
+                                                        background: idx === 3 ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                                        border: '1px solid var(--border-primary)'
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{week.label}</p>
+                                                <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{week.count} sales</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="h-40 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                                No sales data yet
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Top Accounts */}
+                <div className="themed-card rounded-xl shadow-sm overflow-hidden">
+                    <div className="p-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                        <Building2 size={20} style={{ color: 'var(--success)' }} />
+                        <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Accounts</h2>
+                    </div>
+                    <div className="p-4">
+                        {topAccounts.length > 0 ? (
+                            <div className="space-y-3">
+                                {topAccounts.map((account, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                                                style={{
+                                                    background: idx === 0 ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' :
+                                                        idx === 1 ? 'linear-gradient(135deg, #94a3b8, #64748b)' :
+                                                            idx === 2 ? 'linear-gradient(135deg, #cd7f32, #a0522d)' : 'var(--bg-card)',
+                                                    color: idx < 3 ? 'white' : 'var(--text-secondary)'
+                                                }}>
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{account.name}</p>
+                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{account.count} orders</p>
+                                            </div>
+                                        </div>
+                                        <p className="font-bold" style={{ color: 'var(--success)' }}>${account.total.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="h-40 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>
+                                No account data yet
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Quick Actions */}

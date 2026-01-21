@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, LogOut, Building2, Navigation, Calendar, Menu, X, Settings, Palette, MoreHorizontal, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, Building2, Navigation, Calendar, Menu, X, Settings, MoreHorizontal, HelpCircle } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
@@ -8,10 +8,7 @@ import LayoutTourWrapper from './LayoutTourWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
-    const { logout } = useAuth();
     const { theme } = useTheme();
-    const navigate = useNavigate();
-    const [isThemeOpen, setIsThemeOpen] = React.useState(false);
     // Defensive check for ADMIN_EMAILS to prevent white-screen crashes
     const safeAdminEmails = Array.isArray(ADMIN_EMAILS) ? ADMIN_EMAILS : [];
     const isAdmin = currentUser && currentUser.email && safeAdminEmails.includes(currentUser.email.toLowerCase());
@@ -19,17 +16,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     // Extract name from email (e.g., amber@thegreentruthnyc.com -> Amber)
     const userName = currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0].charAt(0).toUpperCase() + currentUser.email.split('@')[0].slice(1) : 'User');
     const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-            // The AuthContext will likely handle the redirect to login, 
-            // but we can ensure navigation happens if needed.
-            navigate('/login');
-        } catch (error) {
-            console.error("Failed to log out", error);
-        }
-    };
 
     return (
         <aside className={`hidden md:flex flex-col ${isCollapsed ? 'w-24' : 'w-64'} themed-sidebar h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300`}
@@ -87,7 +73,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                 )}
             </nav>
 
-            <div className="p-4 border-t space-y-3" style={{ borderColor: 'var(--border-primary)' }}>
+            <div className="p-4 border-t" style={{ borderColor: 'var(--border-primary)' }}>
                 <div className={`flex items-center gap-3 p-2 rounded-lg ${isCollapsed ? 'justify-center' : ''}`}
                     style={{ background: 'var(--bg-sidebar-hover)' }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold min-w-[2rem]"
@@ -101,30 +87,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                         </div>
                     )}
                 </div>
-
-                {/* Theme Switcher */}
-                <div className="relative">
-                    <button
-                        onClick={() => setIsThemeOpen(!isThemeOpen)}
-                        className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${isCollapsed ? 'justify-center' : ''}`}
-                        style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
-                        title="Theme"
-                    >
-                        <Palette size={20} />
-                        {!isCollapsed && <span className="font-medium text-sm">Theme</span>}
-                    </button>
-                    <ThemeSwitcher isOpen={isThemeOpen} onClose={() => setIsThemeOpen(false)} />
-                </div>
-
-                <button
-                    onClick={handleLogout}
-                    className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${isCollapsed ? 'justify-center' : ''}`}
-                    style={{ color: 'var(--text-sidebar)' }}
-                    title="Sign Out"
-                >
-                    <LogOut size={20} />
-                    {!isCollapsed && <span className="font-medium text-sm">Sign Out</span>}
-                </button>
             </div>
         </aside>
     );

@@ -2,19 +2,33 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader, Minimize2, ShoppingBag } from 'lucide-react';
 import { generateDispensaryResponse } from '../services/geminiService';
 import { PRODUCT_CATALOG } from '../data/productCatalog';
+import { getDispensaryAnalytics } from '../services/analyticsService';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function DispensaryChatbot() {
+    const { currentUser } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [liveContext, setLiveContext] = useState({});
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
-            content: "Welcome! 🌿 I'm your GreenTruth ordering assistant. Ask me about product pricing, bulk discounts, cash-on-delivery deals, or help placing an order!"
+            content: "Welcome! 🌿 I'm your GreenTruth ordering assistant. Ask me about product pricing, bulk discounts, cash-on-delivery deals, your order history, or help placing an order!"
         }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Fetch live analytics when chatbot opens
+    useEffect(() => {
+        if (isOpen && currentUser?.uid) {
+            getDispensaryAnalytics(currentUser.uid).then(data => {
+                setLiveContext(data);
+                console.log('[DispensaryChatbot] Loaded live analytics');
+            }).catch(err => console.warn('[DispensaryChatbot] Failed to load analytics:', err));
+        }
+    }, [isOpen, currentUser?.uid]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,7 +43,8 @@ export default function DispensaryChatbot() {
         setLoading(true);
 
         try {
-            const response = await generateDispensaryResponse(userMessage, PRODUCT_CATALOG);
+            // Pass live analytics for smarter, personalized responses
+            const response = await generateDispensaryResponse(userMessage, PRODUCT_CATALOG, liveContext);
             setMessages(prev => [...prev, { role: 'assistant', content: response }]);
         } catch (error) {
             setMessages(prev => [...prev, {
@@ -114,8 +129,8 @@ export default function DispensaryChatbot() {
                             >
                                 <div
                                     className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${msg.role === 'user'
-                                            ? 'bg-purple-500 text-white rounded-br-sm'
-                                            : 'rounded-bl-sm'
+                                        ? 'bg-purple-500 text-white rounded-br-sm'
+                                        : 'rounded-bl-sm'
                                         }`}
                                     style={msg.role === 'assistant' ? {
                                         background: 'var(--bg-card)',

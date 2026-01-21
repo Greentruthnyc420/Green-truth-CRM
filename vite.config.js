@@ -41,4 +41,25 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor libraries
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-charts': ['recharts'],
+          'vendor-ui': ['lucide-react', 'framer-motion'],
+          'vendor-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          'vendor-ai': ['@google/generative-ai'],
+          // Split large feature modules
+          'feature-admin': [
+            './src/pages/admin/Dashboard.jsx',
+          ],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000, // Increase limit since we're intentionally chunking
+  },
 })

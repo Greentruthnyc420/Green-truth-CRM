@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '../services/firestoreService';
 import { useNotification } from '../contexts/NotificationContext';
-import { User, Instagram, Phone, MapPin, Save, Loader, ArrowLeft, Settings, Palette, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
+import { User, Instagram, Phone, MapPin, Save, Loader, ArrowLeft, Settings, Palette, HelpCircle, LogOut, ChevronRight, Bell, Mail } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import OnboardingTour from '../components/onboarding/OnboardingTour';
 import { getTourSteps } from '../data/tourSteps';
+import { getNotificationPreferences, saveNotificationPreferences, NOTIFICATION_TYPES } from '../services/notificationPreferencesService';
 
 export default function ProfileSettings() {
     const { currentUser, logout } = useAuth();
@@ -17,6 +18,9 @@ export default function ProfileSettings() {
     const [saving, setSaving] = useState(false);
     const [showTheme, setShowTheme] = useState(false);
     const [showTour, setShowTour] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notificationPrefs, setNotificationPrefs] = useState({});
+    const [savingNotifications, setSavingNotifications] = useState(false);
     const [profile, setProfile] = useState({
         name: '',
         instagramHandle: '',
@@ -42,11 +46,38 @@ export default function ProfileSettings() {
                     address: data.address || ''
                 });
             }
+
+            // Load notification preferences
+            const notifPrefs = await getNotificationPreferences(currentUser.uid);
+            if (notifPrefs) {
+                setNotificationPrefs(notifPrefs);
+            }
         } catch (error) {
             console.error('Failed to load profile:', error);
             showNotification('Failed to load profile', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleNotificationToggle = async (key, value) => {
+        const newPrefs = { ...notificationPrefs, [key]: value };
+        setNotificationPrefs(newPrefs);
+
+        setSavingNotifications(true);
+        try {
+            await saveNotificationPreferences(
+                currentUser.uid,
+                currentUser.email,
+                'rep', // Default to rep, can be updated based on role
+                { [key]: value }
+            );
+        } catch (error) {
+            console.error('Failed to save notification preference:', error);
+            // Revert on error
+            setNotificationPrefs(prev => ({ ...prev, [key]: !value }));
+        } finally {
+            setSavingNotifications(false);
         }
     };
 
@@ -160,6 +191,60 @@ export default function ProfileSettings() {
                     </div>
                     <ChevronRight size={20} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
                 </button>
+
+                {/* Email Notifications */}
+                <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-all group text-left"
+                    style={{ background: showNotifications ? 'var(--bg-secondary)' : 'transparent' }}
+                >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                        <Bell size={20} className="text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Email Notifications</p>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Manage what emails you receive</p>
+                    </div>
+                    <ChevronRight size={20} className="text-slate-300 group-hover:text-slate-500 transition-colors"
+                        style={{ transform: showNotifications ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+
+                {/* Notification Preferences Expanded */}
+                {showNotifications && (
+                    <div className="px-4 py-3 space-y-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-500 mb-3">
+                            <Mail size={14} />
+                            <span>Notifications sent to: <strong>{currentUser?.email}</strong></span>
+                        </div>
+
+                        {NOTIFICATION_TYPES.rep.map(notif => (
+                            <div key={notif.key} className="flex items-center justify-between py-2">
+                                <div>
+                                    <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{notif.label}</p>
+                                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{notif.description}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleNotificationToggle(notif.key, !notificationPrefs[notif.key])}
+                                    disabled={savingNotifications}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationPrefs[notif.key] !== false ? 'bg-brand-600' : 'bg-slate-300'
+                                        }`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationPrefs[notif.key] !== false ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                    />
+                                </button>
+                            </div>
+                        ))}
+
+                        {savingNotifications && (
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <Loader size={12} className="animate-spin" />
+                                <span>Saving...</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Sign Out */}
                 <button

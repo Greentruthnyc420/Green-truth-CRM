@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit2, Trash2, DollarSign, Percent, Package, CreditCard, Gift, Loader, Check, X, Layers, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, DollarSign, Percent, Package, CreditCard, Gift, Loader, Check, X, Layers, ChevronDown, ChevronUp, ArrowLeft, Zap, Flame, Clock, Tag } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../../contexts/AuthContext';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
-import { getDealRules, createDealRule, updateDealRule, deleteDealRule, DEAL_RULE_TYPES, DISCOUNT_TYPES } from '../../services/dealService';
+import { getDealRules, createDealRule, updateDealRule, deleteDealRule, DEAL_RULE_TYPES, DISCOUNT_TYPES, FLASH_SALE_DURATIONS, calculateExpirationFromDuration, getTimeRemaining } from '../../services/dealService';
 import { useNotification } from '../../contexts/NotificationContext';
 
 export default function BrandDeals() {
@@ -43,7 +43,15 @@ export default function BrandDeals() {
         // Threshold bonus fields
         thresholdAmount: '',
         bonusType: 'credit',
-        bonusValue: ''
+        bonusValue: '',
+        // Flash sale / Clearance fields
+        flashSaleDuration: 24, // hours - default 24h
+        expiresAt: '',
+        badgeText: '',
+        badgeColor: '#10b981',
+        appliesTo: 'all_products', // all_products, category, specific_products
+        category: '',
+        productIds: []
     });
 
     // Minimum Order Settings (brand-level)
@@ -126,6 +134,23 @@ export default function BrandDeals() {
                 };
             }
 
+            // Add flash sale / clearance expiration
+            if (['flash_sale', 'clearance'].includes(formData.ruleType)) {
+                if (formData.flashSaleDuration && formData.flashSaleDuration !== 'custom') {
+                    dealData.expiresAt = calculateExpirationFromDuration(parseInt(formData.flashSaleDuration));
+                } else if (formData.expiresAt) {
+                    dealData.expiresAt = new Date(formData.expiresAt).toISOString();
+                }
+                dealData.badgeText = formData.badgeText || (formData.ruleType === 'flash_sale' ? 'FLASH SALE' : 'CLEARANCE');
+                dealData.badgeColor = formData.badgeColor || (formData.ruleType === 'flash_sale' ? '#ec4899' : '#ef4444');
+            }
+
+            // Add product-specific targeting
+            if (formData.ruleType === 'product_discount') {
+                dealData.appliesTo = formData.appliesTo;
+                dealData.category = formData.appliesTo === 'category' ? formData.category : null;
+                dealData.productIds = formData.appliesTo === 'specific_products' ? formData.productIds : null;
+            }
 
             if (editingDeal) {
                 await updateDealRule(editingDeal.id, dealData);
@@ -173,7 +198,15 @@ export default function BrandDeals() {
             // Threshold fields
             thresholdAmount: parsedMeta.thresholdAmount || '',
             bonusType: parsedMeta.bonusType || 'credit',
-            bonusValue: parsedMeta.bonusValue || ''
+            bonusValue: parsedMeta.bonusValue || '',
+            // Flash sale / Clearance fields
+            flashSaleDuration: deal.expires_at ? 'custom' : 24,
+            expiresAt: deal.expires_at ? new Date(deal.expires_at).toISOString().slice(0, 16) : '',
+            badgeText: deal.badge_text || '',
+            badgeColor: deal.badge_color || '#10b981',
+            appliesTo: deal.applies_to || 'all_products',
+            category: deal.category || '',
+            productIds: deal.product_ids || []
         });
         setShowModal(true);
     };
@@ -204,7 +237,15 @@ export default function BrandDeals() {
             freeQuantity: 1,
             thresholdAmount: '',
             bonusType: 'credit',
-            bonusValue: ''
+            bonusValue: '',
+            // Flash sale / Clearance fields
+            flashSaleDuration: 24,
+            expiresAt: '',
+            badgeText: '',
+            badgeColor: '#10b981',
+            appliesTo: 'all_products',
+            category: '',
+            productIds: []
         });
         setEditingDeal(null);
     };
@@ -839,6 +880,96 @@ export default function BrandDeals() {
                                         {formData.bonusType === 'percentage'
                                             ? `${formData.bonusValue || 5}% off`
                                             : `$${formData.bonusValue || 50} ${formData.bonusType === 'credit' ? 'credit' : 'off'}`}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Flash Sale / Clearance Duration Picker */}
+                            {['flash_sale', 'clearance'].includes(formData.ruleType) && (
+                                <div className="space-y-3 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: `2px solid ${formData.ruleType === 'flash_sale' ? '#ec4899' : '#ef4444'}` }}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        {formData.ruleType === 'flash_sale' ? (
+                                            <Zap className="text-pink-500" size={18} />
+                                        ) : (
+                                            <Flame className="text-red-500" size={18} />
+                                        )}
+                                        <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                                            {formData.ruleType === 'flash_sale' ? 'Flash Sale Duration' : 'Clearance Duration'}
+                                        </label>
+                                    </div>
+
+                                    {/* Duration Presets */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {FLASH_SALE_DURATIONS.map((preset) => (
+                                            <button
+                                                key={preset.hours}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, flashSaleDuration: preset.hours, expiresAt: '' })}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${formData.flashSaleDuration === preset.hours ? 'ring-2' : ''
+                                                    }`}
+                                                style={{
+                                                    background: formData.flashSaleDuration === preset.hours
+                                                        ? (formData.ruleType === 'flash_sale' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(239, 68, 68, 0.2)')
+                                                        : 'var(--bg-card)',
+                                                    color: formData.flashSaleDuration === preset.hours
+                                                        ? (formData.ruleType === 'flash_sale' ? '#ec4899' : '#ef4444')
+                                                        : 'var(--text-secondary)',
+                                                    ringColor: formData.ruleType === 'flash_sale' ? '#ec4899' : '#ef4444'
+                                                }}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Custom Date Picker (shown when Custom is selected) */}
+                                    {formData.flashSaleDuration === 'custom' && (
+                                        <div className="mt-3">
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Custom End Date & Time</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={formData.expiresAt}
+                                                onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Badge Customization */}
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Badge Text</label>
+                                            <input
+                                                type="text"
+                                                value={formData.badgeText}
+                                                onChange={(e) => setFormData({ ...formData, badgeText: e.target.value.toUpperCase() })}
+                                                className="w-full px-3 py-2 rounded-lg text-sm"
+                                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
+                                                placeholder={formData.ruleType === 'flash_sale' ? 'FLASH SALE' : 'CLEARANCE'}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>Badge Color</label>
+                                            <div className="flex gap-1">
+                                                {['#ec4899', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'].map(color => (
+                                                    <button
+                                                        key={color}
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, badgeColor: color })}
+                                                        className={`w-7 h-7 rounded-lg ${formData.badgeColor === color ? 'ring-2 ring-white ring-offset-1' : ''}`}
+                                                        style={{ background: color }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                                        ⏰ {formData.ruleType === 'flash_sale'
+                                            ? `Sale will run for ${FLASH_SALE_DURATIONS.find(d => d.hours === formData.flashSaleDuration)?.label || 'custom duration'} with a countdown timer`
+                                            : `Clearance deal will expire in ${FLASH_SALE_DURATIONS.find(d => d.hours === formData.flashSaleDuration)?.label || 'custom duration'}`
+                                        }
                                     </p>
                                 </div>
                             )}

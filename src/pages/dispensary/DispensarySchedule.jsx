@@ -80,7 +80,7 @@ export default function DispensarySchedule() {
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
                 >
                     <Plus size={18} />
                     Request Activation
@@ -105,16 +105,17 @@ export default function DispensarySchedule() {
             {selectedEvent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity animate-in fade-in duration-200">
                     <div style={{ background: 'var(--bg-card)' }} className="rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="bg-emerald-50 p-6 border-b border-emerald-100 flex justify-between items-start">
+                        <div className="p-6 flex justify-between items-start" style={{ background: 'rgba(16, 185, 129, 0.1)', borderBottom: '1px solid var(--border-primary)' }}>
                             <div>
                                 <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Activation Details</h3>
-                                <p className="text-emerald-700 text-sm font-medium mt-1 uppercase tracking-wide">
+                                <p className="text-emerald-600 text-sm font-medium mt-1 uppercase tracking-wide">
                                     {selectedEvent.resource.status}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="p-2 hover:bg-white/50 rounded-full transition-colors text-emerald-700"
+                                className="p-2 rounded-full transition-colors"
+                                style={{ color: 'var(--text-secondary)' }}
                             >
                                 <X size={20} />
                             </button>

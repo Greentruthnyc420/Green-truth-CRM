@@ -3,6 +3,55 @@ import { supabase } from './supabaseClient';
 const TABLE_NAME = 'invoices';
 
 /**
+ * Get unpaid invoices for a dispensary, grouped by brand.
+ * Used to check if dispensary has outstanding balance before allowing new orders.
+ * @param {string} dispensaryId - The dispensary's ID
+ * @returns {Object} - Map of brandId -> unpaid invoices array
+ */
+export async function getUnpaidInvoicesForDispensary(dispensaryId) {
+    if (!dispensaryId) return {};
+
+    try {
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('dispensary_id', dispensaryId)
+            .in('status', ['pending', 'overdue'])
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Group by brand (handle both column naming conventions)
+        const byBrand = {};
+        (data || []).forEach(inv => {
+            // Handle both snake_case and camelCase column names
+            const brandId = inv.brand_id || inv.brandId;
+            if (!brandId) return; // Skip if no brand associated
+
+            if (!byBrand[brandId]) {
+                byBrand[brandId] = [];
+            }
+            byBrand[brandId].push({
+                id: inv.id,
+                invoice_number: inv.invoice_number || inv.invoiceNumber,
+                brand_id: brandId,
+                brand_name: inv.brand_name || inv.brandName,
+                total_amount: inv.total_amount || inv.total || 0,
+                amount: inv.total_amount || inv.total || 0, // Alias for modal display
+                status: inv.status,
+                due_date: inv.due_date || inv.dueDate,
+                created_at: inv.created_at || inv.createdAt
+            });
+        });
+
+        return byBrand;
+    } catch (error) {
+        console.error("Error fetching unpaid invoices for dispensary:", error);
+        return {};
+    }
+}
+
+/**
  * Creates a new itemized invoice.
  * @param {Object} invoiceData - { brandId, brandName, startDate, endDate, items: [], status: 'pending', ... }
  */

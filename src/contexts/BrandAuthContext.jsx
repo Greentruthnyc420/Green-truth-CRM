@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "../firebase";
 import {
     createUserWithEmailAndPassword,
@@ -15,23 +15,25 @@ import { sendAdminNotification, createUserRegistrationEmail } from '../services/
 // Reserved System IDs
 export const INTERNAL_BRAND_ID = 'greentruth';
 
-// Available brands for signup - users select from dropdown and enter their REAL license
-// No fake license validation - license is stored as-is
-export const AVAILABLE_BRANDS = {
-    'honey-king': { brandId: 'honey-king', brandName: '🍯 Honey King' },
-    'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard' },
-    'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots' },
-    'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers' },
-    'smoothie-bar': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar' },
-    'waferz': { brandId: 'waferz', brandName: 'Waferz NY' },
-    'pines': { brandId: 'pines', brandName: 'Pines' },
-    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', isProcessor: true, managedBrands: ['pines', 'smoothie-bar', 'waferz'] },
-    'jusbud': { brandId: 'jusbud', brandName: 'JUSBUD!' }
+// Default brands for fallback - used when database is unavailable
+const DEFAULT_BRANDS = {
+    'honey-king': { brandId: 'honey-king', brandName: '🍯 Honey King', logo: '/logos/partner-5.png' },
+    'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard', logo: '/logos/partner-4.png' },
+    'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots', logo: '/logos/partner-3.jpg' },
+    'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers', logo: '/logos/partner-2.png' },
+    'smoothie-bar': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar', logo: '/logos/smoothie-bar.png' },
+    'waferz': { brandId: 'waferz', brandName: 'Waferz NY', logo: '/logos/waferz.png' },
+    'pines': { brandId: 'pines', brandName: 'Pines', logo: '/logos/pines.png' },
+    'flx-extracts': { brandId: 'flx-extracts', brandName: 'FLX Extracts', logo: '/logos/flx-extracts.png', isProcessor: true, managedBrands: ['pines', 'smoothie-bar', 'waferz'] },
+    'jusbud': { brandId: 'jusbud', brandName: 'JUSBUD!', logo: '/logos/jusbud.png' }
 };
+
+// Export for backwards compatibility - will be dynamically overwritten
+export let AVAILABLE_BRANDS = { ...DEFAULT_BRANDS };
 
 // Legacy support: Map old license numbers to brands (for existing users)
 // New users should not use these - they select brand from dropdown
-export const BRAND_LICENSES = {
+export let BRAND_LICENSES = {
     ...Object.fromEntries(
         Object.entries(AVAILABLE_BRANDS).map(([id, brand]) => [id, brand])
     ),
@@ -55,7 +57,55 @@ export function useBrandAuth() {
 export function BrandAuthProvider({ children }) {
     const [brandUser, setBrandUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [availableBrands, setAvailableBrands] = useState(DEFAULT_BRANDS);
     const { currentUser: authUser } = useAuth(); // renamed for clarity
+
+    // Load brands dynamically from Supabase admin_brands table
+    useEffect(() => {
+        async function loadBrands() {
+            try {
+                const { data, error } = await supabase
+                    .from('admin_brands')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    // Transform database records to brand format
+                    const dynamicBrands = {};
+                    data.forEach(b => {
+                        dynamicBrands[b.id] = {
+                            brandId: b.id,
+                            brandName: b.name,
+                            logo: b.logo || null,
+                            isProcessor: b.is_processor || false,
+                            managedBrands: b.managed_brands || []
+                        };
+                    });
+
+                    // Merge with defaults (defaults act as fallback for missing logos etc)
+                    const mergedBrands = { ...DEFAULT_BRANDS, ...dynamicBrands };
+                    setAvailableBrands(mergedBrands);
+
+                    // Update the exports for backwards compatibility
+                    AVAILABLE_BRANDS = mergedBrands;
+                    BRAND_LICENSES = {
+                        ...Object.fromEntries(
+                            Object.entries(mergedBrands).map(([id, brand]) => [id, brand])
+                        ),
+                        'greentruth': { brandId: 'greentruth', brandName: 'Green Truth NYC' }
+                    };
+
+                    console.log('[BrandAuth] Loaded', Object.keys(dynamicBrands).length, 'brands from database');
+                }
+            } catch (err) {
+                console.warn('[BrandAuth] Failed to load brands from database, using defaults:', err);
+            }
+        }
+        loadBrands();
+    }, []);
 
     // Sync brandUser with Firebase Auth state
     React.useEffect(() => {
@@ -413,6 +463,7 @@ export function BrandAuthProvider({ children }) {
     const value = {
         brandUser,
         loading,
+        availableBrands,
         validateLicense,
         loginBrand,
         signupBrand,

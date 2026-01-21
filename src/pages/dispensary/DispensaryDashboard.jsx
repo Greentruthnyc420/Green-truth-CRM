@@ -8,6 +8,7 @@ import { supabase } from '../../services/supabaseClient';
 import DispensaryChatbot from '../../components/DispensaryChatbot';
 import OnboardingTour from '../../components/onboarding/OnboardingTour';
 import { getTourSteps } from '../../data/tourSteps';
+import IntegrationsPreview from '../../components/IntegrationsPreview';
 
 import { exportToDutchie, exportToBlaze, exportToCova, exportToBioTrack, exportToLeafLogix, exportMetrcReady, exportGeneric } from '../../utils/csvExporters';
 
@@ -95,19 +96,20 @@ export default function DispensaryDashboard() {
                     </button>
                     <button
                         onClick={() => navigate('/dispensary/invoices')}
-                        className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-700 text-white font-bold rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2 px-6 py-4 text-white font-bold rounded-2xl transition-all active:scale-95"
+                        style={{ background: 'var(--accent-secondary, #374151)' }}
                     >
                         <FileText size={20} /> Invoices
                     </button>
                     <button
                         onClick={() => setShowSampleRequest(true)}
-                        className="flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 shadow-lg shadow-purple-200 transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-all active:scale-95"
                     >
                         <Gift size={20} /> Request Samples
                     </button>
                     <button
                         onClick={() => navigate('/dispensary/marketplace')}
-                        className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-all active:scale-95"
                     >
                         <ShoppingBag size={20} /> Browse Products
                     </button>
@@ -148,16 +150,19 @@ export default function DispensaryDashboard() {
                         </button>
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
                         {activeOrders.map(order => (
-                            <div key={order.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+                            <div key={order.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors" style={{ ':hover': { background: 'var(--bg-secondary)' } }}>
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <p className="font-bold" style={{ color: 'var(--text-primary)' }}>Order #{order.id.slice(-6).toUpperCase()}</p>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${order.status === 'Pending Approval' ? 'bg-amber-100 text-amber-700' :
-                                            order.status === 'Completed' || order.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' :
-                                                'bg-slate-100 text-slate-500'
-                                            }`}>
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide`}
+                                            style={{
+                                                background: order.status === 'Pending Approval' ? 'rgba(245, 158, 11, 0.2)' :
+                                                    order.status === 'Completed' || order.status === 'Paid' ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-secondary)',
+                                                color: order.status === 'Pending Approval' ? '#d97706' :
+                                                    order.status === 'Completed' || order.status === 'Paid' ? '#059669' : 'var(--text-tertiary)'
+                                            }}>
                                             {order.status || 'Processing'}
                                         </span>
                                     </div>
@@ -166,8 +171,8 @@ export default function DispensaryDashboard() {
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-slate-900">${(parseFloat(order.totalAmount || order.amount) || 0).toFixed(2)}</p>
-                                    <p className="text-xs text-slate-400 mb-2">{order.items?.length || Object.values(order.brands || {}).reduce((sum, b) => sum + Object.keys(b).length, 0)} Items</p>
+                                    <p className="font-bold" style={{ color: 'var(--text-primary)' }}>${(parseFloat(order.totalAmount || order.amount) || 0).toFixed(2)}</p>
+                                    <p className="text-xs mb-2" style={{ color: 'var(--text-tertiary)' }}>{order.items?.length || Object.values(order.brands || {}).reduce((sum, b) => sum + Object.keys(b).length, 0)} Items</p>
                                     <div className="flex items-center gap-2 ml-auto">
                                         <select
                                             className="text-xs px-2 py-1 rounded-lg font-bold outline-none border-none cursor-pointer"
@@ -212,6 +217,9 @@ export default function DispensaryDashboard() {
             {/* AI Chatbot */}
             <DispensaryChatbot />
 
+            {/* Integrations Coming Soon Section */}
+            <IntegrationsPreview showPOS={true} showERP={true} portalType="dispensary" />
+
             {/* Tour Overlay */}
             {showTour && (
                 <OnboardingTour
@@ -228,7 +236,7 @@ export default function DispensaryDashboard() {
 const StatCard = ({ icon, label, value, color, link }) => {
     const content = (
         <>
-            <div className={`w-12 h-12 rounded-2xl bg-${color}-50 flex items-center justify-center shrink-0`}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'var(--bg-secondary)' }}>
                 {icon}
             </div>
             <div>
@@ -334,10 +342,12 @@ const SampleRequestModal = ({ onClose, profile, currentUser }) => {
                             {availableBrands.map(brand => (
                                 <label
                                     key={brand}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedBrands.includes(brand)
-                                        ? 'border-purple-500 bg-purple-50 text-purple-800'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                        }`}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all`}
+                                    style={{
+                                        borderColor: selectedBrands.includes(brand) ? '#a855f7' : 'var(--border-primary)',
+                                        background: selectedBrands.includes(brand) ? 'rgba(168, 85, 247, 0.1)' : 'var(--bg-card)',
+                                        color: selectedBrands.includes(brand) ? '#a855f7' : 'var(--text-primary)'
+                                    }}
                                 >
                                     <input
                                         type="checkbox"

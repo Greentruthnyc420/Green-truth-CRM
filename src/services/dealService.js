@@ -83,7 +83,12 @@ export async function createDealRule(rule) {
         applies_to: rule.appliesTo || 'all_products',
         product_ids: rule.productIds || null,
         category: rule.category || null,
-        created_by: rule.createdBy
+        created_by: rule.createdBy,
+        // Flash sale / Clearance fields
+        expires_at: rule.expiresAt || null,
+        badge_text: rule.badgeText || null,
+        badge_color: rule.badgeColor || null,
+        show_countdown: ['flash_sale', 'clearance'].includes(rule.ruleType)
     };
 
     // Add tiers for tiered discounts
@@ -133,6 +138,13 @@ export async function updateDealRule(id, updates) {
     if (updates.category !== undefined) updateData.category = updates.category;
     if (updates.tiers !== undefined) updateData.tiers = JSON.stringify(updates.tiers);
     if (updates.discountMeta !== undefined) updateData.discount_meta = JSON.stringify(updates.discountMeta);
+    // Flash sale / Clearance fields
+    if (updates.expiresAt !== undefined) updateData.expires_at = updates.expiresAt;
+    if (updates.badgeText !== undefined) updateData.badge_text = updates.badgeText;
+    if (updates.badgeColor !== undefined) updateData.badge_color = updates.badgeColor;
+    if (updates.ruleType && ['flash_sale', 'clearance'].includes(updates.ruleType)) {
+        updateData.show_countdown = true;
+    }
 
     updateData.updated_at = new Date().toISOString();
 
@@ -360,15 +372,63 @@ export async function calculateApplicableDeals(cartItems, paymentMethod = 'invoi
 // =============================================================================
 
 export const DEAL_RULE_TYPES = [
-    { value: 'bulk_discount', label: 'Bulk Discount', description: 'Discount for orders over a certain value or quantity' },
-    { value: 'cod_discount', label: 'Cash on Delivery', description: 'Flat discount for paying cash on delivery' },
-    { value: 'tiered_cod_discount', label: 'Tiered COD Discount', description: 'Case-based tiered discounts for COD orders' },
-    { value: 'tiered_volume', label: 'Tiered Volume Discount', description: 'Percentage discount tiers based on case quantity' },
-    { value: 'first_order', label: 'First Order', description: 'Discount for first-time customers' },
-    { value: 'category_discount', label: 'Category Discount', description: 'Discount on specific product categories' },
-    { value: 'bogo', label: 'Buy X Get Y Free', description: 'Buy a certain quantity and get free items' },
-    { value: 'threshold_bonus', label: 'Threshold Bonus', description: 'Free credit or bonus for orders over a threshold' }
+    { value: 'bulk_discount', label: 'Bulk Discount', description: 'Discount for orders over a certain value or quantity', icon: 'percent' },
+    { value: 'cod_discount', label: 'Cash on Delivery', description: 'Flat discount for paying cash on delivery', icon: 'dollar' },
+    { value: 'tiered_cod_discount', label: 'Tiered COD Discount', description: 'Case-based tiered discounts for COD orders', icon: 'trending' },
+    { value: 'tiered_volume', label: 'Tiered Volume Discount', description: 'Percentage discount tiers based on case quantity', icon: 'trending' },
+    { value: 'first_order', label: 'First Order', description: 'Discount for first-time customers', icon: 'star' },
+    { value: 'category_discount', label: 'Category Discount', description: 'Discount on specific product categories', icon: 'tag' },
+    { value: 'product_discount', label: 'Product Discount', description: 'Discount on specific products', icon: 'package' },
+    { value: 'bogo', label: 'Buy X Get Y Free', description: 'Buy a certain quantity and get free items', icon: 'gift' },
+    { value: 'threshold_bonus', label: 'Threshold Bonus', description: 'Free credit or bonus for orders over a threshold', icon: 'award' },
+    { value: 'flash_sale', label: 'Flash Sale', description: 'Limited-time sale with countdown timer', icon: 'zap', hasExpiration: true },
+    { value: 'clearance', label: 'Clearance', description: 'Discounts for expiring or excess inventory', icon: 'flame', hasExpiration: true }
 ];
+
+// Flash sale duration presets (24 hours to 1 quarter)
+export const FLASH_SALE_DURATIONS = [
+    { label: '24 Hours', hours: 24, description: '1 day flash sale' },
+    { label: '48 Hours', hours: 48, description: '2 day sale' },
+    { label: '72 Hours', hours: 72, description: '3 day sale' },
+    { label: '1 Week', hours: 168, description: '7 day sale' },
+    { label: '2 Weeks', hours: 336, description: '14 day sale' },
+    { label: '1 Month', hours: 720, description: '30 day sale' },
+    { label: '2 Months', hours: 1440, description: '60 day sale' },
+    { label: '1 Quarter', hours: 2160, description: '90 day sale - full quarter' },
+    { label: 'Custom', hours: 'custom', description: 'Set your own duration' }
+];
+
+// Calculate expiration date from duration
+export function calculateExpirationFromDuration(durationHours) {
+    const now = new Date();
+    now.setHours(now.getHours() + durationHours);
+    return now.toISOString();
+}
+
+// Check if a deal is expired
+export function isDealExpired(deal) {
+    if (!deal.expires_at) return false;
+    return new Date(deal.expires_at) < new Date();
+}
+
+// Get time remaining for a deal (for countdown display)
+export function getTimeRemaining(expiresAt) {
+    if (!expiresAt) return null;
+    const now = new Date();
+    const expires = new Date(expiresAt);
+    const diff = expires - now;
+    if (diff <= 0) return { expired: true, text: 'Expired' };
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (hours < 24) {
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        return { expired: false, text: `${hours}h ${mins}m`, urgent: hours < 6 };
+    }
+    if (days < 7) {
+        return { expired: false, text: `${days}d ${hours % 24}h`, urgent: days < 2 };
+    }
+    return { expired: false, text: `${days} days`, urgent: false };
+}
 
 export const DISCOUNT_TYPES = [
     { value: 'percentage', label: 'Percentage (%)', example: '10% off', description: 'Discount as percent of order' },

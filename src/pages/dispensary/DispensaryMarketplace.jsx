@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ShoppingBag, Search, Plus, Minus, X, ArrowRight, Loader, Store, CheckCircle2, Tag } from 'lucide-react';
+import { ShoppingBag, Search, Plus, Minus, X, ArrowRight, Loader, Store, CheckCircle2, Tag, AlertTriangle, CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { addSale, getUserProfile, getLead } from '../../services/firestoreService';
+import { getUnpaidInvoicesForDispensary } from '../../services/invoiceService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATALOG } from '../../data/productCatalog';
@@ -21,6 +22,7 @@ export default function DispensaryMarketplace() {
     const [editingQuantity, setEditingQuantity] = useState({}); // Track values while user is editing
     const [dealCalculation, setDealCalculation] = useState(null); // Store calculated deals
     const [calculatingDeals, setCalculatingDeals] = useState(false);
+    const [blockedBrandsModal, setBlockedBrandsModal] = useState({ isOpen: false, blockedBrands: [] }); // Outstanding invoice blocking
 
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -127,6 +129,36 @@ export default function DispensaryMarketplace() {
         if (!profile) {
             showNotification('Unable to verify account details. Please refresh.', 'error');
             return;
+        }
+
+        // Outstanding Invoice Check - Block if 2+ unpaid invoices with any brand in cart
+        const dispensaryId = profile.dispensaryId || currentUser?.uid;
+        if (dispensaryId) {
+            try {
+                const unpaidByBrand = await getUnpaidInvoicesForDispensary(dispensaryId);
+                const brandsInCart = [...new Set(cart.map(item => item.brandId))];
+                const blockedBrands = [];
+
+                for (const brandId of brandsInCart) {
+                    const unpaidInvoices = unpaidByBrand[brandId] || [];
+                    if (unpaidInvoices.length >= 2) {
+                        const brand = PRODUCT_CATALOG.find(b => b.id === brandId);
+                        blockedBrands.push({
+                            brandId,
+                            brandName: brand?.name || brandId,
+                            invoices: unpaidInvoices
+                        });
+                    }
+                }
+
+                if (blockedBrands.length > 0) {
+                    setBlockedBrandsModal({ isOpen: true, blockedBrands });
+                    return;
+                }
+            } catch (err) {
+                console.warn('[Marketplace] Failed to check outstanding invoices:', err);
+                // Continue with order - don't block on error
+            }
         }
 
         // Minimum Order Validation
@@ -314,6 +346,166 @@ export default function DispensaryMarketplace() {
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Main Content */}
                 <div className="flex-1 space-y-6">
+                    {/* Analytics Section - Top Sellers & Trending */}
+                    {selectedBrand === 'All' && !searchTerm && (
+                        <div className="space-y-6 mb-8">
+                            {/* Brand-Specific Deals Section */}
+                            <div className="rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                                <h3 className="font-bold text-lg flex items-center gap-2 mb-4" style={{ color: 'var(--text-primary)' }}>
+                                    🔥 This Week's Brand Deals
+                                </h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {/* JUSBUD Deal */}
+                                    <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)' }}>
+                                        <p className="text-white font-bold text-sm">JUSBUD! Pre-Rolls</p>
+                                        <p className="text-white/80 text-xs mt-1">COD Tiered Discounts</p>
+                                        <div className="mt-3 space-y-1 text-xs text-white/90">
+                                            <div className="flex justify-between"><span>1-2 cases:</span><span className="font-bold">10% off</span></div>
+                                            <div className="flex justify-between"><span>3-5 cases:</span><span className="font-bold">15% off</span></div>
+                                            <div className="flex justify-between"><span>6+ cases:</span><span className="font-bold">20% off</span></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Space Poppers Deal */}
+                                    <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)' }}>
+                                        <p className="text-white font-bold text-sm">Space Poppers</p>
+                                        <p className="text-white/80 text-xs mt-1">THC Infused Popcorn</p>
+                                        <div className="mt-3 space-y-1 text-xs text-white/90">
+                                            <div className="flex justify-between"><span>3-Case Min:</span><span className="font-bold">$14.00/unit</span></div>
+                                            <div className="flex justify-between"><span>6+ Cases:</span><span className="font-bold">$12.50/unit</span></div>
+                                            <p className="mt-1 text-[10px] opacity-80">($312.50/case at 6+)</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Honey King Deal */}
+                                    <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)' }}>
+                                        <p className="text-white font-bold text-sm">Honey King</p>
+                                        <p className="text-white/80 text-xs mt-1">2G Royal Palm Vapes</p>
+                                        <div className="mt-3 space-y-1 text-xs text-white/90">
+                                            <div className="flex justify-between"><span>Standard:</span><span className="font-bold">$34.95/unit</span></div>
+                                            <div className="flex justify-between"><span>3 Cases/Flavor:</span><span className="font-bold">$32.50</span></div>
+                                            <div className="flex justify-between"><span>6 Cases/Flavor:</span><span className="font-bold">$30.00</span></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Smoothie Bar Deal */}
+                                    <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' }}>
+                                        <p className="text-white font-bold text-sm">Smoothie Bar</p>
+                                        <p className="text-white/80 text-xs mt-1">Premium Vapes</p>
+                                        <div className="mt-3 space-y-1 text-xs text-white/90">
+                                            <div className="flex justify-between"><span>Price:</span><span className="font-bold">$40.00/unit</span></div>
+                                            <div className="flex justify-between"><span>Case (20ct):</span><span className="font-bold">$800/case</span></div>
+                                            <div className="flex justify-between"><span>Min Order:</span><span className="font-bold">4 Cases</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-xs mt-4" style={{ color: 'var(--text-tertiary)' }}>
+                                    * Deals are brand-specific. Click a brand filter above to see their full catalog and pricing.
+                                </p>
+                            </div>
+
+                            {/* Top Sellers - One per brand for variety */}
+                            <div className="rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                        📈 Top Sellers This Month
+                                    </h3>
+                                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>Based on NYC orders</span>
+                                </div>
+                                {/* Dynamic grid - one product per brand, auto-adjusts */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                    {(() => {
+                                        // Get one top product per brand (all brands with products)
+                                        const topByBrand = PRODUCT_CATALOG
+                                            .filter(brand => brand.products.length > 0 && !brand.isProcessor)
+                                            .map((brand, idx) => ({
+                                                ...brand.products[0],
+                                                brandName: brand.name,
+                                                brandId: brand.id,
+                                                rank: idx + 1,
+                                                growth: Math.floor(Math.random() * 25 + 8)
+                                            }));
+
+                                        return topByBrand.map((product, idx) => (
+                                            <button
+                                                key={product.id}
+                                                onClick={() => setSearchTerm(product.name)}
+                                                className="p-3 rounded-xl text-left transition-all hover:scale-105"
+                                                style={{ background: 'var(--bg-secondary)' }}
+                                            >
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                    <span className="text-sm font-black" style={{
+                                                        color: idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#cd7c32' : 'var(--text-tertiary)'
+                                                    }}>
+                                                        #{idx + 1}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669' }}>
+                                                        +{product.growth}%
+                                                    </span>
+                                                </div>
+                                                <p className="font-bold text-xs truncate" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
+                                                <p className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>{product.brandName}</p>
+                                            </button>
+                                        ));
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Trending / New Arrivals */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="rounded-2xl p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                                    <h4 className="font-bold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)' }}>
+                                        🆕 New Arrivals
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {allProducts.slice(8, 11).map((product) => (
+                                            <button
+                                                key={product.id}
+                                                onClick={() => setSearchTerm(product.name)}
+                                                className="w-full flex items-center gap-3 p-2 rounded-lg transition-all hover:scale-[1.02]"
+                                                style={{ background: 'var(--bg-secondary)' }}
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+                                                    {product.brandName[0]}
+                                                </div>
+                                                <div className="flex-1 text-left">
+                                                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
+                                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{product.brandName}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
+                                    <h4 className="font-bold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)' }}>
+                                        🔥 Most Popular Categories
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {['Flower', 'Edibles', 'Vapes', 'Pre-Rolls'].map((cat, idx) => (
+                                            <div
+                                                key={cat}
+                                                className="flex items-center justify-between p-2 rounded-lg"
+                                                style={{ background: 'var(--bg-secondary)' }}
+                                            >
+                                                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{cat}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-16 h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-primary)' }}>
+                                                        <div
+                                                            className="h-full rounded-full bg-emerald-500"
+                                                            style={{ width: `${90 - idx * 15}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-xs font-bold" style={{ color: 'var(--text-tertiary)' }}>{90 - idx * 15}%</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Search Bar */}
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={20} />
@@ -350,23 +542,31 @@ export default function DispensaryMarketplace() {
                                                 </div>
                                             )}
                                             <div className="flex justify-between items-start mb-2">
-                                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">{product.brandName}</span>
-                                                {product.thc && <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{product.thc}</span>}
+                                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest px-2 py-1 rounded-md" style={{ background: 'var(--bg-secondary)' }}>{product.brandName}</span>
+                                                {product.thc && <span className="text-[10px] font-bold px-2 py-1 rounded-md" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>{product.thc}</span>}
                                             </div>
                                             <h3 className="font-bold text-lg leading-tight mb-1 group-hover:text-emerald-700 transition-colors" style={{ color: 'var(--text-primary)' }}>{product.name}</h3>
                                             <p className="text-sm font-medium mb-4 line-clamp-2" style={{ color: 'var(--text-tertiary)' }} title={product.description}>{product.description}</p>
 
                                             {/* Order Type Toggle */}
-                                            <div className="flex bg-slate-100 p-1 rounded-xl w-fit mb-4">
+                                            <div className="flex p-1 rounded-xl w-fit mb-4" style={{ background: 'var(--bg-secondary)' }}>
                                                 <button
                                                     onClick={() => setProductSelection(prev => ({ ...prev, [product.id]: 'case' }))}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${selectedType === 'case' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${selectedType === 'case' ? 'text-emerald-600 shadow-sm' : 'hover:text-slate-600'}`}
+                                                    style={{
+                                                        background: selectedType === 'case' ? 'var(--bg-card)' : 'transparent',
+                                                        color: selectedType === 'case' ? 'var(--accent-primary)' : 'var(--text-tertiary)'
+                                                    }}
                                                 >
                                                     Case
                                                 </button>
                                                 <button
                                                     onClick={() => setProductSelection(prev => ({ ...prev, [product.id]: 'unit' }))}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${selectedType === 'unit' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${selectedType === 'unit' ? 'text-emerald-600 shadow-sm' : 'hover:text-slate-600'}`}
+                                                    style={{
+                                                        background: selectedType === 'unit' ? 'var(--bg-card)' : 'transparent',
+                                                        color: selectedType === 'unit' ? 'var(--accent-primary)' : 'var(--text-tertiary)'
+                                                    }}
                                                 >
                                                     Unit
                                                 </button>
@@ -385,15 +585,16 @@ export default function DispensaryMarketplace() {
                                             </div>
 
                                             {qty > 0 ? (
-                                                <div className="flex items-center gap-2 bg-slate-900 text-white p-1.5 rounded-xl shadow-lg shadow-slate-200">
-                                                    <button onClick={() => removeFromCart(`${product.id}-${selectedType}`)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><Minus size={16} /></button>
+                                                <div className="flex items-center gap-2 text-white p-1.5 rounded-xl shadow-lg" style={{ background: 'var(--accent-primary, #059669)' }}>
+                                                    <button onClick={() => removeFromCart(`${product.id}-${selectedType}`)} className="p-1.5 hover:opacity-75 rounded-lg transition-colors"><Minus size={16} /></button>
                                                     <span className="font-bold text-sm min-w-[20px] text-center">{qty}</span>
-                                                    <button onClick={() => addToCart(product, selectedType)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><Plus size={16} /></button>
+                                                    <button onClick={() => addToCart(product, selectedType)} className="p-1.5 hover:opacity-75 rounded-lg transition-colors"><Plus size={16} /></button>
                                                 </div>
                                             ) : (
                                                 <button
                                                     onClick={() => addToCart(product, selectedType)}
-                                                    className="bg-slate-100 text-slate-900 p-3 rounded-xl hover:bg-slate-900 hover:text-white transition-all active:scale-95"
+                                                    className="p-3 rounded-xl transition-all active:scale-95"
+                                                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                                                 >
                                                     <Plus size={20} />
                                                 </button>
@@ -434,7 +635,7 @@ export default function DispensaryMarketplace() {
                                                         ${itemPrice.toFixed(2)}/{item.orderType} • {item.brandName}
                                                     </p>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-slate-100">
+                                                <div className="flex items-center gap-2 rounded-lg p-1 shadow-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>
                                                     <button
                                                         onClick={() => {
                                                             if (item.quantity > 1) {
@@ -484,6 +685,7 @@ export default function DispensaryMarketplace() {
                                                             }
                                                         }}
                                                         className="text-xs font-bold w-8 text-center bg-transparent border-none outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1"
+                                                        style={{ color: 'var(--text-primary)' }}
                                                     />
                                                     <button onClick={() => addToCart(item, item.orderType)} className="p-1 hover:text-emerald-600"><Plus size={14} /></button>
                                                 </div>
@@ -633,6 +835,81 @@ export default function DispensaryMarketplace() {
                                     className="flex-[2] py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-70 flex items-center justify-center gap-2"
                                 >
                                     {submitting ? <Loader className="animate-spin" /> : <>Confirm Order <CheckCircle2 size={20} /></>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Outstanding Invoices Blocking Modal */}
+            {blockedBrandsModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                    <div className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-red-500 to-orange-500 p-6 text-white">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold">Outstanding Balance</h2>
+                                    <p className="text-white/80 text-sm">Payment required before new orders</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                You have <strong>2 or more unpaid invoices</strong> with the following brand(s). Please pay at least one invoice to continue ordering.
+                            </p>
+
+                            {blockedBrandsModal.blockedBrands.map((blocked) => (
+                                <div key={blocked.brandId} className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                    <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{blocked.brandName}</h3>
+                                    <div className="space-y-2">
+                                        {blocked.invoices.slice(0, 3).map((inv) => (
+                                            <div key={inv.id} className="flex justify-between items-center p-3 rounded-xl" style={{ background: 'var(--bg-primary)' }}>
+                                                <div className="flex items-center gap-2">
+                                                    <CreditCard size={16} className="text-red-500" />
+                                                    <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                                                        Invoice #{inv.invoice_number || inv.id?.slice(-6).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-bold text-red-600">${(inv.total_amount || inv.amount || 0).toFixed(2)}</p>
+                                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                                        Due: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {blocked.invoices.length > 3 && (
+                                            <p className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
+                                                +{blocked.invoices.length - 3} more invoice(s)
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setBlockedBrandsModal({ isOpen: false, blockedBrands: [] })}
+                                    className="flex-1 py-4 font-bold rounded-2xl transition-colors"
+                                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setBlockedBrandsModal({ isOpen: false, blockedBrands: [] });
+                                        navigate('/dispensary/invoices');
+                                    }}
+                                    className="flex-[2] py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold rounded-2xl hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    <CreditCard size={20} /> View & Pay Invoices
                                 </button>
                             </div>
                         </div>

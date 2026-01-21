@@ -20,6 +20,7 @@ import { PRODUCT_CATALOG } from '../../data/productCatalog';
 import FLXProcessorDashboard from './FLXProcessorDashboard';
 import OnboardingTour from '../../components/onboarding/OnboardingTour';
 import { getTourSteps } from '../../data/tourSteps';
+import IntegrationsPreview from '../../components/IntegrationsPreview';
 
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
@@ -703,6 +704,9 @@ export default function BrandDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Integrations Coming Soon Section */}
+            <IntegrationsPreview showPOS={true} showERP={true} portalType="brand" />
 
             {/* Brand Analytics Chatbot */}
             <BrandChatbot

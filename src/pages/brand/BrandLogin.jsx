@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
-import { useBrandAuth, AVAILABLE_BRANDS } from '../../contexts/BrandAuthContext';
+import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, ArrowLeft, Shield, CheckCircle, KeyRound, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { getAdminBrandByEmail, markBrandPasswordChanged } from '../../services/firestoreService';
 
-// Map brand IDs to absolute logo paths (matching Gateway)
-const BRAND_LOGOS = {
-    'honey-king': '/logos/partner-5.png',
-    'bud-cracker': '/logos/partner-4.png',
-    'canna-dots': '/logos/partner-3.jpg',
-    'space-poppers': '/logos/partner-2.png',
-    'smoothie-bar': '/logos/smoothie-bar.png',
-    'waferz': '/logos/waferz.png',
-    'pines': '/logos/pines.png',
-    'flx-extracts': '/logos/flx-extracts.png',
-    'budcracker-nyc': '/logos/partner-7.png'
-};
+// Default placeholder logo for brands without a logo
+const DEFAULT_LOGO = '/logos/partner-6.png';
 
 export default function BrandLogin() {
-    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin, brandUser } = useBrandAuth();
+    const { loginBrand, signupBrand, loginWithGoogle, resetPassword, devBrandLogin, brandUser, availableBrands } = useBrandAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || '/brand';
@@ -52,11 +42,16 @@ export default function BrandLogin() {
     const [password, setPassword] = useState('');
     const [accountType, setAccountType] = useState('brand'); // 'brand' | 'processor'
 
-    // Convert AVAILABLE_BRANDS object to array for brand selection
-    const brandList = Object.entries(AVAILABLE_BRANDS).map(([brandId, info]) => ({
+    // Convert availableBrands object to array for brand selection
+    const brandList = Object.entries(availableBrands || {}).map(([brandId, info]) => ({
         brandId,
         ...info
     }));
+
+    // Get logo for a brand - use brand.logo from database, fallback to default
+    const getBrandLogo = (brand) => {
+        return brand?.logo || DEFAULT_LOGO;
+    };
 
     const handleBrandSelect = (brand) => {
         setSelectedBrand(brand);
@@ -373,7 +368,7 @@ export default function BrandLogin() {
                                 >
                                     <div className="h-32 w-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                         <img
-                                            src={BRAND_LOGOS[brand.brandId] || '/logos/partner-6.png'}
+                                            src={getBrandLogo(brand)}
                                             alt={brand.brandName}
                                             className="h-full w-full object-contain filter drop-shadow-lg"
                                         />
@@ -438,7 +433,7 @@ export default function BrandLogin() {
                             <div className="mb-6 flex justify-center">
                                 <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center p-3">
                                     <img
-                                        src={BRAND_LOGOS[selectedBrand.brandId] || '/logos/partner-6.png'}
+                                        src={getBrandLogo(selectedBrand)}
                                         alt={selectedBrand.brandName}
                                         className="w-full h-full object-contain"
                                     />
@@ -514,7 +509,7 @@ export default function BrandLogin() {
                             <div className="relative z-10 flex flex-col items-center">
                                 <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm border border-white/10 p-4">
                                     <img
-                                        src={BRAND_LOGOS[selectedBrand.brandId] || '/logos/partner-6.png'}
+                                        src={getBrandLogo(selectedBrand)}
                                         alt={selectedBrand.brandName}
                                         className="max-w-full max-h-full object-contain"
                                     />

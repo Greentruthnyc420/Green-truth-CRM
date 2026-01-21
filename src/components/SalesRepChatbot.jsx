@@ -2,19 +2,33 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader, Minimize2, Sparkles, DollarSign, Package, Star, TrendingUp } from 'lucide-react';
 import { generateSalesRepResponse } from '../services/geminiService';
 import { PRODUCT_CATALOG } from '../data/productCatalog';
+import { getSalesRepAnalytics } from '../services/analyticsService';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SalesRepChatbot() {
+    const { currentUser } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [liveContext, setLiveContext] = useState({});
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
-            content: "Hey there! 👋 I'm your AI Sales Assistant. Ask me about product prices, best sellers, new arrivals, or anything about our catalog!"
+            content: "Hey there! 👋 I'm your AI Sales Assistant. Ask me about product prices, your commissions, leads, upcoming activations, or anything to help you sell!"
         }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Fetch live analytics when chatbot opens
+    useEffect(() => {
+        if (isOpen && currentUser?.uid) {
+            getSalesRepAnalytics(currentUser.uid).then(data => {
+                setLiveContext(data);
+                console.log('[SalesRepChatbot] Loaded live analytics');
+            }).catch(err => console.warn('[SalesRepChatbot] Failed to load analytics:', err));
+        }
+    }, [isOpen, currentUser?.uid]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,8 +52,8 @@ export default function SalesRepChatbot() {
         setLoading(true);
 
         try {
-            // Pass conversation history for context-aware responses
-            const response = await generateSalesRepResponse(userMessage, PRODUCT_CATALOG, newMessages);
+            // Pass conversation history and live analytics for personalized responses
+            const response = await generateSalesRepResponse(userMessage, PRODUCT_CATALOG, newMessages, liveContext);
             setMessages(prev => [...prev, { role: 'assistant', content: response }]);
         } catch (error) {
             setMessages(prev => [...prev, {

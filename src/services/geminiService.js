@@ -333,9 +333,10 @@ export async function generateMotivation(accounts, sales, commission, bonus, tot
  * @param {string} question - The user's question
  * @param {Array} productCatalog - The product catalog data
  * @param {Array} conversationHistory - Previous messages for context [{role: 'user'|'assistant', content: string}]
+ * @param {Object} salesRepContext - Live sales rep analytics (commissions, leads, etc.)
  * @returns {Promise<string>} - AI response
  */
-export async function generateSalesRepResponse(question, productCatalog, conversationHistory = []) {
+export async function generateSalesRepResponse(question, productCatalog, conversationHistory = [], salesRepContext = {}) {
     if (!genAI) {
         return "AI service not configured. Please check your API key.";
     }
@@ -348,6 +349,18 @@ export async function generateSalesRepResponse(question, productCatalog, convers
         return `**${brand.name}**: ${productList}${brand.products.length > 5 ? ` +${brand.products.length - 5} more` : ''}`;
     }).join('\n');
 
+    // Build sales rep context for personalized responses
+    const repInfo = salesRepContext.totalSales > 0 || salesRepContext.leadCount > 0 ? `
+YOUR PERFORMANCE:
+- Total Sales: $${(salesRepContext.totalSales || 0).toLocaleString()}
+- Commission Earned: $${(salesRepContext.commission || 0).toFixed(2)}
+- Hourly Rate: $${salesRepContext.hourlyRate || 20}/hr
+- Activations Completed: ${salesRepContext.activationCount || 0}
+- Leads: ${salesRepContext.leadCount || 0} total, ${salesRepContext.convertedLeadCount || 0} converted (${salesRepContext.conversionRate || '0%'})
+- Lifetime Points: ${salesRepContext.lifetimePoints || 0}
+${salesRepContext.upcomingActivations?.length > 0 ? `\nUpcoming Activations:\n${salesRepContext.upcomingActivations.map(a => `- ${a.date}: ${a.dispensaryName} (${a.brandName})`).join('\n')}` : ''}
+` : '';
+
     return withRetry(async () => {
         const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
@@ -359,6 +372,11 @@ You help Sales Reps with:
 - New product arrivals
 - Inventory and stock status
 - Brand comparisons
+- Commission and earnings questions
+- Lead management advice
+- Upcoming activations
+
+${repInfo}
 
 PRODUCT CATALOG SUMMARY:
 ${catalogSummary}
@@ -368,6 +386,8 @@ Guidelines:
 - Use emojis sparingly for friendliness
 - If asked about prices, be specific
 - Recommend products when appropriate
+- Reference their personal stats when relevant
+- Motivate them about their progress
 - If unsure, say so honestly
 - Remember context from previous messages in this conversation`;
 
@@ -395,9 +415,10 @@ Guidelines:
  * Generates AI responses for the Dispensary chatbot about pricing, deals, and orders.
  * @param {string} question - The user's question
  * @param {Array} productCatalog - The product catalog data
+ * @param {Object} dispensaryContext - Live dispensary analytics (orders, spending, etc.)
  * @returns {Promise<string>} - AI response
  */
-export async function generateDispensaryResponse(question, productCatalog) {
+export async function generateDispensaryResponse(question, productCatalog, dispensaryContext = {}) {
     if (!genAI) {
         return "AI service not configured. Please check your API key.";
     }
@@ -411,6 +432,17 @@ export async function generateDispensaryResponse(question, productCatalog) {
         return `**${brand.name}**: ${brand.products.length} products, ${priceRange}, ${minOrder}`;
     }).join('\n');
 
+    // Build dispensary-specific context
+    const dispensaryInfo = dispensaryContext.totalOrders > 0 ? `
+DISPENSARY ACCOUNT STATUS:
+- Total Orders: ${dispensaryContext.totalOrders || 0}
+- Lifetime Spend: $${(dispensaryContext.totalSpend || 0).toLocaleString()}
+- Average Order: $${(dispensaryContext.averageOrderValue || 0).toFixed(2)}
+- Outstanding Balance: $${(dispensaryContext.outstandingBalance || 0).toFixed(2)}
+- Pending Orders: ${dispensaryContext.pendingOrders || 0}
+${dispensaryContext.recentOrders?.length > 0 ? `\nRecent Orders:\n${dispensaryContext.recentOrders.map(o => `- ${o.brandName}: $${o.total?.toFixed(2)} (${o.status})`).join('\n')}` : ''}
+` : '';
+
     return withRetry(async () => {
         const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
@@ -423,11 +455,14 @@ You help dispensary owners with:
 - Minimum order requirements
 - Brand comparisons
 - Placing orders
+- Order history and account status
 
 CURRENT DEALS:
 - Bulk orders over $2,000: 5% discount
 - Cash on Delivery: Additional 3% discount
 - First-time orders: Free shipping
+
+${dispensaryInfo}
 
 PRODUCT CATALOG:
 ${catalogSummary}
@@ -437,6 +472,8 @@ Guidelines:
 - Mention deals when relevant
 - Always confirm minimum order requirements
 - Encourage bulk + COD for best savings
+- Reference their order history when relevant
+- If they have outstanding balance, gently remind them
 - If unsure about inventory, recommend contacting sales rep`;
 
         const result = await model.generateContent({
