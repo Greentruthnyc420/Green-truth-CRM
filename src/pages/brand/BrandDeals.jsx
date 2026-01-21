@@ -506,7 +506,15 @@ export default function BrandDeals() {
                                 </label>
                                 <select
                                     value={formData.ruleType}
-                                    onChange={(e) => setFormData({ ...formData, ruleType: e.target.value })}
+                                    onChange={(e) => {
+                                        const newRuleType = e.target.value;
+                                        // Auto-populate default tiers when selecting tiered discount types
+                                        let newTiers = formData.tiers;
+                                        if ((newRuleType === 'tiered_cod_discount' || newRuleType === 'tiered_volume') && formData.tiers.length === 0) {
+                                            newTiers = [...defaultTiers];
+                                        }
+                                        setFormData({ ...formData, ruleType: newRuleType, tiers: newTiers });
+                                    }}
                                     className="w-full px-4 py-2 rounded-lg outline-none"
                                     style={{
                                         background: 'var(--bg-secondary)',

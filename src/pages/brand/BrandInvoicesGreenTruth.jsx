@@ -3,7 +3,7 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getInvoices } from '../../services/invoiceService';
 import { supabase } from '../../services/supabaseClient';
 import {
-    FileText, ArrowUpRight, AlertTriangle,
+    FileText, ArrowUpRight, AlertTriangle, Calendar, Hash, Package, MapPin, Building2,
     CreditCard, Download, ExternalLink, Clock, X, Eye, Copy, Check, DollarSign, ChevronDown, ChevronUp
 } from 'lucide-react';
 
@@ -239,31 +239,36 @@ export default function BrandInvoicesGreenTruth() {
                 {invoices.outstanding.length > 0 ? (
                     <div className="divide-y divide-slate-50">
                         {invoices.outstanding.map((inv) => (
-                            <div key={inv.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Invoice #{inv.id.slice(0, 8)}...</h3>
-                                        {inv.status === 'overdue' && (
-                                            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
-                                                <AlertTriangle size={12} /> Overdue
+                            <div
+                                key={inv.id}
+                                className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-colors"
+                                onClick={() => setSelectedInvoice(inv)}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <Eye size={16} className="mt-1 opacity-50" style={{ color: 'var(--accent-primary)' }} />
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Invoice #{inv.id.slice(0, 8)}...</h3>
+                                            {inv.status === 'overdue' && (
+                                                <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+                                                    <AlertTriangle size={12} /> Overdue
+                                                </span>
+                                            )}
+                                            <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                                                {new Date(inv.createdAt).toLocaleDateString()}
                                             </span>
-                                        )}
-                                        <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                            {new Date(inv.createdAt).toLocaleDateString()}
-                                        </span>
+                                        </div>
+                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Due {inv.dueDate || 'Upon Receipt'}</p>
                                     </div>
-                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Due {inv.dueDate || 'Upon Receipt'}</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>${(inv.totalAmount || 0).toFixed(2)}</span>
                                     <button
-                                        onClick={() => setSelectedInvoice(inv)}
-                                        className="flex items-center gap-1 text-sm font-medium transition-colors"
-                                        style={{ color: 'var(--text-secondary)' }}
+                                        onClick={(e) => { e.stopPropagation(); setShowPaymentInfo(true); }}
+                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
                                     >
-                                        <Eye size={16} /> Details
-                                    </button>
-                                    <button className="px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-colors flex items-center gap-2">
                                         <CreditCard size={16} />
                                         Pay Now
                                     </button>
@@ -294,21 +299,29 @@ export default function BrandInvoicesGreenTruth() {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                         {invoices.history.map((inv) => (
-                            <tr key={inv.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+                            <tr
+                                key={inv.id}
+                                className="transition-colors cursor-pointer"
+                                style={{ borderBottom: '1px solid var(--border-primary)' }}
+                                onClick={() => setSelectedInvoice(inv)}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
                                 <td className="px-6 py-4">
-                                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>#{inv.id.slice(0, 8)}...</p>
-                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{new Date(inv.createdAt).toLocaleDateString()}</p>
+                                    <div className="flex items-center gap-2">
+                                        <Eye size={14} className="opacity-50" style={{ color: 'var(--success)' }} />
+                                        <div>
+                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>#{inv.id.slice(0, 8)}...</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{new Date(inv.createdAt).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4" style={{ color: 'var(--text-secondary)' }}>{inv.paidDate || '-'}</td>
-                                <td className="px-6 py-4 font-medium" style={{ color: 'var(--text-primary)' }}>${(inv.totalAmount || 0).toFixed(2)}</td>
+                                <td className="px-6 py-4 font-medium" style={{ color: 'var(--success)' }}>${(inv.totalAmount || 0).toFixed(2)}</td>
                                 <td className="px-6 py-4">
-                                    <button
-                                        onClick={() => setSelectedInvoice(inv)}
-                                        className="transition-colors"
-                                        style={{ color: 'var(--text-tertiary)' }}
-                                    >
-                                        <Eye size={18} />
-                                    </button>
+                                    <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)' }}>
+                                        Paid
+                                    </span>
                                 </td>
                             </tr>
                         ))}
@@ -335,17 +348,72 @@ export default function BrandInvoicesGreenTruth() {
                         </div>
 
                         <div className="p-6 space-y-6">
-                            {/* Summary */}
-                            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
-                                <div>
-                                    <p className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Status</p>
-                                    <p className={`font-bold capitalize ${selectedInvoice.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                        {selectedInvoice.status}
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>Total Amount</p>
-                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>${(selectedInvoice.totalAmount || 0).toFixed(2)}</p>
+                            {/* Status Badge */}
+                            <div className="flex items-center gap-3">
+                                <span
+                                    className="px-4 py-2 rounded-full text-sm font-bold"
+                                    style={{
+                                        background: selectedInvoice.status === 'paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                        color: selectedInvoice.status === 'paid' ? 'var(--success)' : 'var(--warning)'
+                                    }}
+                                >
+                                    {selectedInvoice.status === 'paid' ? '✓ PAID' : '⏳ PENDING'}
+                                </span>
+                                <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                                    ${(selectedInvoice.totalAmount || 0).toFixed(2)}
+                                </span>
+                            </div>
+
+                            {/* Invoice Details */}
+                            <div className="p-4 rounded-xl space-y-3" style={{ background: 'var(--bg-secondary)' }}>
+                                <h3 className="font-bold text-sm uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Invoice Information</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="flex items-start gap-3">
+                                        <Hash size={18} style={{ color: 'var(--accent-primary)' }} />
+                                        <div>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Invoice ID</p>
+                                            <p className="font-medium font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{selectedInvoice.id?.slice(0, 12)}...</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <Calendar size={18} style={{ color: 'var(--accent-primary)' }} />
+                                        <div>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Created Date</p>
+                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                {selectedInvoice.createdAt ? new Date(selectedInvoice.createdAt).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <Clock size={18} style={{ color: 'var(--warning)' }} />
+                                        <div>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Due Date</p>
+                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{selectedInvoice.dueDate || 'Upon Receipt'}</p>
+                                        </div>
+                                    </div>
+                                    {selectedInvoice.paidDate && (
+                                        <div className="flex items-start gap-3">
+                                            <Check size={18} style={{ color: 'var(--success)' }} />
+                                            <div>
+                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Paid Date</p>
+                                                <p className="font-medium" style={{ color: 'var(--success)' }}>{selectedInvoice.paidDate}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="flex items-start gap-3">
+                                        <Building2 size={18} style={{ color: 'var(--accent-primary)' }} />
+                                        <div>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Billed To</p>
+                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{selectedInvoice.brandName || 'Your Brand'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <FileText size={18} style={{ color: 'var(--accent-primary)' }} />
+                                        <div>
+                                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Invoice Type</p>
+                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{selectedInvoice.invoiceType || 'Commission'}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
