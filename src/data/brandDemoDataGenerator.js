@@ -388,25 +388,31 @@ export function generateBrandDemoData(brandId) {
 /**
  * Generate combined demo data for FLX Extracts (processor)
  * Combines data from Pines, Smoothie Bar, and Waferz
+ * Returns data in format expected by FLXProcessorDashboard
  */
 export function generateProcessorDemoData() {
     const subBrands = ['pines', 'smoothie-bar', 'waferz'];
 
+    // Use same property names as FLXProcessorDashboard expects
     const combinedData = {
         financials: {
-            revenue: 0,
-            orderCount: 0,
+            totalRevenue: 0,
+            totalOrders: 0,
+            totalCommission: 0,
+            totalActivationCost: 0,
             pendingOrders: 0,
-            unitsSold: 0,
-            storeReach: 0,
-            commissionOwed: 0,
-            activationCosts: 0,
-            outstandingInvoices: 0,
-            reorderRate: 0,
-            monthOverMonthGrowth: 0,
+            avgOrderValue: 0,
+            profitMargin: 85,
+            revenueByBrand: [],
+            ordersByBrand: [],
             salesHistory: [],
-            productMix: [],
-            top10Products: []
+            topProducts: [],
+            bestBrand: null,
+            categoryBreakdown: [],
+            storeReach: 0,
+            reorderRate: 72,
+            unitsSold: 0,
+            monthOverMonthGrowth: 18
         },
         brandLeads: [],
         upcomingActivations: [],
@@ -415,59 +421,117 @@ export function generateProcessorDemoData() {
     };
 
     const allSalesHistories = [];
+    let bestBrandData = null;
+    let bestRevenue = 0;
 
     subBrands.forEach(brandId => {
         const brandData = generateBrandDemoData(brandId);
         const brand = PRODUCT_CATALOG.find(b => b.id === brandId);
+        const brandColor = { 'pines': '#10b981', 'smoothie-bar': '#3b82f6', 'waferz': '#f59e0b' }[brandId];
 
         // Aggregate financials
-        combinedData.financials.revenue += brandData.financials.revenue;
-        combinedData.financials.orderCount += brandData.financials.orderCount;
+        combinedData.financials.totalRevenue += brandData.financials.revenue;
+        combinedData.financials.totalOrders += brandData.financials.orderCount;
+        combinedData.financials.totalCommission += brandData.financials.commissionOwed;
+        combinedData.financials.totalActivationCost += brandData.financials.activationCosts;
         combinedData.financials.pendingOrders += brandData.financials.pendingOrders;
         combinedData.financials.unitsSold += brandData.financials.unitsSold;
-        combinedData.financials.commissionOwed += brandData.financials.commissionOwed;
-        combinedData.financials.activationCosts += brandData.financials.activationCosts;
-        combinedData.financials.outstandingInvoices += brandData.financials.outstandingInvoices;
+
+        // Track best brand
+        if (brandData.financials.revenue > bestRevenue) {
+            bestRevenue = brandData.financials.revenue;
+            bestBrandData = { name: brand?.name || brandId, metrics: { revenue: brandData.financials.revenue } };
+        }
+
+        // Revenue by brand (for pie chart)
+        combinedData.financials.revenueByBrand.push({
+            name: brand?.name || brandId,
+            value: brandData.financials.revenue,
+            color: brandColor
+        });
+
+        // Orders by brand (for bar chart)
+        combinedData.financials.ordersByBrand.push({
+            name: brand?.name || brandId,
+            orders: brandData.financials.orderCount,
+            revenue: brandData.financials.revenue,
+            color: brandColor
+        });
 
         // Combine leads and activations
         combinedData.brandLeads.push(...brandData.brandLeads);
         combinedData.upcomingActivations.push(...brandData.upcomingActivations);
 
-        // Store brand breakdown
+        // Store brand breakdown (for byBrand object)
         combinedData.brandBreakdown[brandId] = {
+            id: brandId,
             name: brand?.name || brandId,
-            revenue: brandData.financials.revenue,
-            orders: brandData.financials.orderCount,
-            units: brandData.financials.unitsSold
+            color: brandColor,
+            metrics: {
+                revenue: brandData.financials.revenue,
+                orderCount: brandData.financials.orderCount,
+                commissionOwed: brandData.financials.commissionOwed,
+                activationCosts: brandData.financials.activationCosts,
+                pendingOrders: brandData.financials.pendingOrders,
+                storeReach: brandData.financials.storeReach,
+                reorderRate: brandData.financials.reorderRate,
+                unitsSold: brandData.financials.unitsSold,
+                monthOverMonthGrowth: brandData.financials.monthOverMonthGrowth,
+                salesHistory: brandData.financials.salesHistory,
+                productMix: brandData.financials.productMix,
+                topProduct: brandData.financials.topProduct
+            }
         };
 
         allSalesHistories.push(brandData.financials.salesHistory);
+
+        // Add top products with brand info
+        brandData.financials.top10Products.forEach(p => {
+            combinedData.financials.topProducts.push({
+                ...p,
+                brand: brand?.name || brandId,
+                brandColor
+            });
+        });
     });
 
-    // Calculate averages
-    combinedData.financials.reorderRate = 72; // Good reorder rate for processor
-    combinedData.financials.monthOverMonthGrowth = 18; // Strong growth
+    // Calculate derived values
+    combinedData.financials.avgOrderValue = combinedData.financials.totalOrders > 0
+        ? combinedData.financials.totalRevenue / combinedData.financials.totalOrders
+        : 0;
+    combinedData.financials.profitMargin = combinedData.financials.totalRevenue > 0
+        ? ((combinedData.financials.totalRevenue - combinedData.financials.totalActivationCost) / combinedData.financials.totalRevenue * 100)
+        : 85;
+    combinedData.financials.bestBrand = bestBrandData;
 
-    // Unique stores across all brands
+    // Calculate unique store reach
     const uniqueStores = new Set(combinedData.brandLeads.filter(l => l.leadStatus === 'active').map(l => l.dispensaryName));
     combinedData.financials.storeReach = uniqueStores.size || 45;
 
-    // Combine sales histories
-    if (allSalesHistories.length > 0) {
+    // Combine sales histories (stacked)
+    if (allSalesHistories.length > 0 && allSalesHistories[0].length > 0) {
         combinedData.financials.salesHistory = allSalesHistories[0].map((month, idx) => ({
             month: month.month,
-            revenue: allSalesHistories.reduce((sum, history) => sum + (history[idx]?.revenue || 0), 0)
+            pines: allSalesHistories[0][idx]?.revenue || 0,
+            'smoothie-bar': allSalesHistories[1]?.[idx]?.revenue || 0,
+            waferz: allSalesHistories[2]?.[idx]?.revenue || 0,
+            total: allSalesHistories.reduce((sum, history) => sum + (history[idx]?.revenue || 0), 0)
         }));
     }
 
-    // Combined product mix
-    combinedData.financials.productMix = [
+    // Category breakdown
+    combinedData.financials.categoryBreakdown = [
         { name: 'Vape', value: 35, color: '#10b981' },
         { name: 'Flower', value: 25, color: '#3b82f6' },
         { name: 'Concentrate', value: 20, color: '#f59e0b' },
         { name: 'Pre-Roll', value: 15, color: '#8b5cf6' },
         { name: 'Other', value: 5, color: '#06b6d4' }
     ];
+
+    // Sort and limit top products
+    combinedData.financials.topProducts = combinedData.financials.topProducts
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10);
 
     // Limit activations
     combinedData.upcomingActivations = combinedData.upcomingActivations.slice(0, 15);
