@@ -2268,3 +2268,45 @@ export async function getTrialUsers() {
     return data || [];
 }
 
+// --- BRAND TOUR STATE ---
+
+/**
+ * Check if a brand has completed their first mandatory onboarding tour
+ * @param {string} brandId - Brand ID
+ * @returns {boolean} Whether the tour has been completed
+ */
+export async function checkFirstTourCompleted(brandId) {
+    const { data, error } = await supabase
+        .from('admin_brands')
+        .select('first_tour_completed')
+        .eq('id', brandId)
+        .single();
+
+    if (error) {
+        console.error('Error checking tour status:', error);
+        return false; // Default to showing tour if error
+    }
+    return data?.first_tour_completed === true;
+}
+
+/**
+ * Mark a brand's first onboarding tour as completed
+ * @param {string} brandId - Brand ID
+ * @returns {boolean} Success status
+ */
+export async function markFirstTourCompleted(brandId) {
+    const { error } = await supabase
+        .from('admin_brands')
+        .update({
+            first_tour_completed: true,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', brandId);
+
+    if (error) {
+        console.error('Error marking tour completed:', error);
+        return false;
+    }
+    return true;
+}
+

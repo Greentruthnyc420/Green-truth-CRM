@@ -15,6 +15,10 @@ import {
 import ActivationFormModal from '../../components/ActivationFormModal';
 import BrandChatbot from '../../components/BrandChatbot';
 import IntegrationsPreview from '../../components/IntegrationsPreview';
+import OnboardingTour from '../../components/onboarding/OnboardingTour';
+import { getTourSteps } from '../../data/tourSteps';
+import { checkFirstTourCompleted, markFirstTourCompleted } from '../../services/firestoreService';
+import { generateProcessorDemoData } from '../../data/brandDemoDataGenerator';
 
 const FLX_SUB_BRANDS = [
     { id: 'pines', name: 'Pines', color: '#10b981' },
@@ -35,11 +39,38 @@ export default function FLXProcessorDashboard() {
         combined: null,
         byBrand: {}
     });
+    const [showTour, setShowTour] = useState(false);
+    const [isFirstTimeTour, setIsFirstTimeTour] = useState(false);
+    const [usingDemoData, setUsingDemoData] = useState(false);
 
     useEffect(() => {
         async function fetchAllBrandData() {
             setLoading(true);
             try {
+                // Check if this is the first time tour for FLX
+                const tourCompleted = await checkFirstTourCompleted('flx-extracts');
+
+                if (!tourCompleted) {
+                    // First time! Load demo data and start mandatory tour
+                    console.log('First time tour - loading demo data for FLX processor');
+                    const demoData = generateProcessorDemoData();
+
+                    setMetrics({
+                        combined: demoData.financials,
+                        byBrand: demoData.brandBreakdown
+                    });
+                    setUpcomingActivations(demoData.upcomingActivations);
+                    setUsingDemoData(true);
+                    setIsFirstTimeTour(true);
+                    setShowTour(true);
+                    setLoading(false);
+                    return;
+                }
+
+                // Tour completed - load real data
+                setUsingDemoData(false);
+                setIsFirstTimeTour(false);
+
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
                 const { getActivations: fetchActivations } = await import('../../services/firestoreService');
 
@@ -185,6 +216,21 @@ export default function FLXProcessorDashboard() {
     const formatCurrency = (amount) => `$${(Number(amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const formatNumber = (num) => (Number(num) || 0).toLocaleString();
 
+    // Handle tour completion - mark as complete and reload real data
+    const handleTourComplete = async () => {
+        setShowTour(false);
+
+        if (isFirstTimeTour) {
+            // Mark tour as completed in Supabase
+            await markFirstTourCompleted('flx-extracts');
+
+            // Reload page to get real data
+            setIsFirstTimeTour(false);
+            setUsingDemoData(false);
+            window.location.reload();
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -287,6 +333,16 @@ export default function FLXProcessorDashboard() {
                             : 'Sales are steady this month across all FLX brands'
                 }}
             />
+
+            {/* Tour Overlay */}
+            {showTour && (
+                <OnboardingTour
+                    steps={getTourSteps('processor')}
+                    isFirstTime={isFirstTimeTour}
+                    onComplete={handleTourComplete}
+                    tourKey={isFirstTimeTour ? 'processor_first_time' : 'processor_replay'}
+                />
+            )}
         </div>
     );
 }

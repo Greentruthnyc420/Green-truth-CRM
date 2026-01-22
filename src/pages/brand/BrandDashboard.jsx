@@ -11,7 +11,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, PieChart as RechartsPC, Pie
 } from 'recharts';
-import { getSales as getAllSales, getAllActivations, getActivations } from '../../services/firestoreService';
+import { getSales as getAllSales, getAllActivations, getActivations, checkFirstTourCompleted, markFirstTourCompleted } from '../../services/firestoreService';
 import { calculateAgencyShiftCost } from '../../utils/pricing';
 import ActivationFormModal from '../../components/ActivationFormModal';
 import BrandChatbot from '../../components/BrandChatbot';
@@ -21,6 +21,7 @@ import FLXProcessorDashboard from './FLXProcessorDashboard';
 import OnboardingTour from '../../components/onboarding/OnboardingTour';
 import { getTourSteps } from '../../data/tourSteps';
 import IntegrationsPreview from '../../components/IntegrationsPreview';
+import { generateBrandDemoData } from '../../data/brandDemoDataGenerator';
 
 export default function BrandDashboard() {
     const { brandUser } = useBrandAuth();
@@ -56,6 +57,8 @@ export default function BrandDashboard() {
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [isTop10ModalOpen, setIsTop10ModalOpen] = useState(false);
     const [showTour, setShowTour] = useState(false);
+    const [isFirstTimeTour, setIsFirstTimeTour] = useState(false); // Mandatory first tour
+    const [usingDemoData, setUsingDemoData] = useState(false); // Track if showing demo data
 
     // Set active brand when user loads
     useEffect(() => {
@@ -104,6 +107,28 @@ export default function BrandDashboard() {
 
             setLoading(true);
             try {
+                // Check if this is the first time tour
+                const tourCompleted = await checkFirstTourCompleted(activeBrandId);
+
+                if (!tourCompleted) {
+                    // First time! Load demo data and start mandatory tour
+                    console.log('First time tour - loading demo data for', activeBrandId);
+                    const demoData = generateBrandDemoData(activeBrandId);
+
+                    setFinancials(prev => ({ ...prev, ...demoData.financials }));
+                    setBrandLeads(demoData.brandLeads);
+                    setUpcomingActivations(demoData.upcomingActivations);
+                    setUsingDemoData(true);
+                    setIsFirstTimeTour(true);
+                    setShowTour(true);
+                    setLoading(false);
+                    return;
+                }
+
+                // Tour completed - load real data
+                setUsingDemoData(false);
+                setIsFirstTimeTour(false);
+
                 const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
                 const { getBrandLeads, getActivations: fetchActivations } = await import('../../services/firestoreService');
 
@@ -156,6 +181,54 @@ export default function BrandDashboard() {
 
         fetchData();
     }, [activeBrandId, currentBrandName]);
+
+    // Handle tour completion - mark as complete and reload real data
+    const handleTourComplete = async () => {
+        setShowTour(false);
+
+        if (isFirstTimeTour && activeBrandId) {
+            // Mark tour as completed in Supabase
+            await markFirstTourCompleted(activeBrandId);
+
+            // Reload with real data
+            setIsFirstTimeTour(false);
+            setUsingDemoData(false);
+            setLoading(true);
+
+            // Trigger data reload by updating a dependency
+            // We'll call fetchData logic again
+            try {
+                const { calculateBrandMetrics } = await import('../../services/brandMetricsService');
+                const { getBrandLeads, getActivations: fetchActivations } = await import('../../services/firestoreService');
+
+                const [metrics, leads, activations] = await Promise.all([
+                    calculateBrandMetrics(activeBrandId, currentBrandName),
+                    getBrandLeads(activeBrandId),
+                    fetchActivations()
+                ]);
+
+                const now = new Date();
+                const upcoming = activations
+                    .filter(a => {
+                        const aDate = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        return aDate >= now && (a.brandId === activeBrandId || a.brandName === currentBrandName);
+                    })
+                    .sort((a, b) => {
+                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                        return dateA - dateB;
+                    })
+                    .slice(0, 10);
+                setUpcomingActivations(upcoming);
+                setFinancials(prev => ({ ...prev, ...metrics }));
+                setBrandLeads(leads);
+            } catch (error) {
+                console.error("Failed to reload after tour", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
     if (loading && !financials.revenue) { // Only show full loader on initial load
         return (
@@ -736,9 +809,9 @@ export default function BrandDashboard() {
             {showTour && (
                 <OnboardingTour
                     steps={getTourSteps('brand')}
-                    isFirstTime={false}
-                    onComplete={() => setShowTour(false)}
-                    tourKey="brand_replay"
+                    isFirstTime={isFirstTimeTour}
+                    onComplete={handleTourComplete}
+                    tourKey={isFirstTimeTour ? 'brand_first_time' : 'brand_replay'}
                 />
             )}
         </div>
