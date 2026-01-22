@@ -7,14 +7,16 @@
     "theme_color": "#0f172a",
     "icons": [
         {
-            "src": "/logos/green-truth-logo-dark.png",
+            "src": "/icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
-            "src": "/logos/green-truth-logo-dark.png",
+            "src": "/icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ]
 }
