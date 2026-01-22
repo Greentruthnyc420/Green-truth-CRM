@@ -175,14 +175,40 @@ export default function OnboardingTour({
 
     return createPortal(
         <>
-            {/* Dark overlay */}
-            <div
-                className="fixed inset-0 z-[9998]"
-                style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+            {/* SVG Overlay with transparent spotlight cutout */}
+            <svg
+                className="fixed inset-0 z-[9998] w-full h-full"
+                style={{ pointerEvents: canSkip ? 'auto' : 'none' }}
                 onClick={canSkip ? handleClose : undefined}
-            />
+            >
+                <defs>
+                    <mask id="spotlight-mask">
+                        {/* White = visible (dark overlay), Black = transparent (spotlight) */}
+                        <rect width="100%" height="100%" fill="white" />
+                        {targetRect && (
+                            <rect
+                                x={targetRect.left - 8}
+                                y={targetRect.top - 8}
+                                width={targetRect.width + 16}
+                                height={targetRect.height + 16}
+                                rx="12"
+                                ry="12"
+                                fill="black"
+                            />
+                        )}
+                    </mask>
+                </defs>
+                {/* Dark overlay with spotlight cutout */}
+                <rect
+                    width="100%"
+                    height="100%"
+                    fill="rgba(0,0,0,0.75)"
+                    mask="url(#spotlight-mask)"
+                    style={{ pointerEvents: canSkip ? 'auto' : 'none' }}
+                />
+            </svg>
 
-            {/* Spotlight cutout */}
+            {/* Spotlight border highlight - now visible since content shows through */}
             {targetRect && (
                 <div
                     className="fixed z-[9999] pointer-events-none"
@@ -191,9 +217,9 @@ export default function OnboardingTour({
                         left: targetRect.left - 8,
                         width: targetRect.width + 16,
                         height: targetRect.height + 16,
-                        boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)',
                         borderRadius: '12px',
-                        border: '3px solid #10b981'
+                        border: '3px solid #10b981',
+                        boxShadow: '0 0 20px rgba(16, 185, 129, 0.5), inset 0 0 0 1px rgba(255,255,255,0.1)'
                     }}
                 />
             )}
