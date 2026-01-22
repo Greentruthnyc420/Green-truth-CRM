@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, HelpCircle, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, HelpCircle, X, MousePointer } from 'lucide-react';
 
 /**
  * OnboardingTour - Spotlight overlay with tooltips
@@ -13,6 +13,7 @@ import { ChevronRight, ChevronLeft, HelpCircle, X } from 'lucide-react';
  * - description: Step description
  * - position: Tooltip position (top, bottom, left, right, center)
  * - navigateTo: (optional) Route to navigate to for this step
+ * - clickToAdvance: (optional) If true, user must CLICK the target element to advance
  */
 export default function OnboardingTour({
     steps,
@@ -27,6 +28,7 @@ export default function OnboardingTour({
     const [isNextEnabled, setIsNextEnabled] = useState(!isFirstTime);
     const [countdown, setCountdown] = useState(isFirstTime ? 2 : 0);
     const [isNavigating, setIsNavigating] = useState(false);
+    const clickHandlerRef = useRef(null);
 
     // Anti-spam: On first-time tours, delay the Next button by 2 seconds per step
     useEffect(() => {
@@ -35,8 +37,15 @@ export default function OnboardingTour({
             return;
         }
 
-        setIsNextEnabled(false);
-        setCountdown(2);
+        // For clickToAdvance steps, enable immediately after countdown
+        const step = steps?.[currentStep];
+        if (step?.clickToAdvance) {
+            setIsNextEnabled(false);
+            setCountdown(1); // Just 1 second for click steps
+        } else {
+            setIsNextEnabled(false);
+            setCountdown(2);
+        }
 
         const timer = setInterval(() => {
             setCountdown(prev => {
@@ -50,7 +59,55 @@ export default function OnboardingTour({
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [currentStep, isFirstTime]);
+    }, [currentStep, isFirstTime, steps]);
+
+    // Handle clickToAdvance - attach click listener to target element
+    useEffect(() => {
+        if (!steps || !steps[currentStep]) return;
+
+        const step = steps[currentStep];
+        if (!step.clickToAdvance || !step.target || step.target === 'body') return;
+
+        const attachClickHandler = () => {
+            const element = document.querySelector(step.target);
+            if (!element) return;
+
+            // Remove any previous handler
+            if (clickHandlerRef.current) {
+                document.removeEventListener('click', clickHandlerRef.current, true);
+            }
+
+            // Create new click handler
+            const handleClick = (e) => {
+                // Check if click was on or within the target element
+                if (element.contains(e.target) || element === e.target) {
+                    // Advance to next step
+                    setTimeout(() => {
+                        if (currentStep < steps.length - 1) {
+                            setCurrentStep(prev => prev + 1);
+                        } else {
+                            if (onComplete) onComplete();
+                        }
+                    }, 100); // Small delay to let natural click happen first
+                }
+            };
+
+            clickHandlerRef.current = handleClick;
+            document.addEventListener('click', handleClick, true);
+        };
+
+        // Try immediately and again after a delay (for elements that load async)
+        attachClickHandler();
+        const retryTimeout = setTimeout(attachClickHandler, 500);
+
+        return () => {
+            clearTimeout(retryTimeout);
+            if (clickHandlerRef.current) {
+                document.removeEventListener('click', clickHandlerRef.current, true);
+                clickHandlerRef.current = null;
+            }
+        };
+    }, [currentStep, steps, onComplete]);
 
     // Handle navigation when step has navigateTo property
     useEffect(() => {
@@ -295,23 +352,34 @@ export default function OnboardingTour({
                     >
                         <ChevronLeft size={16} /> Back
                     </button>
-                    <button
-                        onClick={handleNext}
-                        disabled={!isNextEnabled}
-                        className={`flex items-center gap-1 px-5 py-2 rounded-lg font-bold transition-all ${isNextEnabled
-                            ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                            }`}
-                    >
-                        {!isNextEnabled && countdown > 0 ? (
-                            <>{countdown}s...</>
-                        ) : (
-                            <>
-                                {currentStep === steps.length - 1 ? 'Done!' : 'Next'}
-                                <ChevronRight size={16} />
-                            </>
-                        )}
-                    </button>
+
+                    {/* Show "Click the Item" for clickToAdvance steps, otherwise show Next button */}
+                    {step.clickToAdvance && isNextEnabled ? (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg font-bold animate-pulse">
+                            <MousePointer size={16} />
+                            <span>Click the Item Above ☝️</span>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleNext}
+                            disabled={!isNextEnabled || step.clickToAdvance}
+                            className={`flex items-center gap-1 px-5 py-2 rounded-lg font-bold transition-all ${isNextEnabled && !step.clickToAdvance
+                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                }`}
+                        >
+                            {!isNextEnabled && countdown > 0 ? (
+                                <>{countdown}s...</>
+                            ) : step.clickToAdvance ? (
+                                <>Wait...</>
+                            ) : (
+                                <>
+                                    {currentStep === steps.length - 1 ? 'Done!' : 'Next'}
+                                    <ChevronRight size={16} />
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </>,

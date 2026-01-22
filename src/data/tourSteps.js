@@ -377,19 +377,20 @@ export const brandTourSteps = [
         position: 'right'
     },
 
-    // Orders - Incoming
+    // Orders - Incoming - Click to navigate!
     {
         target: 'a[href*="orders"]',
-        title: 'Incoming Orders 📦',
-        description: 'All orders from dispensaries appear here. See dispensary name, OCM license, products ordered, and quantities. Approve orders to move them to fulfillment.',
-        position: 'right'
+        title: 'Click: Incoming Orders 📦',
+        description: 'All orders from dispensaries appear here. Click the Orders link in the sidebar to see your order management dashboard!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Orders Page
+    // Orders Page View
     {
-        target: '.grid, table, [class*="order"]',
+        target: '.grid, table, [class*="order"], main',
         title: 'Your Orders Dashboard 📋',
-        description: 'Here\'s where you\'ll see all incoming orders. View order details, approve shipments, and track fulfillment status. Demo data shows what this looks like with active orders.',
+        description: 'Here\'s where you manage all incoming orders. View order details, approve shipments, and track fulfillment status. Demo data shows what this looks like with active orders.',
         position: 'bottom',
         navigateTo: '/brand/orders'
     },
@@ -402,17 +403,18 @@ export const brandTourSteps = [
         position: 'center'
     },
 
-    // Products
+    // Products - Click to navigate!
     {
         target: 'a[href*="products"]',
-        title: 'Product Catalog 🛍️',
-        description: 'Add products with name, SKU, category, THC%, case size, and pricing. Upload product images. This is what dispensaries see when ordering.',
-        position: 'right'
+        title: 'Click: Product Catalog 🛍️',
+        description: 'Manage your products with name, SKU, category, THC%, case size, and pricing. Click Products in the sidebar to see your catalog!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Products Page
+    // Products Page View
     {
-        target: '.grid, table, [class*="product"]',
+        target: '.grid, table, [class*="product"], main',
         title: 'Your Product Management 🛍️',
         description: 'Manage your entire product catalog from here. Add new products, update pricing, upload images, and track inventory. Your real products from the catalog are shown here.',
         position: 'bottom',
@@ -435,17 +437,18 @@ export const brandTourSteps = [
         position: 'right'
     },
 
-    // Deals - Strategy
+    // Deals - Click to navigate!
     {
         target: 'a[href*="deals"]',
-        title: 'Deals & Discounts 🏷️',
-        description: 'Set up tiered pricing to encourage larger orders. Example: 5% off 3+ cases, 10% off 5+ cases, 15% off 10+ cases.',
-        position: 'right'
+        title: 'Click: Deals & Discounts 🏷️',
+        description: 'Set up tiered pricing to encourage larger orders. Click Deals in the sidebar to manage your promotional offers!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Deals Page  
+    // Deals Page View  
     {
-        target: '.grid, [class*="deal"], [class*="discount"]',
+        target: '.grid, [class*="deal"], [class*="discount"], main',
         title: 'Active Deals & Promotions 🏷️',
         description: 'Create and manage your promotional offers here. Set volume discounts, COD incentives, and first-order specials to drive more sales.',
         position: 'bottom',
@@ -492,17 +495,18 @@ export const brandTourSteps = [
         position: 'right'
     },
 
-    // Invoices to Dispensaries
+    // Invoices to Dispensaries - Click to navigate!
     {
         target: 'a[href*="invoices/dispensary"]',
-        title: 'Invoices TO Dispensaries 💵',
-        description: 'Track money owed to you. See invoice status: Pending, Sent, Paid, Overdue. Download PDF invoices anytime. Net-30 terms standard.',
-        position: 'right'
+        title: 'Click: Invoices TO Dispensaries 💵',
+        description: 'Track money owed to you. Click Invoices in the sidebar to see your receivables dashboard!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Invoices Page
+    // Invoices Page View
     {
-        target: '.grid, table, [class*="invoice"]',
+        target: '.grid, table, [class*="invoice"], main',
         title: 'Your Invoice Dashboard 💵',
         description: 'View all invoices, track payment status, and download PDFs. Filter by status (Pending, Paid, Overdue) to stay on top of receivables.',
         position: 'bottom',
@@ -641,17 +645,18 @@ export const processorTourSteps = [
         position: 'center'
     },
 
-    // Orders - Multi-Brand
+    // Orders - Click to navigate!
     {
         target: 'a[href*="orders"]',
-        title: 'Orders Across All Brands 📦',
-        description: 'View and manage orders for every brand you manage. Filter by brand, status, or dispensary. Approve, ship, and track from one unified view.',
-        position: 'right'
+        title: 'Click: Orders Across All Brands 📦',
+        description: 'View and manage orders for every brand you manage. Click Orders in the sidebar to see your unified order dashboard!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Orders Page
+    // Orders Page View
     {
-        target: '.grid, table, [class*="order"]',
+        target: '.grid, table, [class*="order"], main',
         title: 'Multi-Brand Orders View 📦',
         description: 'Here you manage orders across ALL your brands. See which brand each order is for, approve shipments, and track fulfillment from one unified dashboard.',
         position: 'bottom',
@@ -674,17 +679,18 @@ export const processorTourSteps = [
         position: 'right'
     },
 
-    // Deals - Per Brand
+    // Deals - Click to navigate!
     {
         target: 'a[href*="deals"]',
-        title: 'Brand-Specific Deals 🏷️',
-        description: 'Set different deal structures per brand. Waferz might offer 15% off 5+ cases while Smoothie Bar offers 10% off. Customize per brand strategy.',
-        position: 'right'
+        title: 'Click: Brand-Specific Deals 🏷️',
+        description: 'Set different deal structures per brand. Click Deals in the sidebar to manage promotions across your portfolio!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Deals Page
+    // Deals Page View
     {
-        target: '.grid, [class*="deal"]',
+        target: '.grid, [class*="deal"], main',
         title: 'Deals Across Your Portfolio 🏷️',
         description: 'Manage promotional offers for each brand from here. Compare what\'s working across brands and optimize your deal strategy.',
         position: 'bottom',
@@ -723,17 +729,18 @@ export const processorTourSteps = [
         position: 'center'
     },
 
-    // Invoices - Dispensary
+    // Invoices - Click to navigate!
     {
         target: 'a[href*="invoices/dispensary"]',
-        title: 'Consolidated A/R View 💵',
-        description: 'Track receivables across all brands. See total outstanding by dispensary - one store might owe you across multiple brand invoices.',
-        position: 'right'
+        title: 'Click: Consolidated A/R View 💵',
+        description: 'Track receivables across all brands. Click Invoices to see your portfolio-wide receivables dashboard!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // NAVIGATE: Show Invoices Page
+    // Invoices Page View
     {
-        target: '.grid, table, [class*="invoice"]',
+        target: '.grid, table, [class*="invoice"], main',
         title: 'Multi-Brand Invoicing 💵',
         description: 'View invoices across your entire portfolio. Track what each dispensary owes across all your brands in one view.',
         position: 'bottom',
