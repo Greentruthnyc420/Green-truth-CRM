@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { X, Settings, Building2, Palette, HelpCircle, ChevronRight, LogOut } from 'lucide-react';
+import { X, Settings, Building2, Palette, HelpCircle, ChevronRight, LogOut, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitcher from './ThemeSwitcher';
 import BrandSettingsModal from './BrandSettingsModal';
+import TeamManagementModal from './TeamManagementModal';
 import OnboardingTour from './onboarding/OnboardingTour';
 import { getTourSteps } from '../data/tourSteps';
 
 // Unified Settings Menu for Brand sidebar
 export default function BrandUnifiedSettingsMenu({ isOpen, onClose, brandUser, onLogout }) {
     const [showBrandSettings, setShowBrandSettings] = useState(false);
+    const [showTeamManagement, setShowTeamManagement] = useState(false);
     const [showTheme, setShowTheme] = useState(false);
     const [showTour, setShowTour] = useState(false);
 
@@ -19,9 +21,15 @@ export default function BrandUnifiedSettingsMenu({ isOpen, onClose, brandUser, o
             label: 'Business Settings',
             description: 'Edit your business & ACH info',
             color: 'emerald',
-            onClick: () => {
-                setShowBrandSettings(true);
-            }
+            onClick: () => setShowBrandSettings(true)
+        },
+        {
+            id: 'team',
+            icon: Users,
+            label: 'Team Management',
+            description: 'Invite & manage team access',
+            color: 'orange',
+            onClick: () => setShowTeamManagement(true)
         },
         {
             id: 'theme',
@@ -46,7 +54,7 @@ export default function BrandUnifiedSettingsMenu({ isOpen, onClose, brandUser, o
         }
     ];
 
-    if (!isOpen && !showBrandSettings && !showTour) return null;
+    if (!isOpen && !showBrandSettings && !showTeamManagement && !showTour) return null;
 
     return (
         <>
@@ -95,8 +103,9 @@ export default function BrandUnifiedSettingsMenu({ isOpen, onClose, brandUser, o
                                         className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-slate-50 transition-all group text-left"
                                     >
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${item.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
-                                            item.color === 'purple' ? 'bg-purple-100 text-purple-600' :
-                                                'bg-blue-100 text-blue-600'
+                                                item.color === 'orange' ? 'bg-orange-100 text-orange-600' :
+                                                    item.color === 'purple' ? 'bg-purple-100 text-purple-600' :
+                                                        'bg-blue-100 text-blue-600'
                                             }`}>
                                             <item.icon size={22} />
                                         </div>
@@ -149,6 +158,13 @@ export default function BrandUnifiedSettingsMenu({ isOpen, onClose, brandUser, o
             <BrandSettingsModal
                 isOpen={showBrandSettings}
                 onClose={() => setShowBrandSettings(false)}
+                brandUser={brandUser}
+            />
+
+            {/* Team Management Modal */}
+            <TeamManagementModal
+                isOpen={showTeamManagement}
+                onClose={() => setShowTeamManagement(false)}
                 brandUser={brandUser}
             />
 

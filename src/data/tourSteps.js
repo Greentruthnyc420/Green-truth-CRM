@@ -232,67 +232,83 @@ export const brandTourSteps = [
         position: 'right'
     },
 
-    // Orders
+    // Pipeline - Sales Process
     {
-        target: 'a[href*="orders"]',
-        title: 'Orders 📦',
-        description: 'All incoming orders from dispensaries. See dispensary name, OCM license, products ordered, quantities, and status. Approve, ship, or flag orders here.',
+        target: 'a[href*="pipeline"]',
+        title: 'Sales Pipeline 🔄',
+        description: 'Track prospects through your sales funnel: Lead → Contacted → Negotiating → Closed. Move cards between stages by clicking on them.',
         position: 'right'
     },
 
-    // Invoices to Dispensaries
+    // New Lead
     {
-        target: 'a[href*="invoices"]',
-        title: 'Dispensary Invoices 🧾',
-        description: 'Track money owed TO YOU by dispensaries. See paid vs pending, payment terms (Net-30 or COD), and collection history. Download statements anytime.',
+        target: 'a[href*="new-lead"]',
+        title: 'Add New Leads ➕',
+        description: 'Found a new dispensary? Add them here with their contact info. They\'ll appear in your pipeline for follow-up.',
         position: 'right'
+    },
+
+    // Orders - Incoming
+    {
+        target: 'a[href*="orders"]',
+        title: 'Incoming Orders 📦',
+        description: 'All orders from dispensaries appear here. See dispensary name, OCM license, products ordered, and quantities. Approve orders to move them to fulfillment.',
+        position: 'right'
+    },
+
+    // Order Workflow
+    {
+        target: 'body',
+        title: 'Order Workflow 📋',
+        description: 'Orders flow: Pending → Approved → Shipped → Delivered. Update status as you process each order. Dispensaries can track their order status too.',
+        position: 'center'
     },
 
     // Products
     {
         target: 'a[href*="products"]',
         title: 'Product Catalog 🛍️',
-        description: 'Manage your products. Add new items, update pricing, set case sizes, upload photos. This is what dispensaries see in the marketplace.',
+        description: 'Add products with name, SKU, category, THC%, case size, and pricing. Upload product images. This is what dispensaries see when ordering.',
         position: 'right'
+    },
+
+    // Product Tips
+    {
+        target: 'body',
+        title: 'Product Tips 💡',
+        description: 'Include wholesale AND retail pricing. Set case sizes (6, 12, 24 units). Add COA links for compliance. Good product info = more orders!',
+        position: 'center'
     },
 
     // Menu Editor
     {
         target: 'a[href*="menu"]',
         title: 'Menu / Price Sheet 📋',
-        description: 'Upload your official menu PDF. Sales reps and dispensaries reference this when placing orders. Keep it updated with current pricing!',
+        description: 'Upload your official PDF menu. Sales reps use this when pitching to dispensaries. Include strain info, THC ranges, and case pricing.',
         position: 'right'
     },
 
-    // Deals
+    // Deals - Strategy
     {
         target: 'a[href*="deals"]',
         title: 'Deals & Discounts 🏷️',
-        description: 'Set up tiered pricing! Example: 10% off 3+ cases, 15% off 5+ cases. COD discounts encouraged. Bigger discounts = more orders!',
+        description: 'Set up tiered pricing to encourage larger orders. Example: 5% off 3+ cases, 10% off 5+ cases, 15% off 10+ cases.',
         position: 'right'
+    },
+
+    // Deal Tips
+    {
+        target: 'body',
+        title: 'Deal Strategy 🧠',
+        description: 'COD discounts (2-5%) are popular and improve cash flow. First-order discounts attract new accounts. Stack discounts to maximize appeal!',
+        position: 'center'
     },
 
     // Schedule
     {
         target: 'a[href*="schedule"]',
         title: 'Activation Calendar 📅',
-        description: 'See all your upcoming in-store pop-ups. Which dispensaries, which ambassadors, and when. Activation fees are billed separately.',
-        position: 'right'
-    },
-
-    // Pipeline
-    {
-        target: 'a[href*="pipeline"]',
-        title: 'Sales Pipeline 🔄',
-        description: 'Track prospects. See which dispensaries are interested, in negotiation, or ready to order. Move leads through the funnel.',
-        position: 'right'
-    },
-
-    // Map
-    {
-        target: 'a[href*="map"]',
-        title: 'Coverage Map 🗺️',
-        description: 'Visual map of your distribution. Green = dispensaries carrying your products. Identify gaps and expansion opportunities.',
+        description: 'View all your scheduled pop-ups. See which dispensary, date, time, and assigned ambassador. Request new activations from the dashboard.',
         position: 'right'
     },
 
@@ -300,39 +316,87 @@ export const brandTourSteps = [
     {
         target: 'body',
         title: 'Request Pop-Ups ⭐',
-        description: 'Want more exposure? Request activations at any dispensary. Our ambassadors represent your brand, sample products, and drive sales.',
+        description: 'Click "Request Activation" on the dashboard. Select a dispensary and preferred dates. Our team will confirm and assign an ambassador.',
         position: 'center'
     },
 
-    // Team Management - NEW
+    // Activation Benefits
     {
-        target: 'a[href*="settings"]',
-        title: 'Team Management 👥',
-        description: 'As the brand owner, you can invite team members with different access levels: Admin (full control), Manager (view & edit), or Viewer (view only). Manage your team from Settings.',
+        target: 'body',
+        title: 'Activation ROI 📊',
+        description: 'Ambassadors sample products, educate budtenders, and drive immediate sales. Average ROI is 3-5x the activation fee. Schedule monthly for best results!',
+        position: 'center'
+    },
+
+    // Map
+    {
+        target: 'a[href*="map"]',
+        title: 'Coverage Map 🗺️',
+        description: 'Interactive map of NYC dispensaries. Green = carrying your products. Gray = prospects. Click any pin for details and order history.',
         position: 'right'
     },
 
-    // Settings
+    // Invoices to Dispensaries
     {
-        target: 'a[href*="settings"]',
-        title: 'Brand Settings ⚙️',
-        description: 'Update your brand profile, logo, contact info, and notification preferences. This is also where you manage your team members.',
+        target: 'a[href*="invoices/dispensary"]',
+        title: 'Invoices TO Dispensaries 💵',
+        description: 'Track money owed to you. See invoice status: Pending, Sent, Paid, Overdue. Download PDF invoices anytime. Net-30 terms standard.',
         position: 'right'
     },
 
     // Invoices from GreenTruth
     {
+        target: 'a[href*="invoices/greentruth"]',
+        title: 'Invoices FROM GreenTruth 💳',
+        description: 'Your platform fees and activation charges appear here. ACH payment info is on each invoice. Pay on time to maintain scheduling priority.',
+        position: 'right'
+    },
+
+    // Integrations
+    {
+        target: 'a[href*="integrations"]',
+        title: 'Integrations 🔗',
+        description: 'Connect to Dutchie, Blaze, Treez, Metrc, or BioTrack. Sync inventory and orders automatically. Contact us for setup assistance.',
+        position: 'right'
+    },
+
+    // Team Management
+    {
         target: 'body',
-        title: 'GreenTruth Invoices 💳',
-        description: 'You\'ll also receive invoices FROM us for activation fees and platform services. Pay on time to keep scheduling priority!',
+        title: 'Team Management 👥',
+        description: 'Go to Settings → Team Management to invite team members. Assign roles: Admin (full access), Manager (edit), or Viewer (read-only).',
+        position: 'center'
+    },
+
+    // Settings
+    {
+        target: 'body',
+        title: 'Brand Settings ⚙️',
+        description: 'Update your business info, ACH payment details, and notification preferences in Settings. Keep contact info current for order notifications!',
+        position: 'center'
+    },
+
+    // Payment Terms
+    {
+        target: 'body',
+        title: 'Payment Terms 💰',
+        description: 'Standard is Net-30 for dispensaries. COD available with discount incentive. We handle invoicing and collection - you focus on product!',
+        position: 'center'
+    },
+
+    // Support
+    {
+        target: 'body',
+        title: 'Need Help? 🤝',
+        description: 'Email brands@thegreentruthnyc.com for product questions. sales@thegreentruthnyc.com for new accounts. We respond within 24 hours!',
         position: 'center'
     },
 
     // Final
     {
         target: 'body',
-        title: 'Let\'s Grow! 🚀',
-        description: 'Check your pending orders, set up deal tiers, and consider scheduling more activations. We\'re here to help your brand succeed in NYC!',
+        title: 'Let\'s Grow Together! 🚀',
+        description: 'Start by reviewing your product catalog, setting up deals, and checking the pipeline. Request your first activation to drive immediate sales!',
         position: 'center'
     }
 ];
@@ -343,7 +407,7 @@ export const processorTourSteps = [
     {
         target: 'body',
         title: 'Welcome to Your Processor Hub! 🏭',
-        description: 'You manage MULTIPLE brands from one powerful dashboard. Everything a single brand can do, you can do - but across your entire portfolio.',
+        description: 'You manage MULTIPLE brands from one powerful dashboard. Control orders, inventory, and activations across your entire portfolio from one place.',
         position: 'center'
     },
 
@@ -351,23 +415,31 @@ export const processorTourSteps = [
     {
         target: '.flex.gap-2, [class*="tab"], [class*="switch"]',
         title: '🔥 Brand Switcher (Your Superpower)',
-        description: 'Toggle between your brands or select "All Brands" for combined data. This is your most powerful tool - use it to focus or go wide.',
+        description: 'Toggle between brands using these tabs. "All Brands" shows combined data. Individual brand tabs show brand-specific metrics. Use this constantly!',
         position: 'bottom'
+    },
+
+    // How Brand Switcher Works
+    {
+        target: 'body',
+        title: 'Switching Brands 🔄',
+        description: 'When you switch brands, ALL data on the page changes: stats, charts, orders, products. It\'s like having a separate dashboard for each brand.',
+        position: 'center'
     },
 
     // Combined Analytics
     {
         target: '.grid',
-        title: 'Portfolio Analytics 📊',
-        description: 'When viewing "All Brands": see COMBINED revenue, orders, and activations. Switch to a specific brand to drill into that brand\'s individual performance.',
+        title: 'Portfolio Metrics 📊',
+        description: 'In "All Brands" view: combined revenue, total orders, and portfolio-wide stats. In individual brand view: that brand\'s specific performance.',
         position: 'bottom'
     },
 
     // Charts
     {
         target: '[class*="chart"], [class*="recharts"]',
-        title: 'Compare Your Brands 📈',
-        description: 'Which brands are growing? Which need attention? Use these charts to identify trends, seasonal patterns, and where to invest your marketing budget.',
+        title: 'Brand Performance Comparison 📈',
+        description: 'Compare brands side-by-side. Which is growing? Which needs marketing? Use these insights to allocate your budget and ambassador time.',
         position: 'bottom'
     },
 
@@ -375,119 +447,167 @@ export const processorTourSteps = [
     {
         target: 'aside, .themed-sidebar, nav',
         title: 'Management Tools',
-        description: 'Your complete toolkit. Every feature works per-brand OR across all brands - the brand switcher controls your view. Let me walk you through each section.',
+        description: 'Same tools as brands, but with multi-brand capability. The brand switcher on the dashboard controls your view throughout the portal.',
         position: 'right'
     },
 
-    // Dashboard
+    // Pipeline - Multi-Brand Leads
     {
-        target: 'a[href*="dashboard"]',
-        title: 'Dashboard Home 🏠',
-        description: 'Your command center. Quick stats, alerts, and action items. Start here every day to see what needs your attention.',
+        target: 'a[href*="pipeline"]',
+        title: 'Combined Sales Pipeline 🔄',
+        description: 'See prospects for ALL your brands. Identify which dispensaries are interested in Space Poppers vs Pines vs Smoothie Bar - cross-sell opportunities!',
         position: 'right'
     },
 
-    // Orders
+    // Cross-Sell Tip
+    {
+        target: 'body',
+        title: 'Cross-Sell Strategy 💡',
+        description: 'Pro tip: Dispensaries buying one brand are warm leads for your others. "You love Space Poppers? Try our Smoothie Bar line!" Use the map to spot these.',
+        position: 'center'
+    },
+
+    // Orders - Multi-Brand
     {
         target: 'a[href*="orders"]',
-        title: 'Orders Across Brands 📦',
-        description: 'Manage orders for ALL brands or filter by one. Each order shows brand, dispensary, products, and status. Approve, ship, or flag - all from one place.',
+        title: 'Orders Across All Brands 📦',
+        description: 'View and manage orders for every brand you manage. Filter by brand, status, or dispensary. Approve, ship, and track from one unified view.',
         position: 'right'
     },
 
-    // Invoices - Dispensary
+    // Order Processing
     {
-        target: 'a[href*="invoices"]',
-        title: 'Dispensary Invoices 🧾',
-        description: 'Track money owed TO you from dispensaries. View consolidated across brands or per-brand. See outstanding balances, aging, and payment history.',
-        position: 'right'
+        target: 'body',
+        title: 'Efficient Order Processing 📋',
+        description: 'Batch similar orders together. Consolidate shipments to the same dispensary across brands. Save time and shipping costs!',
+        position: 'center'
     },
 
     // Products
     {
         target: 'a[href*="products"]',
-        title: 'Product Catalogs 🛍️',
-        description: 'Each brand has its own catalog. Switch brands using the brand switcher, then manage that brand\'s products, pricing, images, and availability.',
+        title: 'Per-Brand Product Catalogs 🛍️',
+        description: 'Each brand has its own catalog. Switch to a brand using the dashboard tabs, then manage that brand\'s products. Keep all SKUs and pricing current.',
         position: 'right'
     },
 
-    // Menu
-    {
-        target: 'a[href*="menu"]',
-        title: 'Brand Menus 📋',
-        description: 'Upload price sheets for each brand. Sales reps and dispensaries reference these when ordering. Keep them updated with current pricing!',
-        position: 'right'
-    },
-
-    // Deals
+    // Deals - Per Brand
     {
         target: 'a[href*="deals"]',
-        title: 'Deals Per Brand 🏷️',
-        description: 'Configure discounts INDIVIDUALLY for each brand. One brand can have different deal tiers than another. Customize to each brand\'s strategy.',
+        title: 'Brand-Specific Deals 🏷️',
+        description: 'Set different deal structures per brand. Space Poppers might offer 15% off 5+ cases while Smoothie Bar offers 10% off. Customize per brand strategy.',
         position: 'right'
     },
 
-    // Schedule
+    // Schedule - All Activations
     {
         target: 'a[href*="schedule"]',
-        title: 'Activation Calendar 📅',
-        description: 'See ALL pop-ups across your brands. Know which brand is being featured at each dispensary. Plan your promotional calendar strategically.',
+        title: 'Multi-Brand Activation Calendar 📅',
+        description: 'See ALL pop-ups across all your brands. Color-coded by brand. Plan strategically - avoid scheduling two of YOUR brands at the same location on the same day.',
         position: 'right'
-    },
-
-    // Pipeline
-    {
-        target: 'a[href*="pipeline"]',
-        title: 'Combined Pipeline 🔄',
-        description: 'Track leads interested in ANY of your brands. See which dispensaries are prospects for which products and where they are in the sales process.',
-        position: 'right'
-    },
-
-    // Map
-    {
-        target: 'a[href*="map"]',
-        title: 'Territory Coverage 🗺️',
-        description: 'Visual map of distribution across NYC. See which dispensaries carry which brands. The gold mine: find stores with ONE of your brands but not the others.',
-        position: 'right'
-    },
-
-    // GreenTruth Invoices
-    {
-        target: 'body',
-        title: 'GreenTruth Invoices 💳',
-        description: 'You\'ll receive invoices FROM us for activation fees and services. These are consolidated across your brands for easy management.',
-        position: 'center'
-    },
-
-    // Cross-selling Strategy
-    {
-        target: 'body',
-        title: 'Cross-Sell Strategy 🧠',
-        description: 'Your unique advantage: dispensaries buying from one brand are warm leads for your others. Use the map and data to identify these opportunities.',
-        position: 'center'
     },
 
     // Request Activations
     {
         target: 'body',
-        title: 'Multi-Brand Activations ⭐',
-        description: 'Request pop-ups for any brand, or bundle multiple brands at one location. Activation fees apply per brand, but bundling creates bigger impact.',
+        title: 'Strategic Activation Planning ⭐',
+        description: 'Request activations for any brand. Multi-brand bundles at one location get better ambassador attention. Rotate brands monthly for variety.',
         position: 'center'
     },
 
-    // Portfolio Optimization
+    // Map - Distribution View
+    {
+        target: 'a[href*="map"]',
+        title: 'Portfolio Distribution Map 🗺️',
+        description: 'The GOLD MINE: See which dispensaries carry which of YOUR brands. Find stores with Space Poppers but NOT Smoothie Bar - instant cross-sell targets!',
+        position: 'right'
+    },
+
+    // Map Strategy
     {
         target: 'body',
-        title: 'Portfolio Optimization 📊',
-        description: 'Regularly review: Which brand has highest margin? Best reorder rate? Most activation ROI? Use data to allocate your resources and grow strategically.',
+        title: 'Map Strategy 🎯',
+        description: 'Color-code pins by brand. Gaps in coverage = opportunity. When one brand gets into a new store, immediately pitch your others.',
+        position: 'center'
+    },
+
+    // Invoices - Dispensary
+    {
+        target: 'a[href*="invoices/dispensary"]',
+        title: 'Consolidated A/R View 💵',
+        description: 'Track receivables across all brands. See total outstanding by dispensary - one store might owe you across multiple brand invoices.',
+        position: 'right'
+    },
+
+    // Invoices from GreenTruth
+    {
+        target: 'a[href*="invoices/greentruth"]',
+        title: 'Platform Invoices 💳',
+        description: 'Your activation fees and platform charges - consolidated across brands for easy management. One payment covers all your brands.',
+        position: 'right'
+    },
+
+    // Fulfillment
+    {
+        target: 'a[href*="fulfillment"]',
+        title: 'Fulfillment Center 📤',
+        description: 'Manage shipments across all brands. Track what\'s been picked, packed, and shipped. Consolidate orders to the same destination when possible.',
+        position: 'right'
+    },
+
+    // Team Management
+    {
+        target: 'body',
+        title: 'Team Management 👥',
+        description: 'Go to Settings → Team Management. Invite team members with access to ALL your brands or specific ones. Assign Admin, Manager, or Viewer roles.',
+        position: 'center'
+    },
+
+    // Integrations
+    {
+        target: 'a[href*="integrations"]',
+        title: 'System Integrations 🔗',
+        description: 'Connect your POS, inventory system, or compliance platform. Sync data automatically. Ask us about custom integrations for processors.',
+        position: 'right'
+    },
+
+    // Menu PDFs
+    {
+        target: 'a[href*="menu"]',
+        title: 'Brand Menu Sheets 📋',
+        description: 'Maintain separate PDF menus for each brand. Sales reps use these in the field. Keep pricing and strain info current for each brand.',
+        position: 'right'
+    },
+
+    // Portfolio Strategy
+    {
+        target: 'body',
+        title: 'Portfolio Strategy 📊',
+        description: 'Review weekly: Which brand has best margins? Best reorder rates? Highest activation ROI? Allocate ambassador time to biggest opportunities.',
+        position: 'center'
+    },
+
+    // Settings
+    {
+        target: 'body',
+        title: 'Processor Settings ⚙️',
+        description: 'Configure business info, payment details, and manage your team. All settings apply across your entire brand portfolio.',
+        position: 'center'
+    },
+
+    // Support
+    {
+        target: 'body',
+        title: 'Processor Support 🤝',
+        description: 'Email processors@thegreentruthnyc.com for multi-brand questions. You have priority support as a processor partner. We respond within 24 hours.',
         position: 'center'
     },
 
     // Final
     {
         target: 'body',
-        title: 'Multi-Brand Power! 🎯',
-        description: 'You have complete portfolio control. Use the brand switcher, cross-sell between brands, and leverage your data advantage. Let\'s dominate NYC together!',
+        title: 'Multi-Brand Power! 🚀',
+        description: 'You have complete portfolio control. Use the brand switcher, cross-sell between brands, and leverage data to grow strategically. Let\'s dominate NYC together!',
         position: 'center'
     }
 ];
