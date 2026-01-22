@@ -629,7 +629,7 @@ export const processorTourSteps = [
     {
         target: 'a[href*="pipeline"]',
         title: 'Combined Sales Pipeline 🔄',
-        description: 'See prospects for ALL your brands. Identify which dispensaries are interested in Space Poppers vs Pines vs Smoothie Bar - cross-sell opportunities!',
+        description: 'See prospects for ALL your brands. Identify which dispensaries are interested in Waferz vs Pines vs Smoothie Bar - cross-sell opportunities!',
         position: 'right'
     },
 
@@ -637,7 +637,7 @@ export const processorTourSteps = [
     {
         target: 'body',
         title: 'Cross-Sell Strategy 💡',
-        description: 'Pro tip: Dispensaries buying one brand are warm leads for your others. "You love Space Poppers? Try our Smoothie Bar line!" Use the map to spot these.',
+        description: 'Pro tip: Dispensaries buying one brand are warm leads for your others. "You love Pines? Try our Smoothie Bar line!" Use the map to spot these.',
         position: 'center'
     },
 
@@ -678,7 +678,7 @@ export const processorTourSteps = [
     {
         target: 'a[href*="deals"]',
         title: 'Brand-Specific Deals 🏷️',
-        description: 'Set different deal structures per brand. Space Poppers might offer 15% off 5+ cases while Smoothie Bar offers 10% off. Customize per brand strategy.',
+        description: 'Set different deal structures per brand. Waferz might offer 15% off 5+ cases while Smoothie Bar offers 10% off. Customize per brand strategy.',
         position: 'right'
     },
 
@@ -711,7 +711,7 @@ export const processorTourSteps = [
     {
         target: 'a[href*="map"]',
         title: 'Portfolio Distribution Map 🗺️',
-        description: 'The GOLD MINE: See which dispensaries carry which of YOUR brands. Find stores with Space Poppers but NOT Smoothie Bar - instant cross-sell targets!',
+        description: 'The GOLD MINE: See which dispensaries carry which of YOUR brands. Find stores with Pines but NOT Smoothie Bar - instant cross-sell targets!',
         position: 'right'
     },
 
