@@ -415,7 +415,7 @@ export default function BrandLogin() {
                                         }}
                                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-full text-sm font-bold hover:from-amber-600 hover:to-orange-700 transition-all flex items-center gap-2 shadow-lg shadow-amber-900/30"
                                     >
-                                        <Play size={16} /> 🏷️ Brand Tour
+                                        <Play size={16} /> 🏷️ Brand Tour (25 steps)
                                     </button>
                                     <button
                                         onClick={() => {
@@ -424,7 +424,7 @@ export default function BrandLogin() {
                                         }}
                                         className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full text-sm font-bold hover:from-purple-600 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-900/30"
                                     >
-                                        <Play size={16} /> 🏭 Processor Tour
+                                        <Play size={16} /> 🏭 Processor Tour (26 steps)
                                     </button>
                                 </div>
                             </div>
@@ -468,19 +468,19 @@ export default function BrandLogin() {
                             </div>
 
                             <h2 className="text-white text-xl font-bold mb-1">{selectedBrand.brandName}</h2>
-                            <p className="text-zinc-500 text-sm mb-6">Enter secure digit to proceed</p>
+                            <p className="text-zinc-500 text-sm mb-6">Enter your secure access code</p>
 
                             <form onSubmit={handleVerification} className="space-y-4">
                                 <input
                                     type="text"
-                                    maxLength={1}
+                                    maxLength={2}
                                     value={accessCode}
                                     onChange={(e) => {
                                         setAccessCode(e.target.value);
                                         setGateError('');
                                     }}
                                     className="w-full bg-black border border-zinc-700 rounded-xl py-4 text-center text-2xl tracking-widest text-white focus:border-white focus:ring-0 outline-none transition-colors"
-                                    placeholder="•"
+                                    placeholder="••"
                                     autoFocus
                                 />
 

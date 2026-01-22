@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ShoppingBag, Search, Plus, Minus, X, ArrowRight, Loader, Store, CheckCircle2, Tag, AlertTriangle, CreditCard } from 'lucide-react';
+import { ShoppingBag, Search, Plus, Minus, X, ArrowRight, Loader, Store, CheckCircle2, Tag, AlertTriangle, CreditCard, Download, Image } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { addSale, getUserProfile, getLead } from '../../services/firestoreService';
@@ -537,8 +537,19 @@ export default function DispensaryMarketplace() {
                                     <div key={product.id} className="p-5 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                                         <div>
                                             {product.imageUrl && (
-                                                <div className="w-full h-40 mb-4 rounded-xl overflow-hidden bg-slate-50 border border-slate-50">
+                                                <div className="w-full h-40 mb-4 rounded-xl overflow-hidden bg-slate-50 border border-slate-50 relative group/img">
                                                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                                    <a
+                                                        href={product.imageUrl}
+                                                        download={`${product.brandName}-${product.name}.jpg`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="absolute top-2 right-2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-all"
+                                                        title="Download Digital Asset"
+                                                    >
+                                                        <Download size={16} />
+                                                    </a>
                                                 </div>
                                             )}
                                             <div className="flex justify-between items-start mb-2">

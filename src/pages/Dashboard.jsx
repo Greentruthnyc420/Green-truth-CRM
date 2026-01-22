@@ -4,7 +4,7 @@ import { DollarSign, Clock, TrendingUp, Award, PartyPopper, CheckCircle, Wallet,
 import confetti from 'canvas-confetti';
 import { getMyDispensaries, getSales, getUserActivations } from '../services/firestoreService';
 import { getActivationRequestsForRep } from '../services/activationRequestService';
-import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS, isSocialManager } from '../contexts/AuthContext';
 import {
     calculateHourlyRate,
     calculateTotalLifetimeBonuses,
@@ -626,10 +626,10 @@ export default function Dashboard() {
             {/* Tour Overlay */}
             {showTour && (
                 <OnboardingTour
-                    steps={getTourSteps('sales_rep')}
+                    steps={getTourSteps(isSocialManager(currentUser?.email) ? 'social_manager' : 'sales_rep')}
                     isFirstTime={false}
                     onComplete={() => setShowTour(false)}
-                    tourKey="sales_rep_replay"
+                    tourKey={isSocialManager(currentUser?.email) ? 'social_manager_replay' : 'sales_rep_replay'}
                 />
             )}
         </div >

@@ -111,15 +111,27 @@ export default function DispensaryLogin() {
 
                     {/* Developer Login Button (Local Dev Only) */}
                     {(import.meta.env.DEV || window.location.hostname === 'localhost') && (
-                        <button
-                            onClick={() => {
-                                showNotification('Developer access granted', 'success');
-                                navigate('/dispensary');
-                            }}
-                            className="mt-4 w-full py-3 bg-purple-600/10 border border-purple-500/30 text-purple-700 font-bold rounded-2xl hover:bg-purple-600/20 transition-all text-sm flex items-center justify-center gap-2"
-                        >
-                            <span>💜</span>  Developer Login (Localhost Only)
-                        </button>
+                        <div className="mt-4 space-y-2">
+                            <button
+                                onClick={() => {
+                                    showNotification('Developer access granted', 'success');
+                                    navigate('/dispensary');
+                                }}
+                                className="w-full py-3 bg-purple-600/10 border border-purple-500/30 text-purple-700 font-bold rounded-2xl hover:bg-purple-600/20 transition-all text-sm flex items-center justify-center gap-2"
+                            >
+                                <span>💜</span>  Developer Login (Localhost Only)
+                            </button>
+                            <button
+                                onClick={() => {
+                                    sessionStorage.setItem('triggerTour', 'dispensary');
+                                    showNotification('Starting Dispensary Tour', 'info');
+                                    navigate('/dispensary');
+                                }}
+                                className="w-full py-3 bg-purple-500 text-white font-bold rounded-2xl hover:bg-purple-600 transition-all text-sm flex items-center justify-center gap-2"
+                            >
+                                ▶️ Dispensary Tour (13 steps)
+                            </button>
+                        </div>
                     )}
                 </div>
 

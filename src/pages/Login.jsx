@@ -303,63 +303,22 @@ export default function Login() {
                                 className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2"
                             >
                                 <Play size={14} />
-                                Canna Consultant Tour (16 steps)
+                                Sales Rep Tour (16 steps)
                             </button>
 
-                            {/* Admin Tour */}
+                            {/* Social Media Manager Tour */}
                             <button
                                 type="button"
                                 onClick={() => {
-                                    devLogin('omar@thegreentruthnyc.com');
-                                    sessionStorage.setItem('triggerTour', 'super_admin');
-                                    navigate('/admin');
+                                    devLogin('alyssa@thegreentruthnyc.com');
+                                    sessionStorage.setItem('triggerTour', 'social_manager');
+                                    navigate('/app');
                                 }}
-                                className="w-full bg-gradient-to-r from-slate-600 to-slate-800 text-white py-2.5 rounded-lg font-bold text-sm hover:from-slate-700 hover:to-slate-900 transition-all flex items-center justify-center gap-2"
+                                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-pink-600 hover:to-rose-700 transition-all flex items-center justify-center gap-2"
                             >
-                                <Shield size={14} />
-                                Super Admin Tour (13 steps)
+                                <Users size={14} />
+                                Social Media Manager Tour (24 steps)
                             </button>
-
-                            {/* Brand Tour - Single brand */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    sessionStorage.setItem('triggerTour', 'brand');
-                                    navigate('/brand/login');
-                                }}
-                                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-amber-600 hover:to-orange-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Play size={14} />
-                                Brand Tour (15 steps)
-                            </button>
-
-                            {/* Processor Tour - Multi-brand */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    sessionStorage.setItem('triggerTour', 'processor');
-                                    navigate('/brand/login');
-                                }}
-                                className="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-rose-600 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Play size={14} />
-                                Processor Tour (19 steps)
-                            </button>
-
-                            {/* Dispensary Tour */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    sessionStorage.setItem('triggerTour', 'dispensary');
-                                    navigate('/dispensary/verify');
-                                }}
-                                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-purple-600 hover:to-indigo-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Play size={14} />
-                                Dispensary Tour (13 steps)
-                            </button>
-
-                            <p className="text-[10px] text-center text-slate-400 mt-2">Note: Brand/Processor/Dispensary tours require logging in with those credentials first</p>
                         </div>
                     )}
 

@@ -142,58 +142,187 @@ export const salesRepTourSteps = [
 
 // Social Media & Cannabis Consultant Tour (Alyssa)
 export const socialManagerTourSteps = [
+    // Welcome
     {
         target: 'body',
-        title: 'Welcome, Social Media & Canna Consultant! ✨',
-        description: 'You have consultant access for logging sales/hours, PLUS additional visibility for content planning and team coordination.',
+        title: 'Welcome, Social Media Manager! ✨',
+        description: 'You\'re the voice of Green Truth NYC! This dashboard gives you consultant access PLUS special tools for content planning, team coordination, and social media strategy. Let me show you everything.',
         position: 'center'
     },
+
+    // Your Dual Role
+    {
+        target: 'body',
+        title: 'Your Dual Role 🎭',
+        description: 'You wear two hats: 1) Social Media Manager - creating content, managing our brand presence. 2) Canna Consultant - you can also do pop-ups and earn commissions. Best of both worlds!',
+        position: 'center'
+    },
+
+    // Dashboard Stats
     {
         target: '.grid',
-        title: 'Your Dashboard 📊',
-        description: 'Same stats as consultants - your sales, hours, and commissions. Track your own performance.',
+        title: 'Your Performance Stats 📊',
+        description: 'Track your personal metrics: pending wages from activations you do, your commission earnings (2% of sales), and your hourly rate. These update in real-time.',
         position: 'bottom'
     },
+
+    // Navigation
     {
-        target: 'aside, .themed-sidebar',
-        title: 'Consultant Tools 🛠️',
-        description: 'You can log sales, hours, view schedule, and add leads just like any consultant. Use these when you do in-store activations.',
+        target: 'aside, .themed-sidebar, nav',
+        title: 'Your Toolkit 🛠️',
+        description: 'This sidebar has everything you need. I\'ll walk you through each tool and how it helps with social media content creation.',
         position: 'right'
     },
+
+    // Schedule - Content Planning
     {
         target: 'a[href="/app/schedule"]',
-        title: 'Team Schedule 📅',
-        description: 'View the FULL activation calendar - all consultants, all dispensaries. Use this to plan content around upcoming activations.',
+        title: 'Activation Calendar 📅',
+        description: 'THE GOLD MINE for content! See ALL upcoming pop-ups. Plan to visit activations for: behind-the-scenes content, consultant spotlights, product features, and dispensary partnerships.',
         position: 'right'
     },
+
+    // Schedule Strategy
+    {
+        target: 'body',
+        title: 'Content Calendar Strategy 📆',
+        description: 'Pro tip: Plan your content around the schedule. Monday = Hype posts for the week. Day-of = Stories and live content. Day after = Recap and engagement.',
+        position: 'center'
+    },
+
+    // Map - Location Content
     {
         target: 'a[href="/app/map"]',
-        title: 'Content Planning Map 🗺️',
-        description: 'See all dispensary locations. Plan social content around specific neighborhoods or upcoming pop-ups.',
+        title: 'Location Mapping 🗺️',
+        description: 'See all dispensary locations. Use this for: geo-tagging posts, neighborhood-specific content, planning content routes, and finding photo-worthy spots.',
         position: 'right'
     },
+
+    // Map Content Ideas
     {
         target: 'body',
-        title: 'Admin Portal Access 🔐',
-        description: 'From the Gateway page, you can also access the Admin portal for deeper team analytics and scheduling data.',
+        title: 'Map-Based Content Ideas 📍',
+        description: 'Try these: "Pop-ups in [neighborhood] this week!" | "Which borough are we visiting today?" | Neighborhood spotlight series. The map shows you where the action is!',
         position: 'center'
     },
+
+    // Accounts - Dispensary Relationships
+    {
+        target: 'a[href="/app/accounts"]',
+        title: 'Dispensary Partners 🏪',
+        description: 'View all our partner dispensaries. Check their status, location, and history. Great for: tagging in posts, featuring partners, and coordinating collaborations.',
+        position: 'right'
+    },
+
+    // Accounts Content Strategy
     {
         target: 'body',
-        title: 'Content Ideas 📸',
-        description: 'Use the schedule to know when activations are happening, then visit for behind-the-scenes content. Tag consultants and dispensaries for engagement!',
+        title: 'Partner Spotlight Content 🌟',
+        description: 'Feature our best partners! "Dispensary of the Week" series, owner interviews, store tours. Build relationships by giving partners social love.',
         position: 'center'
     },
+
+    // Log Shift (When You Do Activations)
+    {
+        target: 'a[href="/app/log-shift"]',
+        title: 'Log Your Activations ⏱️',
+        description: 'When you work a pop-up, log your hours here. Start/end time, mileage, expenses. You earn $20-30/hr just like other consultants!',
+        position: 'right'
+    },
+
+    // Log Sale
+    {
+        target: 'a[href="/app/log-sale"]',
+        title: 'Log Your Sales 💰',
+        description: 'If you make sales during activations, log them! You earn 2% commission on your personal sales, paid quarterly. Every sale counts.',
+        position: 'right'
+    },
+
+    // Leaderboard - Team Content
+    {
+        target: 'a[href="/app/leaderboard"]',
+        title: 'Team Leaderboard 🏆',
+        description: 'See top performers! Use this for: consultant spotlight posts, celebrating wins, creating healthy competition content, and recognizing the team.',
+        position: 'right'
+    },
+
+    // Leaderboard Content Ideas
     {
         target: 'body',
-        title: 'Your Compensation 💰',
-        description: 'Same as consultants: $20-$30/hr for activations, 2% commission on your sales, mileage reimbursement. Plus your salary for social management.',
+        title: 'Leaderboard Content Ideas 🎉',
+        description: 'Post ideas: "Congrats to [name] - top seller this week!" | Monthly MVP features | Behind-the-scenes with top consultants. People love recognition!',
         position: 'center'
     },
+
+    // Profile Settings
     {
         target: 'body',
-        title: 'You\'re Set! 🚀',
-        description: 'Use the schedule and map for content planning. Log any activations you do. Let\'s grow Green Truth\'s social presence!',
+        title: 'Settings & Profile ⚙️',
+        description: 'Access settings from the menu. Update your profile photo, notification preferences, and view your payment history. Keep your info current!',
+        position: 'center'
+    },
+
+    // Content Types
+    {
+        target: 'body',
+        title: 'Content Pillars 📸',
+        description: 'Your content mix: 1) Activation highlights 2) Product features 3) Team spotlights 4) Dispensary partners 5) Behind-the-scenes 6) Educational cannabis content',
+        position: 'center'
+    },
+
+    // Social Best Practices
+    {
+        target: 'body',
+        title: 'Social Media Best Practices 📱',
+        description: 'Remember: Tag dispensaries and consultants. Use location stickers. Post Stories during activations. Engage with comments. Cross-post to all platforms.',
+        position: 'center'
+    },
+
+    // Hashtag Strategy
+    {
+        target: 'body',
+        title: 'Hashtag Strategy #️⃣',
+        description: 'Core hashtags: #GreenTruthNYC #CannaConsultant #NYCCannabis #PopUpLife. Add location-specific and trending tags. Keep a hashtag library!',
+        position: 'center'
+    },
+
+    // Content Capture Tips
+    {
+        target: 'body',
+        title: 'Content Capture Tips 📷',
+        description: 'When visiting activations: Get action shots, product displays, consultant candids, customer reactions (with permission), and store atmosphere. Variety is key!',
+        position: 'center'
+    },
+
+    // Your Compensation
+    {
+        target: 'body',
+        title: 'Your Compensation 💵',
+        description: 'You earn: 1) Your social media salary (set) 2) $20-30/hr for activations you work 3) 2% commission on sales you make 4) Mileage reimbursement. Track everything!',
+        position: 'center'
+    },
+
+    // Weekly Workflow
+    {
+        target: 'body',
+        title: 'Your Weekly Workflow 📋',
+        description: 'Monday: Check schedule, plan content week. Tuesday-Friday: Create and post. Weekends: Cover key activations. Sunday: Review metrics, plan next week.',
+        position: 'center'
+    },
+
+    // Metrics & Reporting
+    {
+        target: 'body',
+        title: 'Track Your Impact 📈',
+        description: 'Keep notes on: engagement rates, follower growth, best-performing content, activation attendance boost. This helps show social media ROI!',
+        position: 'center'
+    },
+
+    // You're Ready
+    {
+        target: 'body',
+        title: 'You\'re Ready to Create! 🚀',
+        description: 'Use this dashboard daily. Check the schedule often. Build relationships with consultants and dispensaries. Let\'s make Green Truth NYC the most recognized cannabis brand in New York!',
         position: 'center'
     }
 ];
