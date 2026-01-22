@@ -145,11 +145,51 @@ export function BrandAuthProvider({ children }) {
                                 licenseNumber: mapping.licenseNumber,
                                 // Set isProcessor based on account_type, with backward compatibility
                                 isProcessor: mapping.account_type === 'processor' || brandInfo.brandId === 'flx-extracts',
-                                allowedBrands: extraBrands.length > 0 ? extraBrands : [{ ...brandInfo, license: mapping.licenseNumber }]
+                                allowedBrands: extraBrands.length > 0 ? extraBrands : [{ ...brandInfo, license: mapping.licenseNumber }],
+                                teamRole: 'owner' // Original brand owner
                             });
                         }
-                    } else if (brandUser && !brandUser.isImpersonating) {
-                        setBrandUser(null);
+                    } else {
+                        // User not in brand_users - check if they're a team member
+                        const { data: teamMemberships } = await supabase
+                            .from('brand_team_members')
+                            .select('*, admin_brands!inner(id, name, logo, is_processor, managed_brands)')
+                            .ilike('email', user.email)
+                            .not('invite_accepted', 'is', false);
+
+                        if (teamMemberships && teamMemberships.length > 0) {
+                            // User is a team member - use their first membership
+                            const membership = teamMemberships[0];
+                            const brand = membership.admin_brands;
+
+                            // Link user_id if not already linked
+                            if (!membership.user_id) {
+                                await supabase
+                                    .from('brand_team_members')
+                                    .update({
+                                        user_id: user.uid,
+                                        invite_accepted: true,
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', membership.id);
+                                console.log('[BrandAuth] Linked team member:', user.email, 'to brand:', brand.id);
+                            }
+
+                            setBrandUser({
+                                brandId: brand.id,
+                                brandName: brand.name,
+                                logo: brand.logo,
+                                email: user.email,
+                                uid: user.uid,
+                                isProcessor: brand.is_processor || false,
+                                allowedBrands: [{ brandId: brand.id, brandName: brand.name, license: brand.id }],
+                                teamRole: membership.role, // 'admin', 'manager', or 'viewer'
+                                isTeamMember: true
+                            });
+                            console.log('[BrandAuth] Team member logged in:', user.email, 'Role:', membership.role);
+                        } else if (brandUser && !brandUser.isImpersonating) {
+                            setBrandUser(null);
+                        }
                     }
                 } catch (err) {
                     console.error("Error fetching brand user mapping:", err);
@@ -348,40 +388,108 @@ export function BrandAuthProvider({ children }) {
         }
     }
 
-    // Login with license verification
+    // Login with license verification (for brand owners)
+    // Also allows team members to login without license
     async function loginBrand(email, password, licenseNumber) {
         setLoading(true);
         try {
-            const brandInfo = validateLicense(licenseNumber);
-            if (!brandInfo) {
-                throw new Error('Invalid license number. Please check your brand license.');
-            }
-
-            // 1. Sign in with Firebase Auth
+            // 1. Sign in with Firebase Auth first
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 2. Verification of mapping (Supabase)
-            const { data: mapping, error } = await supabase
+            // 2. Check if brand owner (in brand_users)
+            const { data: mapping } = await supabase
                 .from('brand_users')
                 .select('*')
                 .eq('uid', user.uid)
                 .single();
 
-            if (!mapping) {
-                throw new Error('Account exists but not linked to this brand license. Please contact support.');
+            if (mapping) {
+                // Brand owner - verify license matches
+                const brandInfo = validateLicense(licenseNumber);
+                if (brandInfo && mapping.licenseNumber.toUpperCase().trim() !== licenseNumber.toUpperCase().trim()) {
+                    throw new Error("This account is linked to a different brand license.");
+                }
+                return user;
             }
 
-            if (mapping.licenseNumber.toUpperCase().trim() !== licenseNumber.toUpperCase().trim()) {
-                throw new Error("This account is linked to a different brand license.");
+            // 3. If not in brand_users, check if team member
+            const { data: teamMember } = await supabase
+                .from('brand_team_members')
+                .select('*')
+                .ilike('email', email)
+                .single();
+
+            if (teamMember) {
+                // Team member - allow login, onAuthStateChanged will handle the rest
+                console.log('[BrandAuth] Team member login:', email);
+                return user;
             }
 
-            return user;
+            // 4. Neither brand owner nor team member
+            throw new Error('Account not linked to any brand. Please contact your brand administrator for an invite.');
         } catch (error) {
             console.error("Login error:", error);
             let msg = error.message;
             if (msg.includes("auth/invalid-credential")) msg = "Invalid email or password.";
             throw new Error(msg);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Signup for invited team members (no license needed, just email/password)
+    async function signupTeamMember(email, password) {
+        setLoading(true);
+        try {
+            // 1. Check if this email has a pending invite
+            const { data: invite } = await supabase
+                .from('brand_team_members')
+                .select('*, admin_brands!inner(id, name)')
+                .ilike('email', email)
+                .single();
+
+            if (!invite) {
+                throw new Error('No pending invite found for this email. Please ask a brand administrator to invite you.');
+            }
+
+            // 2. Create Firebase account
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // 3. Link user_id and accept invite
+            await supabase
+                .from('brand_team_members')
+                .update({
+                    user_id: user.uid,
+                    invite_accepted: true,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', invite.id);
+
+            console.log('[BrandAuth] Team member signed up:', email, 'Brand:', invite.admin_brands.name);
+
+            // Send admin notification
+            try {
+                const { html, text } = createUserRegistrationEmail({
+                    userEmail: email,
+                    role: `Team Member (${invite.admin_brands.name}) - ${invite.role}`,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                await sendAdminNotification({
+                    subject: `👥 New Team Member: ${email}`,
+                    html,
+                    text
+                });
+            } catch (emailErr) {
+                console.warn("Team member email notification failed:", emailErr);
+            }
+
+            return user;
+        } catch (error) {
+            console.error("Team signup error:", error);
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -581,6 +689,7 @@ export function BrandAuthProvider({ children }) {
         validateLicense,
         loginBrand,
         signupBrand,
+        signupTeamMember,
         loginWithGoogle,
         devBrandLogin,
         impersonateBrand,
