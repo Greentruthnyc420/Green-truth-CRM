@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, isTrialEmail } from '../contexts/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft, Instagram, Play } from 'lucide-react';
 import { createUserProfile } from '../services/firestoreService';
@@ -64,12 +64,14 @@ export default function Login() {
                 const user = userCredential.user;
 
                 // Create user profile with Instagram
+                const isTrial = isTrialEmail(user.email);
                 await createUserProfile(user.uid, {
                     email: user.email,
                     name: user.displayName || email.split('@')[0],
                     role: sessionStorage.getItem('signupRole') || 'rep',
                     instagramHandle: formatInstagram(instagramHandle),
                     assigned_ambassador_id: sessionStorage.getItem('referralRef') || null,
+                    is_trial: isTrial,
                     created_at: new Date().toISOString()
                 });
 

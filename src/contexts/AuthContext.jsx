@@ -33,6 +33,17 @@ export const SOCIAL_MANAGER_EMAILS = [
     'alyssa@thegreentruthnyc.com'
 ];
 
+// Trial Sales Rep email pattern: firstname.thegreentruthnyc@gmail.com
+// These users get full cannabis consultant access during trial period
+// Once they make a sale, upgrade them to official @thegreentruthnyc.com email
+export const TRIAL_EMAIL_PATTERN = /^[a-zA-Z0-9]+\.thegreentruthnyc@gmail\.com$/i;
+
+// Check if email is a trial sales rep email
+export const isTrialEmail = (email) => {
+    if (!email) return false;
+    return TRIAL_EMAIL_PATTERN.test(email.toLowerCase());
+};
+
 // Role check helper functions (updated to check database role first, fallback to hardcoded)
 export const isSuperAdmin = (email) => SUPER_ADMIN_EMAILS.includes(email?.toLowerCase());
 export const isAdmin = (email) => ADMIN_EMAILS.includes(email?.toLowerCase());
@@ -276,12 +287,14 @@ export function AuthProvider({ children }) {
 
                                 const referralId = sessionStorage.getItem('referralRef');
                                 const signupRole = sessionStorage.getItem('signupRole');
+                                const isTrial = isTrialEmail(user.email);
 
                                 await createUserProfile(user.uid, {
                                     email: user.email,
                                     name: user.displayName || user.email?.split('@')[0],
                                     role: signupRole || (referralId ? 'dispensary' : 'rep'),
                                     assigned_ambassador_id: referralId || null,
+                                    is_trial: isTrial,
                                     created_at: new Date().toISOString()
                                 });
 

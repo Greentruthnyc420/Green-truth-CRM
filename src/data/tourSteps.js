@@ -930,6 +930,14 @@ export const adminTourSteps = [
         position: 'right'
     },
 
+    // Trial User Upgrade - NEW
+    {
+        target: 'body',
+        title: 'Trial Email Upgrades ⭐',
+        description: 'Trial sales reps use [name].thegreentruthnyc@gmail.com emails. When they make their first sale, use the upgrade button (envelope icon) to convert them to an official @thegreentruthnyc.com email.',
+        position: 'center'
+    },
+
     // Brands
     {
         target: 'a[href*="brands"]',

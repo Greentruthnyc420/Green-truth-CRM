@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllUsers, getAllActivations, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser, getAllBrands, getLeads } from '../../../services/firestoreService';
-import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2, Ban, RefreshCw, UserX, UserCheck } from 'lucide-react';
+import { getAllUsers, getAllActivations, getSales, getUserActivations, markWagesPaidWithHistory, getRepPaymentHistory, blockUser, unblockUser, reassignUserLeads, getLeadCountForUser, getAllBrands, getLeads, upgradeTrialUser } from '../../../services/firestoreService';
+import { Users, Trophy, TrendingUp, Clock, Award, CheckCircle, AlertTriangle, PowerOff, Briefcase, Store, DollarSign, Wallet, Loader2, Ban, RefreshCw, UserX, UserCheck, Mail, Sparkles } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { getCurrentPayPeriod, calculateHourlyRate, calculateReimbursement } from '../../../services/compensationService';
@@ -19,7 +19,14 @@ export default function AdminTeam() {
     const [blockingRep, setBlockingRep] = useState(null); // Track which rep is being blocked/unblocked
     const [showReassignModal, setShowReassignModal] = useState(null); // Store rep to reassign leads from
     const [reassignTarget, setReassignTarget] = useState(''); // Store target rep ID
+    const [showUpgradeModal, setShowUpgradeModal] = useState(null); // Store user to upgrade email
+    const [upgradeEmail, setUpgradeEmail] = useState(''); // New email for upgrade
+    const [upgradingUser, setUpgradingUser] = useState(null); // Track upgrading state
     const payPeriod = getCurrentPayPeriod();
+
+    // Trial email pattern: [name].thegreentruthnyc@gmail.com
+    const TRIAL_EMAIL_PATTERN = /^[a-zA-Z0-9]+\.thegreentruthnyc@gmail\.com$/i;
+    const isTrialEmail = (email) => email && TRIAL_EMAIL_PATTERN.test(email);
 
     useEffect(() => {
         async function loadTeamData() {
@@ -76,7 +83,7 @@ export default function AdminTeam() {
                     // Add demo admin user (Omar)
                     extractedUsers.set('admin-dev', {
                         id: 'admin-dev',
-                        email: 'omar@thegreentruthhq.com',
+                        email: 'omar@thegreentruthnyc.com',
                         name: 'Omar Elsayed',
                         role: 'admin', // Admin won't show in rep section but good to have
                         profileInfo: { firstName: 'Omar', lastName: 'Elsayed' }
@@ -226,11 +233,16 @@ export default function AdminTeam() {
                                             <tr key={member.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                                                            {(member.email?.[0] || 'U').toUpperCase()}
+                                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${isTrialEmail(member.email) ? 'bg-amber-100 text-amber-600' : ''}`} style={!isTrialEmail(member.email) ? { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' } : {}}>
+                                                            {isTrialEmail(member.email) ? <Sparkles size={14} /> : (member.email?.[0] || 'U').toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}</p>
+                                                            <p className="font-bold text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                                                {member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}
+                                                                {isTrialEmail(member.email) && (
+                                                                    <span className="text-[9px] uppercase font-bold tracking-wider text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">Trial</span>
+                                                                )}
+                                                            </p>
                                                             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{member.email || 'No Email'}</p>
                                                         </div>
                                                     </div>
@@ -348,6 +360,22 @@ export default function AdminTeam() {
                                                         >
                                                             <RefreshCw size={12} />
                                                         </button>
+
+                                                        {/* Upgrade Email Button - Only for trial users */}
+                                                        {isTrialEmail(member.email) && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setShowUpgradeModal(member);
+                                                                    // Pre-fill with suggested email based on their name
+                                                                    const firstName = member.profileInfo?.firstName || member.email?.split('.')[0] || '';
+                                                                    setUpgradeEmail(`${firstName.toLowerCase()}@thegreentruthnyc.com`);
+                                                                }}
+                                                                className="flex items-center gap-1 text-xs bg-amber-50 text-amber-600 hover:bg-amber-100 px-2 py-1.5 rounded-lg font-bold transition-colors"
+                                                                title="Upgrade to Business Email"
+                                                            >
+                                                                <Mail size={12} />
+                                                            </button>
+                                                        )}
 
                                                         <Link to={`/admin/team/${member.id}`} className="text-xs text-brand-600 hover:text-brand-800 font-bold hover:underline">View</Link>
                                                     </div>
@@ -523,6 +551,92 @@ export default function AdminTeam() {
                             >
                                 <RefreshCw size={16} />
                                 Reassign Leads
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Upgrade Email Modal */}
+            {showUpgradeModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-amber-100 p-2 rounded-full">
+                                <Sparkles size={20} className="text-amber-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-800">Upgrade Trial User</h3>
+                                <p className="text-slate-500 text-sm">Convert to permanent business email</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-xl p-4 mb-6">
+                            <p className="text-xs text-slate-500 uppercase font-bold mb-1">Current Email</p>
+                            <p className="text-slate-700 font-medium">{showUpgradeModal.email}</p>
+                            <p className="text-slate-600 text-sm mt-2">
+                                <span className="font-bold">{showUpgradeModal.profileInfo?.firstName || 'User'}</span> has been using a trial account.
+                                Upgrade to an official @thegreentruthnyc.com email.
+                            </p>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">New Business Email</label>
+                            <input
+                                type="email"
+                                value={upgradeEmail}
+                                onChange={(e) => setUpgradeEmail(e.target.value)}
+                                placeholder="name@thegreentruthnyc.com"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                            />
+                            <p className="text-xs text-slate-400 mt-2">
+                                Note: The user will need to update their Firebase login separately or use the new email to log in.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowUpgradeModal(null);
+                                    setUpgradeEmail('');
+                                }}
+                                className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!upgradeEmail || !upgradeEmail.includes('@thegreentruthnyc.com')) {
+                                        showNotification('Please enter a valid @thegreentruthnyc.com email', 'error');
+                                        return;
+                                    }
+                                    setUpgradingUser(showUpgradeModal.id);
+                                    try {
+                                        await upgradeTrialUser(showUpgradeModal.id, upgradeEmail);
+                                        showNotification(`Upgraded ${showUpgradeModal.profileInfo?.firstName || 'user'} to ${upgradeEmail}`, 'success');
+                                        // Update local state to reflect the change
+                                        setSalesAmbassadors(prev => prev.map(m =>
+                                            m.id === showUpgradeModal.id
+                                                ? { ...m, email: upgradeEmail }
+                                                : m
+                                        ));
+                                        setShowUpgradeModal(null);
+                                        setUpgradeEmail('');
+                                    } catch (error) {
+                                        showNotification(`Error: ${error.message}`, 'error');
+                                    } finally {
+                                        setUpgradingUser(null);
+                                    }
+                                }}
+                                disabled={upgradingUser === showUpgradeModal.id || !upgradeEmail}
+                                className="flex-1 py-3 rounded-xl font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {upgradingUser === showUpgradeModal.id ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Mail size={16} />
+                                )}
+                                Upgrade Email
                             </button>
                         </div>
                     </div>

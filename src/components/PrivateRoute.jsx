@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS, isTrialEmail } from '../contexts/AuthContext';
 
 export default function PrivateRoute() {
     const { currentUser, loading } = useAuth();
@@ -13,12 +13,18 @@ export default function PrivateRoute() {
         );
     }
 
-    const isOrgEmail = currentUser && (
-        ADMIN_EMAILS.includes(currentUser.email?.toLowerCase()) ||
-        currentUser.email?.toLowerCase().endsWith('@thegreentruthnyc.com')
+    // Check if user has valid email:
+    // 1. Admin emails (hardcoded list)
+    // 2. Official @thegreentruthnyc.com domain
+    // 3. Trial emails: [name].thegreentruthnyc@gmail.com
+    const email = currentUser?.email?.toLowerCase();
+    const isValidEmail = currentUser && (
+        ADMIN_EMAILS.includes(email) ||
+        email?.endsWith('@thegreentruthnyc.com') ||
+        isTrialEmail(email)
     );
 
-    if (!currentUser || !isOrgEmail) {
+    if (!currentUser || !isValidEmail) {
         return <Navigate to="/login" />;
     }
 

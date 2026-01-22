@@ -2176,4 +2176,95 @@ export async function markCommissionsPaidWithHistory(repId, repName, saleIds, to
     };
 }
 
+// --- TRIAL USER EMAIL UPGRADE ---
+
+/**
+ * Update a user's email address in Supabase.
+ * Note: Firebase email update must be done separately via Firebase Admin SDK or by the user.
+ * @param {string} userId - Supabase user ID
+ * @param {string} newEmail - New email address
+ * @returns {Object} Updated user record
+ */
+export async function updateUserEmail(userId, newEmail) {
+    const { data, error } = await supabase
+        .from('users')
+        .update({
+            email: newEmail.toLowerCase(),
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating user email:', error);
+        throw error;
+    }
+    return data;
+}
+
+/**
+ * Upgrade a trial user to a permanent business email.
+ * Updates the email and sets is_trial to false.
+ * @param {string} userId - User ID (either Supabase UUID or Firebase UID)
+ * @param {string} newEmail - New permanent email (e.g., name@thegreentruthnyc.com)
+ * @returns {Object} Updated user record
+ */
+export async function upgradeTrialUser(userId, newEmail) {
+    // First try to find user by ID
+    let query = supabase.from('users').select('*').eq('id', userId);
+    let { data: user, error } = await query.single();
+
+    // If not found by ID, try by uid field
+    if (error || !user) {
+        const { data: userByUid, error: uidError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('uid', userId)
+            .single();
+
+        if (uidError || !userByUid) {
+            console.error('User not found for upgrade:', userId);
+            throw new Error('User not found');
+        }
+        user = userByUid;
+    }
+
+    // Update the user
+    const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({
+            email: newEmail.toLowerCase(),
+            is_trial: false,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+    if (updateError) {
+        console.error('Error upgrading trial user:', updateError);
+        throw updateError;
+    }
+
+    return updatedUser;
+}
+
+/**
+ * Get all trial users (for admin display)
+ * @returns {Array} List of trial users
+ */
+export async function getTrialUsers() {
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('is_trial', true)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching trial users:', error);
+        return [];
+    }
+    return data || [];
+}
 
