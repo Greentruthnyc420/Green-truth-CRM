@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, HelpCircle, X } from 'lucide-react';
 
 /**
  * OnboardingTour - Spotlight overlay with tooltips
  * Auto-starts when mounted and steps are provided
+ * 
+ * Step properties:
+ * - target: CSS selector to highlight
+ * - title: Step title
+ * - description: Step description
+ * - position: Tooltip position (top, bottom, left, right, center)
+ * - navigateTo: (optional) Route to navigate to for this step
  */
 export default function OnboardingTour({
     steps,
@@ -12,10 +20,13 @@ export default function OnboardingTour({
     onComplete,
     tourKey = 'default'
 }) {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [currentStep, setCurrentStep] = useState(0);
     const [targetRect, setTargetRect] = useState(null);
     const [isNextEnabled, setIsNextEnabled] = useState(!isFirstTime);
     const [countdown, setCountdown] = useState(isFirstTime ? 2 : 0);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     // Anti-spam: On first-time tours, delay the Next button by 2 seconds per step
     useEffect(() => {
@@ -41,9 +52,24 @@ export default function OnboardingTour({
         return () => clearInterval(timer);
     }, [currentStep, isFirstTime]);
 
+    // Handle navigation when step has navigateTo property
+    useEffect(() => {
+        if (!steps || !steps[currentStep]) return;
+
+        const step = steps[currentStep];
+        if (step.navigateTo && location.pathname !== step.navigateTo) {
+            setIsNavigating(true);
+            navigate(step.navigateTo);
+            // Give time for page to render
+            setTimeout(() => {
+                setIsNavigating(false);
+            }, 500);
+        }
+    }, [currentStep, steps, navigate, location.pathname]);
+
     // Find and highlight target element
     const updateTarget = useCallback(() => {
-        if (!steps || !steps[currentStep]) return;
+        if (!steps || !steps[currentStep] || isNavigating) return;
 
         const selector = steps[currentStep].target;
         if (!selector || selector === 'body') {
@@ -63,7 +89,7 @@ export default function OnboardingTour({
         } else {
             setTargetRect(null);
         }
-    }, [currentStep, steps]);
+    }, [currentStep, steps, isNavigating]);
 
     // Update position on step change
     useEffect(() => {

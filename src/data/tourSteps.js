@@ -385,6 +385,15 @@ export const brandTourSteps = [
         position: 'right'
     },
 
+    // NAVIGATE: Show Orders Page
+    {
+        target: '.grid, table, [class*="order"]',
+        title: 'Your Orders Dashboard 📋',
+        description: 'Here\'s where you\'ll see all incoming orders. View order details, approve shipments, and track fulfillment status. Demo data shows what this looks like with active orders.',
+        position: 'bottom',
+        navigateTo: '/brand/orders'
+    },
+
     // Order Workflow
     {
         target: 'body',
@@ -399,6 +408,15 @@ export const brandTourSteps = [
         title: 'Product Catalog 🛍️',
         description: 'Add products with name, SKU, category, THC%, case size, and pricing. Upload product images. This is what dispensaries see when ordering.',
         position: 'right'
+    },
+
+    // NAVIGATE: Show Products Page
+    {
+        target: '.grid, table, [class*="product"]',
+        title: 'Your Product Management 🛍️',
+        description: 'Manage your entire product catalog from here. Add new products, update pricing, upload images, and track inventory. Your real products from the catalog are shown here.',
+        position: 'bottom',
+        navigateTo: '/brand/products'
     },
 
     // Product Tips
@@ -423,6 +441,15 @@ export const brandTourSteps = [
         title: 'Deals & Discounts 🏷️',
         description: 'Set up tiered pricing to encourage larger orders. Example: 5% off 3+ cases, 10% off 5+ cases, 15% off 10+ cases.',
         position: 'right'
+    },
+
+    // NAVIGATE: Show Deals Page  
+    {
+        target: '.grid, [class*="deal"], [class*="discount"]',
+        title: 'Active Deals & Promotions 🏷️',
+        description: 'Create and manage your promotional offers here. Set volume discounts, COD incentives, and first-order specials to drive more sales.',
+        position: 'bottom',
+        navigateTo: '/brand/deals'
     },
 
     // Deal Tips
@@ -473,6 +500,15 @@ export const brandTourSteps = [
         position: 'right'
     },
 
+    // NAVIGATE: Show Invoices Page
+    {
+        target: '.grid, table, [class*="invoice"]',
+        title: 'Your Invoice Dashboard 💵',
+        description: 'View all invoices, track payment status, and download PDFs. Filter by status (Pending, Paid, Overdue) to stay on top of receivables.',
+        position: 'bottom',
+        navigateTo: '/brand/invoices/dispensary'
+    },
+
     // Invoices from GreenTruth
     {
         target: 'a[href*="invoices/greentruth"]',
@@ -519,6 +555,15 @@ export const brandTourSteps = [
         title: 'Need Help? 🤝',
         description: 'Email brands@thegreentruthnyc.com for product questions. sales@thegreentruthnyc.com for new accounts. We respond within 24 hours!',
         position: 'center'
+    },
+
+    // Return to Dashboard
+    {
+        target: 'body',
+        title: 'Back to Your Dashboard 🏠',
+        description: 'Now let\'s head back to your main dashboard where all your key metrics are displayed.',
+        position: 'center',
+        navigateTo: '/brand'
     },
 
     // Final
@@ -604,6 +649,15 @@ export const processorTourSteps = [
         position: 'right'
     },
 
+    // NAVIGATE: Show Orders Page
+    {
+        target: '.grid, table, [class*="order"]',
+        title: 'Multi-Brand Orders View 📦',
+        description: 'Here you manage orders across ALL your brands. See which brand each order is for, approve shipments, and track fulfillment from one unified dashboard.',
+        position: 'bottom',
+        navigateTo: '/brand/orders'
+    },
+
     // Order Processing
     {
         target: 'body',
@@ -626,6 +680,15 @@ export const processorTourSteps = [
         title: 'Brand-Specific Deals 🏷️',
         description: 'Set different deal structures per brand. Space Poppers might offer 15% off 5+ cases while Smoothie Bar offers 10% off. Customize per brand strategy.',
         position: 'right'
+    },
+
+    // NAVIGATE: Show Deals Page
+    {
+        target: '.grid, [class*="deal"]',
+        title: 'Deals Across Your Portfolio 🏷️',
+        description: 'Manage promotional offers for each brand from here. Compare what\'s working across brands and optimize your deal strategy.',
+        position: 'bottom',
+        navigateTo: '/brand/deals'
     },
 
     // Schedule - All Activations
@@ -666,6 +729,15 @@ export const processorTourSteps = [
         title: 'Consolidated A/R View 💵',
         description: 'Track receivables across all brands. See total outstanding by dispensary - one store might owe you across multiple brand invoices.',
         position: 'right'
+    },
+
+    // NAVIGATE: Show Invoices Page
+    {
+        target: '.grid, table, [class*="invoice"]',
+        title: 'Multi-Brand Invoicing 💵',
+        description: 'View invoices across your entire portfolio. Track what each dispensary owes across all your brands in one view.',
+        position: 'bottom',
+        navigateTo: '/brand/invoices/dispensary'
     },
 
     // Invoices from GreenTruth
@@ -730,6 +802,15 @@ export const processorTourSteps = [
         title: 'Processor Support 🤝',
         description: 'Email processors@thegreentruthnyc.com for multi-brand questions. You have priority support as a processor partner. We respond within 24 hours.',
         position: 'center'
+    },
+
+    // Return to Dashboard
+    {
+        target: 'body',
+        title: 'Back to Processor Dashboard 🏠',
+        description: 'Let\'s head back to your main dashboard with the powerful brand comparison view.',
+        position: 'center',
+        navigateTo: '/brand'
     },
 
     // Final
