@@ -304,6 +304,22 @@ export const brandTourSteps = [
         position: 'center'
     },
 
+    // Team Management - NEW
+    {
+        target: 'a[href*="settings"]',
+        title: 'Team Management 👥',
+        description: 'As the brand owner, you can invite team members with different access levels: Admin (full control), Manager (view & edit), or Viewer (view only). Manage your team from Settings.',
+        position: 'right'
+    },
+
+    // Settings
+    {
+        target: 'a[href*="settings"]',
+        title: 'Brand Settings ⚙️',
+        description: 'Update your brand profile, logo, contact info, and notification preferences. This is also where you manage your team members.',
+        position: 'right'
+    },
+
     // Invoices from GreenTruth
     {
         target: 'body',

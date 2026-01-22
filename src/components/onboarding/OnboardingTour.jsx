@@ -14,6 +14,32 @@ export default function OnboardingTour({
 }) {
     const [currentStep, setCurrentStep] = useState(0);
     const [targetRect, setTargetRect] = useState(null);
+    const [isNextEnabled, setIsNextEnabled] = useState(!isFirstTime);
+    const [countdown, setCountdown] = useState(isFirstTime ? 2 : 0);
+
+    // Anti-spam: On first-time tours, delay the Next button by 2 seconds per step
+    useEffect(() => {
+        if (!isFirstTime) {
+            setIsNextEnabled(true);
+            return;
+        }
+
+        setIsNextEnabled(false);
+        setCountdown(2);
+
+        const timer = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    setIsNextEnabled(true);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [currentStep, isFirstTime]);
 
     // Find and highlight target element
     const updateTarget = useCallback(() => {
@@ -209,10 +235,20 @@ export default function OnboardingTour({
                     </button>
                     <button
                         onClick={handleNext}
-                        className="flex items-center gap-1 px-5 py-2 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition-colors"
+                        disabled={!isNextEnabled}
+                        className={`flex items-center gap-1 px-5 py-2 rounded-lg font-bold transition-all ${isNextEnabled
+                                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                            }`}
                     >
-                        {currentStep === steps.length - 1 ? 'Done!' : 'Next'}
-                        <ChevronRight size={16} />
+                        {!isNextEnabled && countdown > 0 ? (
+                            <>{countdown}s...</>
+                        ) : (
+                            <>
+                                {currentStep === steps.length - 1 ? 'Done!' : 'Next'}
+                                <ChevronRight size={16} />
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

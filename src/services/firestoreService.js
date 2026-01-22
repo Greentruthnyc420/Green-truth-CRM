@@ -1755,6 +1755,166 @@ export async function markBrandPasswordChanged(brandId) {
     });
 }
 
+/**
+ * Set the brand owner (first user who signs up becomes the admin owner)
+ * Also marks password_changed to true to skip the access code gate
+ * @param {string} brandId - Brand ID
+ * @param {string} userId - Firebase UID of the owner
+ */
+export async function setBrandOwner(brandId, userId) {
+    return updateAdminBrand(brandId, {
+        owner_user_id: userId,
+        password_changed: true
+    });
+}
+
+/**
+ * Get brand team members for a specific brand
+ * @param {string} brandId - Brand ID
+ * @returns {Array} Team members
+ */
+export async function getBrandTeamMembers(brandId) {
+    const { data, error } = await supabase
+        .from('brand_team_members')
+        .select('*')
+        .eq('brand_id', brandId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching brand team members:', error);
+        return [];
+    }
+    return data || [];
+}
+
+/**
+ * Add a team member invite to a brand
+ * @param {string} brandId - Brand ID  
+ * @param {string} email - Email of the person to invite
+ * @param {string} role - 'admin', 'manager', or 'viewer'
+ * @param {string} invitedBy - User ID of the person inviting
+ */
+export async function addBrandTeamMember(brandId, email, role, invitedBy) {
+    const { data, error } = await supabase
+        .from('brand_team_members')
+        .insert([{
+            id: `tm-${Date.now()}`,
+            brand_id: brandId,
+            email: email.toLowerCase(),
+            role: role,
+            invited_by: invitedBy,
+            invite_accepted: false,
+            created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error adding brand team member:', error);
+        throw error;
+    }
+    return data;
+}
+
+/**
+ * Check if an email has access to a brand (either owner or team member)
+ * @param {string} brandId - Brand ID
+ * @param {string} email - Email to check
+ * @returns {Object|null} Access info with role, or null if no access
+ */
+export async function checkBrandAccess(brandId, email) {
+    // First check if this email is the brand owner
+    const { data: brand, error: brandError } = await supabase
+        .from('admin_brands')
+        .select('login_email, owner_user_id')
+        .eq('id', brandId)
+        .single();
+
+    if (!brandError && brand?.login_email?.toLowerCase() === email.toLowerCase()) {
+        return { role: 'owner', isOwner: true };
+    }
+
+    // Check team members table
+    const { data: member, error: memberError } = await supabase
+        .from('brand_team_members')
+        .select('*')
+        .eq('brand_id', brandId)
+        .ilike('email', email)
+        .single();
+
+    if (!memberError && member) {
+        return { role: member.role, isOwner: false, invite_accepted: member.invite_accepted };
+    }
+
+    return null;
+}
+
+/**
+ * Accept a team member invite (link user_id to the team member record)
+ * @param {string} brandId - Brand ID
+ * @param {string} email - Email of the team member
+ * @param {string} userId - Firebase UID of the user
+ */
+export async function acceptBrandTeamInvite(brandId, email, userId) {
+    const { data, error } = await supabase
+        .from('brand_team_members')
+        .update({
+            user_id: userId,
+            invite_accepted: true,
+            updated_at: new Date().toISOString()
+        })
+        .eq('brand_id', brandId)
+        .ilike('email', email)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error accepting team invite:', error);
+        throw error;
+    }
+    return data;
+}
+
+/**
+ * Remove a team member from a brand
+ * @param {string} teamMemberId - Team member record ID
+ */
+export async function removeBrandTeamMember(teamMemberId) {
+    const { error } = await supabase
+        .from('brand_team_members')
+        .delete()
+        .eq('id', teamMemberId);
+
+    if (error) {
+        console.error('Error removing team member:', error);
+        throw error;
+    }
+    return true;
+}
+
+/**
+ * Update a team member's role
+ * @param {string} teamMemberId - Team member record ID
+ * @param {string} newRole - New role: 'admin', 'manager', or 'viewer'
+ */
+export async function updateBrandTeamMemberRole(teamMemberId, newRole) {
+    const { data, error } = await supabase
+        .from('brand_team_members')
+        .update({
+            role: newRole,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', teamMemberId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating team member role:', error);
+        throw error;
+    }
+    return data;
+}
+
 // --- DUPLICATE CLEANUP TOOLS ---
 
 /**

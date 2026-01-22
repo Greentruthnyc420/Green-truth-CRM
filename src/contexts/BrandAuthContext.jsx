@@ -164,9 +164,25 @@ export function BrandAuthProvider({ children }) {
         return unsubscribe;
     }, []);
 
-    // Check if a brand already has registered users (to skip secret gate)
+    // Check if a brand already has verified owner (to skip secret gate)
+    // Returns true if brand owner has completed first login (password_changed = true)
     async function checkBrandHasUsers(brandId) {
         try {
+            // First check if brand has password_changed = true in admin_brands
+            const { data: brandData, error: brandError } = await supabase
+                .from('admin_brands')
+                .select('password_changed, owner_user_id')
+                .eq('id', brandId)
+                .single();
+
+            if (brandError) throw brandError;
+
+            // If brand owner has completed first login, skip the gate
+            if (brandData?.password_changed === true) {
+                return true;
+            }
+
+            // Fallback: check if there are any brand_users for this brand
             const { data, error } = await supabase
                 .from('brand_users')
                 .select('uid')
@@ -290,6 +306,21 @@ export function BrandAuthProvider({ children }) {
             }]);
 
             if (error) throw error;
+
+            // 4. Set this user as the brand owner (first to sign up is admin)
+            try {
+                await supabase
+                    .from('admin_brands')
+                    .update({
+                        owner_user_id: user.uid,
+                        login_email: email,
+                        password_changed: true
+                    })
+                    .eq('id', brandInfo.brandId);
+                console.log('[BrandAuth] Set brand owner:', brandInfo.brandId, user.uid);
+            } catch (ownerErr) {
+                console.warn('[BrandAuth] Failed to set brand owner:', ownerErr);
+            }
 
             // Send admin notification
             try {
