@@ -1,221 +1,223 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
+
+// Core components that load immediately
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import History from './pages/History';
-import LogShift from './pages/LogShift';
-import NewLead from './pages/NewLead';
-import LogSale from './pages/LogSale';
-import MyDispensaries from './pages/MyDispensaries';
-import AdminDashboard from './pages/AdminDashboard';
-import BrandOversight from './pages/BrandOversight';
 import Login from './pages/Login';
-import Menus from './pages/Menus';
-import Accounts from './pages/Accounts';
-import Leaderboard from './pages/Leaderboard';
-import CommissionPayouts from './pages/CommissionPayouts';
-import WagesPayouts from './pages/WagesPayouts';
-import ActiveAccounts from './pages/ActiveAccounts';
-import LeadMap from './pages/LeadMap';
-import Schedule from './pages/Schedule';
-// BrandOversight removed
-import PrivateRoute from './components/PrivateRoute';
-import LandingPage from './pages/LandingPage'; // Import the new LandingPage component
+import LandingPage from './pages/LandingPage';
 import GatewayLanding from './pages/GatewayLanding';
-// DEV: TourTestPage removed - use dev login buttons instead
+import PrivateRoute from './components/PrivateRoute';
 import { NotificationProvider } from './contexts/NotificationContext';
 
-// Admin Portal Imports
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminPrivateRoute from './components/AdminPrivateRoute';
-// AdminLayout will be created in the next step, but need to import it potentially or create it now.
-// For now let's comment it out or create a placeholder since I can't import a non-existent file without breaking the build.
-// Actually, I will create AdminLayout in the next tool call. I'll use a temporary dummy for now to avoid breaking the build while I create the layout.
-// Wait, I should create AdminLayout first.
-// I'll proceed with adding imports assuming I will create AdminLayout immediately after or use a placeholder.
-// I'll use a placeholder import for now.
-import AdminLayout from './components/admin/AdminLayout';
-import NewAdminDashboard from './pages/admin/Dashboard'; // Is this still needed? Yes, for the main overview
-import AdminFinancials from './components/admin/views/AdminFinancials';
-import AdminTerritory from './components/admin/views/AdminTerritory';
-import AdminTeam from './components/admin/views/AdminTeam';
-import AdminGrowth from './components/admin/views/AdminGrowth';
-import LegacyAdminDashboard from './pages/AdminDashboard'; // Restored as Legacy Console
-import AdminWorkflow from './components/admin/views/AdminWorkflow';
-import AdminInvoiceGenerator from './components/admin/views/AdminInvoiceGenerator';
-import AmbassadorOverview from './components/admin/AmbassadorOverview';
-import AdminLogistics from './components/admin/views/AdminLogistics'; // TEMPORARILY HIDDEN FOR LAUNCH
-import AdminBrands from './components/admin/views/AdminBrands';
-import AdminCollections from './components/admin/views/AdminCollections';
-import DispensaryDetail from './pages/admin/DispensaryDetail';
-import AdminRoleManagement from './components/admin/views/AdminRoleManagement';
-import AdminActivationRequests from './components/admin/views/AdminActivationRequests';
+// Loading fallback component
+const PageLoader = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    background: '#0f172a',
+    color: '#10b981'
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚡</div>
+      <div>Loading...</div>
+    </div>
+  </div>
+);
 
-// Brand Portal Imports
-import BrandLogin from './pages/brand/BrandLogin';
-import BrandLayout from './components/BrandLayout';
-import BrandDashboard from './pages/brand/BrandDashboard';
-import BrandOrders from './pages/brand/BrandOrders';
-import BrandInvoicesDispensary from './pages/brand/BrandInvoicesDispensary';
-import BrandInvoicesGreenTruth from './pages/brand/BrandInvoicesGreenTruth';
-import BrandMenuEditor from './pages/brand/BrandMenuEditor';
-import BrandSchedule from './pages/brand/BrandSchedule';
-import BrandMap from './pages/brand/BrandMap';
-import BrandNewLead from './pages/brand/BrandNewLead';
+// Lazy loaded pages - Sales Portal
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const History = lazy(() => import('./pages/History'));
+const LogShift = lazy(() => import('./pages/LogShift'));
+const NewLead = lazy(() => import('./pages/NewLead'));
+const LogSale = lazy(() => import('./pages/LogSale'));
+const MyDispensaries = lazy(() => import('./pages/MyDispensaries'));
+const Menus = lazy(() => import('./pages/Menus'));
+const Accounts = lazy(() => import('./pages/Accounts'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const CommissionPayouts = lazy(() => import('./pages/CommissionPayouts'));
+const WagesPayouts = lazy(() => import('./pages/WagesPayouts'));
+const ActiveAccounts = lazy(() => import('./pages/ActiveAccounts'));
+const LeadMap = lazy(() => import('./pages/LeadMap'));
+const Schedule = lazy(() => import('./pages/Schedule'));
+const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const BrandOversight = lazy(() => import('./pages/BrandOversight'));
 
-// TEMPORARILY HIDDEN FOR LAUNCH - BrandLogistics
-// import BrandLogistics from './pages/brand/BrandLogistics';
-import BrandFulfillment from './pages/brand/BrandFulfillment';
-import BrandPipeline from './pages/brand/BrandPipeline';
-import BrandPrivateRoute from './components/BrandPrivateRoute';
-import BrandDeals from './pages/brand/BrandDeals';
-import BrandProducts from './pages/brand/BrandProducts';
-import IntegrationsSettings from './pages/settings/IntegrationsSettings';
+// Lazy loaded pages - Admin Portal
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AdminPrivateRoute = lazy(() => import('./components/AdminPrivateRoute'));
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const NewAdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminFinancials = lazy(() => import('./components/admin/views/AdminFinancials'));
+const AdminTerritory = lazy(() => import('./components/admin/views/AdminTerritory'));
+const AdminTeam = lazy(() => import('./components/admin/views/AdminTeam'));
+const AdminGrowth = lazy(() => import('./components/admin/views/AdminGrowth'));
+const LegacyAdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminWorkflow = lazy(() => import('./components/admin/views/AdminWorkflow'));
+const AdminInvoiceGenerator = lazy(() => import('./components/admin/views/AdminInvoiceGenerator'));
+const AmbassadorOverview = lazy(() => import('./components/admin/AmbassadorOverview'));
+const AdminBrands = lazy(() => import('./components/admin/views/AdminBrands'));
+const AdminCollections = lazy(() => import('./components/admin/views/AdminCollections'));
+const DispensaryDetail = lazy(() => import('./pages/admin/DispensaryDetail'));
+const AdminRoleManagement = lazy(() => import('./components/admin/views/AdminRoleManagement'));
+const AdminActivationRequests = lazy(() => import('./components/admin/views/AdminActivationRequests'));
 
-// Dispensary Portal Imports
-import DispensaryVerification from './pages/dispensary/DispensaryVerification';
-import DispensaryLogin from './pages/dispensary/DispensaryLogin';
-import DispensaryRegistration from './pages/dispensary/DispensaryRegistration';
-import DispensaryLayout from './components/DispensaryLayout';
-import DispensaryDashboard from './pages/dispensary/DispensaryDashboard';
-import DispensaryPrivateRoute from './components/DispensaryPrivateRoute';
-import DispensaryMarketplace from './pages/dispensary/DispensaryMarketplace';
+// Lazy loaded pages - Brand Portal
+const BrandLogin = lazy(() => import('./pages/brand/BrandLogin'));
+const BrandLayout = lazy(() => import('./components/BrandLayout'));
+const BrandDashboard = lazy(() => import('./pages/brand/BrandDashboard'));
+const BrandOrders = lazy(() => import('./pages/brand/BrandOrders'));
+const BrandInvoicesDispensary = lazy(() => import('./pages/brand/BrandInvoicesDispensary'));
+const BrandInvoicesGreenTruth = lazy(() => import('./pages/brand/BrandInvoicesGreenTruth'));
+const BrandMenuEditor = lazy(() => import('./pages/brand/BrandMenuEditor'));
+const BrandSchedule = lazy(() => import('./pages/brand/BrandSchedule'));
+const BrandMap = lazy(() => import('./pages/brand/BrandMap'));
+const BrandNewLead = lazy(() => import('./pages/brand/BrandNewLead'));
+const BrandFulfillment = lazy(() => import('./pages/brand/BrandFulfillment'));
+const BrandPipeline = lazy(() => import('./pages/brand/BrandPipeline'));
+const BrandPrivateRoute = lazy(() => import('./components/BrandPrivateRoute'));
+const BrandDeals = lazy(() => import('./pages/brand/BrandDeals'));
+const BrandProducts = lazy(() => import('./pages/brand/BrandProducts'));
+const IntegrationsSettings = lazy(() => import('./pages/settings/IntegrationsSettings'));
 
-import DispensarySchedule from './pages/dispensary/DispensarySchedule';
-import DispensaryInvoices from './pages/dispensary/DispensaryInvoices';
-import DispensaryOrders from './pages/dispensary/DispensaryOrders';
-import DispensarySettings from './pages/dispensary/DispensarySettings';
+// Lazy loaded pages - Dispensary Portal
+const DispensaryVerification = lazy(() => import('./pages/dispensary/DispensaryVerification'));
+const DispensaryLogin = lazy(() => import('./pages/dispensary/DispensaryLogin'));
+const DispensaryRegistration = lazy(() => import('./pages/dispensary/DispensaryRegistration'));
+const DispensaryLayout = lazy(() => import('./components/DispensaryLayout'));
+const DispensaryDashboard = lazy(() => import('./pages/dispensary/DispensaryDashboard'));
+const DispensaryPrivateRoute = lazy(() => import('./components/DispensaryPrivateRoute'));
+const DispensaryMarketplace = lazy(() => import('./pages/dispensary/DispensaryMarketplace'));
+const DispensarySchedule = lazy(() => import('./pages/dispensary/DispensarySchedule'));
+const DispensaryInvoices = lazy(() => import('./pages/dispensary/DispensaryInvoices'));
+const DispensaryOrders = lazy(() => import('./pages/dispensary/DispensaryOrders'));
+const DispensarySettings = lazy(() => import('./pages/dispensary/DispensarySettings'));
 
-// Driver Portal Imports
-import DriverLogin from './pages/driver/DriverLogin';
-import DriverDashboard from './pages/driver/DriverDashboard';
+// Lazy loaded pages - Driver Portal
+const DriverLogin = lazy(() => import('./pages/driver/DriverLogin'));
+const DriverDashboard = lazy(() => import('./pages/driver/DriverDashboard'));
 
-// Onboarding
-import ContractorOnboarding from './pages/ContractorOnboarding';
-import OnboardingRoute from './components/OnboardingRoute';
-import CompensationPortal from './pages/CompensationPortal';
-import ProfileSettings from './pages/ProfileSettings';
-import PrivacyPolicy from './pages/PrivacyPolicy';
+// Lazy loaded pages - Onboarding
+const ContractorOnboarding = lazy(() => import('./pages/ContractorOnboarding'));
+const OnboardingRoute = lazy(() => import('./components/OnboardingRoute'));
+const CompensationPortal = lazy(() => import('./pages/CompensationPortal'));
 
 function App() {
   return (
     <NotificationProvider>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
 
-        {/* New Animated Landing Page */}
-        <Route path="/" element={<LandingPage />} />
+          {/* New Animated Landing Page */}
+          <Route path="/" element={<LandingPage />} />
 
-        {/* Gateway Landing Page */}
-        <Route path="/gateway" element={<GatewayLanding />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
+          {/* Gateway Landing Page */}
+          <Route path="/gateway" element={<GatewayLanding />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
-        {/* Dev tour testing done via login page dev buttons */}
+          {/* Admin Portal (New) */}
+          <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* Admin Portal (New) */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-
-        <Route element={<AdminPrivateRoute />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<NewAdminDashboard />} />
-            <Route path="dashboard" element={<NewAdminDashboard />} />
-            <Route path="workflow" element={<AdminWorkflow />} />
-            <Route path="activations" element={<AdminActivationRequests />} />
-            <Route path="financials" element={<AdminFinancials />} />
-            <Route path="invoices" element={<AdminInvoiceGenerator />} />
-            <Route path="territory" element={<AdminTerritory />} />
-            <Route path="team" element={<AdminTeam />} />
-            <Route path="team/:userId" element={<AmbassadorOverview />} />
-            <Route path="pipeline" element={<AdminGrowth />} /> {/* Reusing AdminGrowth component for Pipeline view */}
-            <Route path="growth" element={<LegacyAdminDashboard />} /> {/* Legacy Console is now the main Growth view */}
-
-            {/* TEMPORARILY HIDDEN FOR LAUNCH - Logistics */}
-            {/* <Route path="logistics" element={<AdminLogistics />} /> */}
-            <Route path="brands" element={<AdminBrands />} />
-            <Route path="brands/:brandId" element={<AdminBrands />} />
-            <Route path="collections" element={<AdminCollections />} />
-            <Route path="dispensary/:id" element={<DispensaryDetail />} />
-            <Route path="roles" element={<AdminRoleManagement />} />
-          </Route>
-        </Route>
-
-        {/* Sales Ambassador Portal */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/onboarding" element={<ContractorOnboarding />} />
-        <Route path="/compensation-guide" element={<CompensationPortal />} />
-
-        <Route element={<PrivateRoute />}>
-          <Route element={<OnboardingRoute />}>
-            <Route path="/app" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="schedule" element={<Schedule />} />
-              <Route path="map" element={<LeadMap />} />
-              <Route path="my-dispensaries" element={<MyDispensaries />} />
-              <Route path="history" element={<History />} />
-              <Route path="log-shift" element={<LogShift />} />
-              <Route path="log-sale" element={<LogSale />} />
-              <Route path="new-lead" element={<NewLead />} />
-              <Route path="menus" element={<Menus />} />
-              <Route path="leaderboard" element={<Leaderboard />} />
-              <Route path="payouts/commissions" element={<CommissionPayouts />} />
-              <Route path="payouts/wages" element={<WagesPayouts />} />
-              <Route path="accounts/active" element={<ActiveAccounts />} />
-              <Route path="accounts" element={<Accounts />} />
-              <Route path="settings" element={<ProfileSettings />} />
-              {/* Legacy Admin Routes Restored */}
-              <Route path="admin" element={<AdminDashboard />} />
-              <Route path="brand-oversight" element={<BrandOversight />} />
-              {/* Fallback route */}
-              <Route path="*" element={<Dashboard />} />
+          <Route element={<AdminPrivateRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<NewAdminDashboard />} />
+              <Route path="dashboard" element={<NewAdminDashboard />} />
+              <Route path="workflow" element={<AdminWorkflow />} />
+              <Route path="activations" element={<AdminActivationRequests />} />
+              <Route path="financials" element={<AdminFinancials />} />
+              <Route path="invoices" element={<AdminInvoiceGenerator />} />
+              <Route path="territory" element={<AdminTerritory />} />
+              <Route path="team" element={<AdminTeam />} />
+              <Route path="team/:userId" element={<AmbassadorOverview />} />
+              <Route path="pipeline" element={<AdminGrowth />} />
+              <Route path="growth" element={<LegacyAdminDashboard />} />
+              <Route path="brands" element={<AdminBrands />} />
+              <Route path="brands/:brandId" element={<AdminBrands />} />
+              <Route path="collections" element={<AdminCollections />} />
+              <Route path="dispensary/:id" element={<DispensaryDetail />} />
+              <Route path="roles" element={<AdminRoleManagement />} />
             </Route>
           </Route>
-        </Route>
 
-        {/* Brand Owner Portal */}
-        <Route path="/brand/login" element={<BrandLogin />} />
+          {/* Sales Ambassador Portal */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<ContractorOnboarding />} />
+          <Route path="/compensation-guide" element={<CompensationPortal />} />
 
-        <Route element={<BrandPrivateRoute />}>
-          <Route path="/brand" element={<BrandLayout />}>
-            <Route index element={<BrandDashboard />} />
-            <Route path="orders" element={<BrandOrders />} />
-            <Route path="invoices/dispensary" element={<BrandInvoicesDispensary />} />
-            <Route path="invoices/greentruth" element={<BrandInvoicesGreenTruth />} />
-            <Route path="schedule" element={<BrandSchedule />} />
-            <Route path="menu" element={<BrandMenuEditor />} />
-            <Route path="map" element={<BrandMap />} />
-            <Route path="new-lead" element={<BrandNewLead />} />
-            <Route path="pipeline" element={<BrandPipeline />} />
-            <Route path="fulfillment" element={<BrandFulfillment />} />
-            <Route path="deals" element={<BrandDeals />} />
-            <Route path="products" element={<BrandProducts />} />
-            <Route path="integrations" element={<IntegrationsSettings portalType="brand" />} />
+          <Route element={<PrivateRoute />}>
+            <Route element={<OnboardingRoute />}>
+              <Route path="/app" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="schedule" element={<Schedule />} />
+                <Route path="map" element={<LeadMap />} />
+                <Route path="my-dispensaries" element={<MyDispensaries />} />
+                <Route path="history" element={<History />} />
+                <Route path="log-shift" element={<LogShift />} />
+                <Route path="log-sale" element={<LogSale />} />
+                <Route path="new-lead" element={<NewLead />} />
+                <Route path="menus" element={<Menus />} />
+                <Route path="leaderboard" element={<Leaderboard />} />
+                <Route path="payouts/commissions" element={<CommissionPayouts />} />
+                <Route path="payouts/wages" element={<WagesPayouts />} />
+                <Route path="accounts/active" element={<ActiveAccounts />} />
+                <Route path="accounts" element={<Accounts />} />
+                <Route path="settings" element={<ProfileSettings />} />
+                <Route path="admin" element={<AdminDashboard />} />
+                <Route path="brand-oversight" element={<BrandOversight />} />
+                <Route path="*" element={<Dashboard />} />
+              </Route>
+            </Route>
           </Route>
-        </Route>
 
-        {/* Dispensary Portal */}
-        <Route path="/dispensary/verify" element={<DispensaryVerification />} />
-        <Route path="/dispensary/login" element={<DispensaryLogin />} />
-        <Route path="/dispensary/register" element={<DispensaryRegistration />} />
+          {/* Brand Owner Portal */}
+          <Route path="/brand/login" element={<BrandLogin />} />
 
-        <Route element={<DispensaryPrivateRoute />}>
-          <Route path="/dispensary" element={<DispensaryLayout />}>
-            <Route index element={<DispensaryDashboard />} />
-            <Route path="marketplace" element={<DispensaryMarketplace />} />
-            <Route path="schedule" element={<DispensarySchedule />} />
-            <Route path="orders" element={<DispensaryOrders />} />
-            <Route path="invoices" element={<DispensaryInvoices />} />
-            <Route path="settings" element={<DispensarySettings />} />
-            <Route path="integrations" element={<IntegrationsSettings portalType="dispensary" />} />
+          <Route element={<BrandPrivateRoute />}>
+            <Route path="/brand" element={<BrandLayout />}>
+              <Route index element={<BrandDashboard />} />
+              <Route path="orders" element={<BrandOrders />} />
+              <Route path="invoices/dispensary" element={<BrandInvoicesDispensary />} />
+              <Route path="invoices/greentruth" element={<BrandInvoicesGreenTruth />} />
+              <Route path="schedule" element={<BrandSchedule />} />
+              <Route path="menu" element={<BrandMenuEditor />} />
+              <Route path="map" element={<BrandMap />} />
+              <Route path="new-lead" element={<BrandNewLead />} />
+              <Route path="pipeline" element={<BrandPipeline />} />
+              <Route path="fulfillment" element={<BrandFulfillment />} />
+              <Route path="deals" element={<BrandDeals />} />
+              <Route path="products" element={<BrandProducts />} />
+              <Route path="integrations" element={<IntegrationsSettings portalType="brand" />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Driver Portal */}
-        <Route path="/driver/login" element={<DriverLogin />} />
-        <Route path="/driver/dashboard" element={<DriverDashboard />} />
+          {/* Dispensary Portal */}
+          <Route path="/dispensary/verify" element={<DispensaryVerification />} />
+          <Route path="/dispensary/login" element={<DispensaryLogin />} />
+          <Route path="/dispensary/register" element={<DispensaryRegistration />} />
 
-      </Routes>
+          <Route element={<DispensaryPrivateRoute />}>
+            <Route path="/dispensary" element={<DispensaryLayout />}>
+              <Route index element={<DispensaryDashboard />} />
+              <Route path="marketplace" element={<DispensaryMarketplace />} />
+              <Route path="schedule" element={<DispensarySchedule />} />
+              <Route path="orders" element={<DispensaryOrders />} />
+              <Route path="invoices" element={<DispensaryInvoices />} />
+              <Route path="settings" element={<DispensarySettings />} />
+              <Route path="integrations" element={<IntegrationsSettings portalType="dispensary" />} />
+            </Route>
+          </Route>
+
+          {/* Driver Portal */}
+          <Route path="/driver/login" element={<DriverLogin />} />
+          <Route path="/driver/dashboard" element={<DriverDashboard />} />
+
+        </Routes>
+      </Suspense>
     </NotificationProvider>
   );
 }
 
 export default App;
-
