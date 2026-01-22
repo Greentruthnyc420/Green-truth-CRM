@@ -105,20 +105,22 @@ export default function OnboardingTour({
         const isMobile = window.innerWidth < 640;
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
+        const tooltipMaxHeight = 350; // Ensure tooltip never exceeds this
 
         // On mobile, always center horizontally with safe margins
         if (isMobile) {
             return {
-                top: targetRect ? Math.min(targetRect.top + targetRect.height + 16, viewportHeight - 280) : '50%',
+                top: targetRect ? Math.min(targetRect.top + targetRect.height + 16, viewportHeight - tooltipMaxHeight - 16) : '50%',
                 left: 16,
                 right: 16,
                 maxWidth: 'calc(100vw - 32px)',
+                maxHeight: tooltipMaxHeight,
                 transform: targetRect ? 'none' : 'translateY(-50%)'
             };
         }
 
         if (!targetRect) {
-            return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+            return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', maxHeight: tooltipMaxHeight };
         }
 
         const pos = step.position || 'bottom';
@@ -128,37 +130,45 @@ export default function OnboardingTour({
         // Ensure tooltip stays within viewport
         const safeLeft = Math.max(16, Math.min(targetRect.left + targetRect.width / 2 - tooltipWidth / 2, viewportWidth - tooltipWidth - 16));
 
+        // Calculate safe top position - never go below viewport - tooltipMaxHeight
+        const maxTop = viewportHeight - tooltipMaxHeight - 16;
+
         switch (pos) {
             case 'top':
                 return {
                     bottom: viewportHeight - targetRect.top + pad,
                     left: safeLeft,
-                    maxWidth: tooltipWidth
+                    maxWidth: tooltipWidth,
+                    maxHeight: tooltipMaxHeight
                 };
             case 'left':
                 return {
-                    top: Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - 80, viewportHeight - 200)),
+                    top: Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - 80, maxTop)),
                     right: viewportWidth - targetRect.left + pad,
-                    maxWidth: Math.min(tooltipWidth, targetRect.left - 32)
+                    maxWidth: Math.min(tooltipWidth, targetRect.left - 32),
+                    maxHeight: tooltipMaxHeight
                 };
             case 'right':
                 return {
-                    top: Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - 80, viewportHeight - 200)),
+                    top: Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - 80, maxTop)),
                     left: targetRect.left + targetRect.width + pad,
-                    maxWidth: Math.min(tooltipWidth, viewportWidth - targetRect.left - targetRect.width - 32)
+                    maxWidth: Math.min(tooltipWidth, viewportWidth - targetRect.left - targetRect.width - 32),
+                    maxHeight: tooltipMaxHeight
                 };
             case 'center':
                 return {
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    maxWidth: Math.min(380, viewportWidth - 32)
+                    maxWidth: Math.min(380, viewportWidth - 32),
+                    maxHeight: tooltipMaxHeight
                 };
             default: // bottom
                 return {
-                    top: Math.min(targetRect.top + targetRect.height + pad, viewportHeight - 200),
+                    top: Math.max(16, Math.min(targetRect.top + targetRect.height + pad, maxTop)),
                     left: safeLeft,
-                    maxWidth: tooltipWidth
+                    maxWidth: tooltipWidth,
+                    maxHeight: tooltipMaxHeight
                 };
         }
     };
@@ -237,8 +247,8 @@ export default function OnboardingTour({
                         onClick={handleNext}
                         disabled={!isNextEnabled}
                         className={`flex items-center gap-1 px-5 py-2 rounded-lg font-bold transition-all ${isNextEnabled
-                                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                            ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                             }`}
                     >
                         {!isNextEnabled && countdown > 0 ? (
