@@ -646,12 +646,12 @@ export const dispensaryTourSteps = [
         position: 'right'
     },
 
-    // Deals Alert
+    // Deals Widget
     {
-        target: 'body',
-        title: 'Bulk & COD Discounts 💰',
-        description: 'Many brands offer discounts for bulk orders and COD payments. The more you order, the more you save! Check each brand for their specific deals.',
-        position: 'center'
+        target: 'aside, .themed-sidebar',
+        title: 'Available Deals 💰',
+        description: 'Check the Deals Widget in your sidebar! See all active promotions from every brand - bulk discounts, COD savings, flash sales, and more. Each deal shows exactly what you need to qualify.',
+        position: 'right'
     },
 
     // Cart

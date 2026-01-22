@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, LogOut, Calendar, Menu, X, FileText, ShoppingCart, MoreHorizontal, Settings, Link2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, LogOut, Calendar, Menu, X, FileText, ShoppingCart, MoreHorizontal, Settings, Link2, Tag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileThemeBar } from './ThemeSwitcher';
+import DealsWidget from './DealsWidget';
 
 export default function DispensaryLayout() {
     const { currentUser, logout } = useAuth();
@@ -18,7 +19,7 @@ export default function DispensaryLayout() {
     return (
         <div className="min-h-screen flex flex-col md:flex-row" style={{ background: 'var(--bg-primary)' }}>
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 border-r h-screen sticky top-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <aside className="hidden md:flex flex-col w-64 border-r h-screen sticky top-0 overflow-y-auto" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="p-4 border-b border-slate-50">
                     <img src="/logos/logo-main.png" alt="The Green Truth" className="h-20 w-auto object-contain" />
                 </div>
@@ -32,6 +33,11 @@ export default function DispensaryLayout() {
                     <DispensaryNavItem to="/dispensary/settings" icon={<Settings size={20} />} label="Settings" />
                     <DispensaryNavItem to="/dispensary/integrations" icon={<Link2 size={20} />} label="Integrations" />
                 </nav>
+
+                {/* Deals Widget in Sidebar */}
+                <div className="p-3 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                    <DealsWidget />
+                </div>
             </aside>
 
             {/* Mobile Header */}
@@ -115,6 +121,11 @@ export default function DispensaryLayout() {
                                 <SlideGridItem to="/dispensary/schedule" icon={<Calendar size={22} className="text-indigo-500" />} label="Schedule" onClick={() => setIsMenuOpen(false)} />
                                 <SlideGridItem to="/dispensary/invoices" icon={<FileText size={22} className="text-orange-500" />} label="Invoices" onClick={() => setIsMenuOpen(false)} />
                                 <SlideGridItem to="/dispensary/settings" icon={<Settings size={22} className="text-purple-500" />} label="Settings" onClick={() => setIsMenuOpen(false)} />
+                            </div>
+
+                            {/* Deals Widget for Mobile */}
+                            <div className="px-4 pb-4">
+                                <DealsWidget />
                             </div>
 
                             {/* Footer Actions */}

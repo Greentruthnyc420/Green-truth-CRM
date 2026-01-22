@@ -86,15 +86,15 @@ function IntegrationCard({ integration, index }) {
             </div>
 
             {/* Logo and Name */}
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 pr-24">
                 <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
                     style={{ background: `${integration.color}15` }}
                 >
                     {integration.logo}
                 </div>
-                <div>
-                    <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                <div className="min-w-0">
+                    <h3 className="font-bold text-lg truncate" style={{ color: 'var(--text-primary)' }}>
                         {integration.name}
                     </h3>
                     <span className="text-xs" style={{ color: integration.color }}>
