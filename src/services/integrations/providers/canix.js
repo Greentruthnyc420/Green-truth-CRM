@@ -32,22 +32,22 @@ export async function sync(connection, syncType) {
     };
 }
 
-export async function syncProducts(connection, options = {}) {
+export async function syncProducts(_connection, _options = {}) {
     console.log('[Canix] Syncing products...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncInventory(connection, options = {}) {
+export async function syncInventory(_connection, _options = {}) {
     console.log('[Canix] Syncing inventory...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncBatches(connection, options = {}) {
+export async function syncBatches(_connection, _options = {}) {
     console.log('[Canix] Syncing batches...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     console.log('[Canix] Handling webhook:', payload.event);
 }
 

@@ -183,12 +183,17 @@ export function AuthProvider({ children }) {
             console.error("Error Code:", error.code);
             console.error("Error Message:", error.message);
 
-            if (error.code === 'auth/popup-closed-by-user') {
-                throw new Error('Sign-in popup was closed. Please try again.');
-            }
-
-            if (error.code === 'auth/popup-blocked') {
-                throw new Error('Popup was blocked by your browser. Please allow popups for this site and try again.');
+            // If popup was blocked or closed, automatically try redirect method
+            if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
+                console.log("Popup failed, falling back to redirect...");
+                try {
+                    // Use redirect as fallback - this will navigate away and come back after auth
+                    await signInWithRedirect(auth, googleProvider);
+                    return; // Page will redirect, so we won't reach here
+                } catch (redirectError) {
+                    console.error("Redirect fallback also failed:", redirectError);
+                    throw new Error('Google Sign-In failed. Please try again or use email/password login.');
+                }
             }
 
             if (error.message && error.message.includes("Access Restricted")) {

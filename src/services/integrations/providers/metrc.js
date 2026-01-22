@@ -32,22 +32,22 @@ export async function sync(connection, syncType) {
     };
 }
 
-export async function syncPackages(connection, options = {}) {
+export async function syncPackages(_connection, _options = {}) {
     console.log('[METRC] Syncing packages...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncTransfers(connection, options = {}) {
+export async function syncTransfers(_connection, _options = {}) {
     console.log('[METRC] Syncing transfers...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncSales(connection, options = {}) {
+export async function syncSales(_connection, _options = {}) {
     console.log('[METRC] Syncing sales...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     console.log('[METRC] Handling webhook:', payload.event);
 }
 

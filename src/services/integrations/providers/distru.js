@@ -53,22 +53,22 @@ export async function sync(connection, syncType) {
     return results;
 }
 
-export async function syncOrders(connection, options = {}) {
+export async function syncOrders(_connection, _options = {}) {
     console.log('[Distru] Syncing orders...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncInventory(connection, options = {}) {
+export async function syncInventory(_connection, _options = {}) {
     console.log('[Distru] Syncing inventory...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncShipments(connection, options = {}) {
+export async function syncShipments(_connection, _options = {}) {
     console.log('[Distru] Syncing shipments...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     console.log('[Distru] Handling webhook:', payload.event);
 }
 

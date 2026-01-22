@@ -32,17 +32,17 @@ export async function sync(connection, syncType) {
     };
 }
 
-export async function syncInventory(connection, options = {}) {
+export async function syncInventory(_connection, _options = {}) {
     console.log('[BioTrack] Syncing inventory...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncSales(connection, options = {}) {
+export async function syncSales(_connection, _options = {}) {
     console.log('[BioTrack] Syncing sales...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     console.log('[BioTrack] Handling webhook:', payload.event);
 }
 

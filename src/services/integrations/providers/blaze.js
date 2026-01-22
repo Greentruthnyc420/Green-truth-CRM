@@ -32,27 +32,27 @@ export async function sync(connection, syncType) {
     };
 }
 
-export async function syncOrders(connection, options = {}) {
+export async function syncOrders(_connection, _options = {}) {
     console.log('[Blaze] Syncing orders...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncProducts(connection, options = {}) {
+export async function syncProducts(_connection, _options = {}) {
     console.log('[Blaze] Syncing products...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncInventory(connection, options = {}) {
+export async function syncInventory(_connection, _options = {}) {
     console.log('[Blaze] Syncing inventory...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncCustomers(connection, options = {}) {
+export async function syncCustomers(_connection, _options = {}) {
     console.log('[Blaze] Syncing customers...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     console.log('[Blaze] Handling webhook:', payload.event);
 }
 

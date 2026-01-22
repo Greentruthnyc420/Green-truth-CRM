@@ -69,7 +69,7 @@ export async function sync(connection, syncType) {
 /**
  * Pull orders from LeafLink
  */
-export async function syncOrders(connection, options = {}) {
+export async function syncOrders(_connection, _options = {}) {
     // TODO: Implement when API access available
     // GET /orders/?company={company_id}&created_on__gte={since}
     console.log('[LeafLink] Syncing orders...');
@@ -79,7 +79,7 @@ export async function syncOrders(connection, options = {}) {
 /**
  * Pull products/line items from LeafLink
  */
-export async function syncProducts(connection, options = {}) {
+export async function syncProducts(_connection, _options = {}) {
     // TODO: Implement when API access available
     // GET /line-items/?company={company_id}
     console.log('[LeafLink] Syncing products...');
@@ -89,7 +89,7 @@ export async function syncProducts(connection, options = {}) {
 /**
  * Push inventory updates to LeafLink
  */
-export async function syncInventory(connection, inventoryData) {
+export async function syncInventory(_connection, _inventoryData) {
     // TODO: Implement when API access available
     // PATCH /line-items/{id}/
     console.log('[LeafLink] Syncing inventory...');
@@ -99,7 +99,7 @@ export async function syncInventory(connection, inventoryData) {
 /**
  * Handle incoming webhook from LeafLink
  */
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     // TODO: Verify signature and process webhook
     console.log('[LeafLink] Handling webhook:', payload.event);
 

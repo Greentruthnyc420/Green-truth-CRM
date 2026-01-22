@@ -33,25 +33,25 @@ export async function sync(connection, syncType) {
     };
 }
 
-export async function syncOrders(connection, options = {}) {
+export async function syncOrders(_connection, _options = {}) {
     // GET /ticket
     console.log('[Treez] Syncing orders...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncProducts(connection, options = {}) {
+export async function syncProducts(_connection, _options = {}) {
     // GET /product
     console.log('[Treez] Syncing products...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function syncInventory(connection, options = {}) {
+export async function syncInventory(_connection, _options = {}) {
     // GET /inventory
     console.log('[Treez] Syncing inventory...');
     return { recordsProcessed: 0, recordsCreated: 0, recordsUpdated: 0 };
 }
 
-export async function handleWebhook(payload, signature, connection) {
+export async function handleWebhook(payload, _signature, _connection) {
     console.log('[Treez] Handling webhook:', payload.event);
 }
 
@@ -66,13 +66,13 @@ export async function getAuthorizationUrl(clientId, redirectUri, state) {
     return `https://api.treez.io/oauth/authorize?${params}`;
 }
 
-export async function exchangeCodeForTokens(code, clientId, clientSecret, redirectUri) {
+export async function exchangeCodeForTokens(_code, _clientId, _clientSecret, _redirectUri) {
     // POST /oauth/token
     console.log('[Treez] Exchanging code for tokens...');
     return { access_token: null, refresh_token: null, expires_in: 3600 };
 }
 
-export async function refreshAccessToken(refreshToken, clientId, clientSecret) {
+export async function refreshAccessToken(_refreshToken, _clientId, _clientSecret) {
     // POST /oauth/token with grant_type=refresh_token
     console.log('[Treez] Refreshing access token...');
     return { access_token: null, refresh_token: null, expires_in: 3600 };
