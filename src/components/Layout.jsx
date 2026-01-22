@@ -62,15 +62,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                 <NavItem to="/app/menus" icon={<FileText size={20} />} label="Brand Menus" isCollapsed={isCollapsed} />
                 <NavItem to="/app/settings" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} />
 
-                {isAdmin && (
-                    <>
-                        <div className={`pt-4 pb-1 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider transition-opacity duration-300 ${isCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100'}`}>
-                            Admin
-                        </div>
 
-                        <NavItem to="/admin" icon={<ShieldCheck size={20} className="text-indigo-400" />} label="Admin Portal" isCollapsed={isCollapsed} />
-                    </>
-                )}
             </nav>
 
             <div className="p-4 border-t" style={{ borderColor: 'var(--border-primary)' }}>
@@ -272,19 +264,7 @@ export default function Layout() {
                                     <SlideGridItem to="/app/settings" icon={<Settings size={22} className="text-slate-500" />} label="Settings" onClick={() => setIsMoreMenuOpen(false)} />
                                 </div>
 
-                                {/* Admin Link (if applicable) */}
-                                {isAdmin && (
-                                    <div className="px-4 pb-4">
-                                        <NavLink
-                                            to="/admin"
-                                            onClick={() => setIsMoreMenuOpen(false)}
-                                            className="flex items-center justify-center gap-3 p-4 bg-purple-50 text-purple-700 font-bold rounded-2xl hover:bg-purple-100 transition-all"
-                                        >
-                                            <ShieldCheck size={20} />
-                                            Admin Portal
-                                        </NavLink>
-                                    </div>
-                                )}
+
 
                                 {/* Footer Actions */}
                                 <div className="px-4 pb-8 border-t pt-4" style={{ borderColor: 'var(--border-primary)' }}>
