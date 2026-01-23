@@ -91,8 +91,13 @@ export default function DispensaryVerification() {
                 </button>
 
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-emerald-600 text-white shadow-xl shadow-emerald-200 mb-6">
-                        <Building2 size={40} />
+                    {/* GreenTruth Logo - Large to match other portals */}
+                    <div className="w-72 h-36 md:w-96 md:h-48 mx-auto flex items-center justify-center mb-6 transition-transform hover:scale-105 duration-300">
+                        <img
+                            src="/logos/green-truth-logo-dark.png"
+                            alt="GreenTruth NYC"
+                            className="w-full h-full object-contain filter drop-shadow-lg"
+                        />
                     </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dispensary Portal</h1>
                     <p className="mt-3 text-slate-500 font-medium">Please verify your OCM license to continue</p>

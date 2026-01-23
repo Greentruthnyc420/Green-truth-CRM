@@ -82,8 +82,8 @@ export default function AdminLogin() {
                         Back to Gateway
                     </NavLink>
 
-                    {/* Updated logo to match Cannabis Consultant - larger and same image */}
-                    <div className="w-56 h-28 md:w-72 md:h-36 mx-auto flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
+                    {/* Updated logo to match all portals - large consistent size */}
+                    <div className="w-72 h-36 md:w-96 md:h-48 mx-auto flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
                         <img
                             src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth"

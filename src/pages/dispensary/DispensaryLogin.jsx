@@ -47,11 +47,12 @@ export default function DispensaryLogin() {
                 </button>
 
                 <div className="text-center mb-8">
-                    <div className="w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                    {/* GreenTruth Logo - Large to match other portals */}
+                    <div className="w-72 h-36 md:w-96 md:h-48 mx-auto flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
                         <img
-                            src="/logos/logo-main.png"
+                            src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth NYC"
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain filter drop-shadow-lg"
                         />
                     </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dispensary Login</h1>
