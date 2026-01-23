@@ -234,6 +234,59 @@ export default function ProfileSettings() {
                             <span>Notifications sent to: <strong>{currentUser?.email}</strong></span>
                         </div>
 
+                        {/* Push Notifications Toggle */}
+                        <div className="flex items-center justify-between py-2 border-b border-slate-100 pb-4 mb-2">
+                            <div>
+                                <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Push Notifications</p>
+                                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                    {typeof Notification !== 'undefined' && Notification.permission === 'granted' 
+                                        ? '✅ Enabled - you will receive browser notifications'
+                                        : Notification.permission === 'denied'
+                                        ? '❌ Blocked - enable in browser settings'
+                                        : 'Enable push notifications for real-time alerts'
+                                    }
+                                </p>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (typeof Notification === 'undefined') {
+                                        showNotification('Push notifications not supported in this browser', 'error');
+                                        return;
+                                    }
+                                    if (Notification.permission === 'granted') {
+                                        showNotification('Push notifications already enabled!', 'success');
+                                        return;
+                                    }
+                                    if (Notification.permission === 'denied') {
+                                        showNotification('Please enable notifications in your browser settings', 'error');
+                                        return;
+                                    }
+                                    try {
+                                        const { requestNotificationPermission } = await import('../services/pushNotificationService');
+                                        const token = await requestNotificationPermission(currentUser?.uid);
+                                        if (token) {
+                                            showNotification('Push notifications enabled!', 'success');
+                                        } else {
+                                            showNotification('Notification permission denied', 'error');
+                                        }
+                                    } catch (err) {
+                                        console.error('Push notification error:', err);
+                                        showNotification('Failed to enable notifications', 'error');
+                                    }
+                                }}
+                                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                                    typeof Notification !== 'undefined' && Notification.permission === 'granted'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : Notification.permission === 'denied'
+                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                        : 'bg-brand-600 text-white hover:bg-brand-700'
+                                }`}
+                            >
+                                {typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'Enabled' : 'Enable'}
+                            </button>
+                        </div>
+
+                        {/* Email notification toggles */}
                         {NOTIFICATION_TYPES.rep.map(notif => (
                             <div key={notif.key} className="flex items-center justify-between py-2">
                                 <div>
@@ -262,6 +315,7 @@ export default function ProfileSettings() {
                         )}
                     </div>
                 )}
+
 
                 {/* Sign Out */}
                 <button

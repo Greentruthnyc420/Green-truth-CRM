@@ -6,6 +6,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
 import LayoutTourWrapper from './LayoutTourWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
+import PWAInstallPrompt from './PWAInstallPrompt';
+import OfflineIndicator from './OfflineIndicator';
+
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const { theme } = useTheme();
@@ -189,6 +192,13 @@ export default function Layout() {
                         <Outlet />
                     </div>
                 </main>
+
+                {/* PWA Install Prompt */}
+                <PWAInstallPrompt />
+
+                {/* Offline Status Indicator */}
+                <OfflineIndicator />
+
 
                 {/* Bottom Nav - Admin Style with More Button */}
                 <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md border-t pb-safe z-50 px-2 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
