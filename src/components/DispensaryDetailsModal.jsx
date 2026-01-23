@@ -91,28 +91,34 @@ export default function DispensaryDetailsModal({ isOpen, onClose, dispensary, on
                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                                     <Phone size={14} /> Contact Info
                                 </h3>
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <User size={16} className="text-slate-400 mt-1" />
-                                        <div>
-                                            <p className="text-xs text-slate-400 uppercase font-bold">Primary Contact</p>
-                                            <p className="text-slate-700 font-medium">{dispensary.contactPerson || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <Phone size={16} className="text-slate-400 mt-1" />
-                                        <div>
-                                            <p className="text-xs text-slate-400 uppercase font-bold">Phone</p>
-                                            <p className="text-slate-700 font-medium">{dispensary.phone || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <Mail size={16} className="text-slate-400 mt-1" />
-                                        <div>
-                                            <p className="text-xs text-slate-400 uppercase font-bold">Email</p>
-                                            <p className="text-slate-700 font-medium text-sm break-all">{dispensary.email || 'N/A'}</p>
-                                        </div>
-                                    </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+                                    {dispensary.contacts && dispensary.contacts.length > 0 ? (
+                                        dispensary.contacts.map((contact, idx) => (
+                                            <div key={idx} className={`${idx > 0 ? 'pt-4 border-t border-slate-200' : ''}`}>
+                                                <div className="flex items-start gap-3 mb-2">
+                                                    <User size={16} className="text-slate-400 mt-1" />
+                                                    <div>
+                                                        <p className="text-xs text-slate-400 uppercase font-bold">{contact.role || 'Contact'}</p>
+                                                        <p className="text-slate-700 font-medium">{contact.name || 'N/A'}</p>
+                                                    </div>
+                                                </div>
+                                                {contact.phone && (
+                                                    <div className="flex items-start gap-3 mb-2 ml-7">
+                                                        <Phone size={14} className="text-slate-400 mt-0.5" />
+                                                        <a href={`tel:${contact.phone}`} className="text-slate-600 hover:text-brand-600 text-sm">{contact.phone}</a>
+                                                    </div>
+                                                )}
+                                                {contact.email && (
+                                                    <div className="flex items-start gap-3 ml-7">
+                                                        <Mail size={14} className="text-slate-400 mt-0.5" />
+                                                        <a href={`mailto:${contact.email}`} className="text-slate-600 hover:text-brand-600 text-sm break-all">{contact.email}</a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-slate-400 text-sm italic">No contacts added yet</p>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -773,6 +773,10 @@ export async function updateLead(leadId, updates) {
     if (updates.priority) dbUpdates.priority = updates.priority;
     if (updates.dispensaryName) dbUpdates.dispensary_name = updates.dispensaryName;
     if (updates.createdAt) dbUpdates.created_at = updates.createdAt;
+    if (updates.contacts) dbUpdates.contacts = updates.contacts;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.licenseNumber) dbUpdates.license_number = updates.licenseNumber;
+    if (updates.meetingDate !== undefined) dbUpdates.meeting_date = updates.meetingDate;
 
     console.log('[updateLead] Saving lead:', leadId, 'with updates:', dbUpdates);
 
