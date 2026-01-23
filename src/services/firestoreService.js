@@ -1000,33 +1000,57 @@ export async function getAllAccounts(userId, isAdmin) {
         const safeLeads = Array.isArray(leads) ? leads : [];
         const safeSales = Array.isArray(sales) ? sales : [];
 
-        // Create a map of dispensary names that have sales
-        const soldDispensaries = new Set();
+        // Create a map of dispensary names to their sales data
+        const salesByDispensary = {};
         safeSales.forEach(sale => {
-            if (sale.dispensaryName) {
-                soldDispensaries.add(sale.dispensaryName.toLowerCase());
+            const key = (sale.dispensaryName || '').toLowerCase();
+            if (key) {
+                if (!salesByDispensary[key]) {
+                    salesByDispensary[key] = {
+                        totalRevenue: 0,
+                        salesCount: 0,
+                        lastSaleDate: null,
+                        lastSaleAmount: 0
+                    };
+                }
+                salesByDispensary[key].totalRevenue += parseFloat(sale.totalAmount || sale.amount || 0);
+                salesByDispensary[key].salesCount += 1;
+                const saleDate = sale.saleDate || sale.date || sale.createdAt;
+                if (saleDate) {
+                    const currentDate = new Date(saleDate);
+                    if (!salesByDispensary[key].lastSaleDate || currentDate > new Date(salesByDispensary[key].lastSaleDate)) {
+                        salesByDispensary[key].lastSaleDate = saleDate;
+                        salesByDispensary[key].lastSaleAmount = parseFloat(sale.totalAmount || sale.amount || 0);
+                    }
+                }
             }
         });
 
-        // Merge leads with sales info - mark leads as Sold if they have sales
+        // Merge leads with sales info
         const mergedAccounts = safeLeads.map(lead => {
-            const hasBeenSold = soldDispensaries.has((lead.dispensaryName || '').toLowerCase()) ||
-                lead.status === 'Sold' ||
-                lead.leadStatus === 'active';
+            const key = (lead.dispensaryName || '').toLowerCase();
+            const salesData = salesByDispensary[key];
+            const hasBeenSold = salesData || lead.status === 'Sold' || lead.leadStatus === 'active';
 
             return {
                 ...lead,
                 status: hasBeenSold ? 'Sold' : (lead.status || 'New'),
-                hasSales: hasBeenSold
+                leadStatus: hasBeenSold ? 'active' : (lead.leadStatus || 'prospect'),
+                hasSales: !!salesData,
+                totalRevenue: salesData?.totalRevenue || 0,
+                salesCount: salesData?.salesCount || 0,
+                lastPurchase: salesData?.lastSaleDate || lead.lastSaleDate,
+                lastPurchaseAmount: salesData?.lastSaleAmount || 0
             };
         });
+
         // Filter out soft-deleted leads
         const activeLeads = mergedAccounts.filter(lead => lead.status !== 'deleted');
 
         return activeLeads;
     } catch (error) {
         console.error('Error in getAllAccounts:', error);
-        return []; // Return empty array instead of crashing
+        return [];
     }
 }
 
