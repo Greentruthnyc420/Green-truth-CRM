@@ -64,7 +64,8 @@ export default function NewLead() {
         'Space Poppers!',
         'Smoothie Bar',
         'Waferz NY',
-        'Pines'
+        'Pines',
+        'JUSBUD!'
     ];
 
     const handleBrandToggle = (brand) => {

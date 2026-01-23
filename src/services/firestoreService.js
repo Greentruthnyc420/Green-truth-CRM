@@ -53,6 +53,7 @@ export async function getUserProfile(userId) {
 export async function updateUserProfile(userId, updates) {
     // Map frontend field names to database column names
     const dbUpdates = {
+        id: userId, // Required for upsert
         updated_at: new Date().toISOString()
     };
 
@@ -62,10 +63,11 @@ export async function updateUserProfile(userId, updates) {
     if (updates.address !== undefined) dbUpdates.address = updates.address;
     if (updates.role !== undefined) dbUpdates.role = updates.role;
 
-    const { error } = await supabase.from('users').update(dbUpdates).eq('id', userId);
+    // Use upsert so it works even if user profile doesn't exist yet
+    const { error } = await supabase.from('users').upsert(dbUpdates, { onConflict: 'id' });
     if (error) {
         console.error("Error updating user profile:", error);
-        return false;
+        throw error; // Throw to get better error message
     }
     return true;
 }
