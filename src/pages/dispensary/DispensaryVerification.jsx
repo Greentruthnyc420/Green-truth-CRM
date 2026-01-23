@@ -91,8 +91,8 @@ export default function DispensaryVerification() {
                 </button>
 
                 <div className="text-center mb-10">
-                    {/* GreenTruth Logo - Large to match other portals */}
-                    <div className="w-72 h-36 md:w-96 md:h-48 mx-auto flex items-center justify-center mb-6 transition-transform hover:scale-105 duration-300">
+                    {/* GreenTruth Logo - LARGE centered */}
+                    <div className="w-full max-w-lg h-48 md:h-64 mx-auto flex items-center justify-center mb-6 transition-transform hover:scale-105 duration-300">
                         <img
                             src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth NYC"
