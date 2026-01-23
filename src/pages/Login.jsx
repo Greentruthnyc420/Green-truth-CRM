@@ -205,6 +205,16 @@ export default function Login() {
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
+                            {/* Forgot Password Link - Only show when not registering */}
+                            {!isRegistering && (
+                                <button
+                                    type="button"
+                                    onClick={handleResetPassword}
+                                    className="text-sm text-brand-500 hover:text-brand-600 font-medium mt-1"
+                                >
+                                    Forgot password?
+                                </button>
+                            )}
                         </div>
 
                         {/* Instagram Handle - Required for Registration */}
