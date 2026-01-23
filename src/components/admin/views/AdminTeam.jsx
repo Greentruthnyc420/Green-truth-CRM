@@ -239,7 +239,14 @@ export default function AdminTeam() {
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                                                                {member.profileInfo ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}` : (member.name || member.email?.split('@')[0] || 'Unknown User')}
+                                                                {/* Priority: profileInfo > name (if not a UID) > email username */}
+                                                                {member.profileInfo?.firstName
+                                                                    ? `${member.profileInfo.firstName} ${member.profileInfo.lastName || ''}`.trim()
+                                                                    : (member.name && !/^[a-f0-9-]{20,}$/i.test(member.name))
+                                                                        ? member.name
+                                                                        : member.email
+                                                                            ? member.email.split('@')[0].replace(/[._]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                                                                            : 'Unknown User'}
                                                                 {isTrialEmail(member.email) && (
                                                                     <span className="text-[9px] uppercase font-bold tracking-wider text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">Trial</span>
                                                                 )}

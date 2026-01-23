@@ -45,6 +45,7 @@ const ProfileSettings = lazy(() => import('./pages/ProfileSettings'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const BrandOversight = lazy(() => import('./pages/BrandOversight'));
+const SalesRepDeals = lazy(() => import('./pages/SalesRepDeals'));
 
 // Lazy loaded pages - Admin Portal
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -64,6 +65,7 @@ const AdminCollections = lazy(() => import('./components/admin/views/AdminCollec
 const DispensaryDetail = lazy(() => import('./pages/admin/DispensaryDetail'));
 const AdminRoleManagement = lazy(() => import('./components/admin/views/AdminRoleManagement'));
 const AdminActivationRequests = lazy(() => import('./components/admin/views/AdminActivationRequests'));
+const AdminOrdersPage = lazy(() => import('./components/admin/views/AdminOrdersPage'));
 
 // Lazy loaded pages - Brand Portal
 const BrandLogin = lazy(() => import('./pages/brand/BrandLogin'));
@@ -127,6 +129,7 @@ function App() {
               <Route path="dashboard" element={<NewAdminDashboard />} />
               <Route path="workflow" element={<AdminWorkflow />} />
               <Route path="activations" element={<AdminActivationRequests />} />
+              <Route path="orders" element={<AdminOrdersPage />} />
               <Route path="financials" element={<AdminFinancials />} />
               <Route path="invoices" element={<AdminInvoiceGenerator />} />
               <Route path="territory" element={<AdminTerritory />} />
@@ -167,6 +170,7 @@ function App() {
                 <Route path="settings" element={<ProfileSettings />} />
                 <Route path="admin" element={<AdminDashboard />} />
                 <Route path="brand-oversight" element={<BrandOversight />} />
+                <Route path="deals" element={<SalesRepDeals />} />
                 <Route path="*" element={<Dashboard />} />
               </Route>
             </Route>

@@ -333,15 +333,16 @@ export default function LogSale() {
             });
 
             try {
-                // Award High-Precision Points
-                if (basicInfo.dispensaryId) {
-                    await awardOrderPoints(
-                        currentUser?.uid || 'test-user-123',
-                        basicInfo.dispensaryId,
-                        totalAmount,
-                        selectedBrandIds
-                    );
-                }
+                // Award High-Precision Points - Always award for sales
+                // Use dispensaryId if available, otherwise use a placeholder
+                const dispensaryRef = basicInfo.dispensaryId || basicInfo.dispensaryName || 'unknown';
+                await awardOrderPoints(
+                    currentUser?.uid || 'test-user-123',
+                    dispensaryRef,
+                    totalAmount,
+                    selectedBrandIds
+                );
+                console.log('✅ Points awarded for sale:', totalAmount, 'to user:', currentUser?.uid);
             } catch (pErr) {
                 console.warn("Points awarding failed, but sale was logged.", pErr);
             }

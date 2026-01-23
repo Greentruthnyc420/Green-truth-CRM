@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, Building2, Navigation, Calendar, Menu, X, Settings, MoreHorizontal, HelpCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, History, PlusCircle, Car, Users, DollarSign, ShieldCheck, FileText, Trophy, Building2, Navigation, Calendar, Menu, X, Settings, MoreHorizontal, HelpCircle, LogOut, Tag } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeSwitcher, { MobileThemeBar } from './ThemeSwitcher';
@@ -64,6 +64,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                 </div>
 
                 <NavItem to="/app/menus" icon={<FileText size={20} />} label="Brand Menus" isCollapsed={isCollapsed} />
+                <NavItem to="/app/deals" icon={<Tag size={20} />} label="Deals & Promos" isCollapsed={isCollapsed} />
                 <NavItem to="/app/settings" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} />
 
 
@@ -275,6 +276,7 @@ export default function Layout() {
                                     <SlideGridItem to="/app/log-shift" icon={<Car size={22} className="text-orange-500" />} label="Log Shift" onClick={() => setIsMoreMenuOpen(false)} />
                                     <SlideGridItem to="/app/leaderboard" icon={<Trophy size={22} className="text-yellow-500" />} label="Leaderboard" onClick={() => setIsMoreMenuOpen(false)} />
                                     <SlideGridItem to="/app/menus" icon={<FileText size={22} className="text-emerald-500" />} label="Menus" onClick={() => setIsMoreMenuOpen(false)} />
+                                    <SlideGridItem to="/app/deals" icon={<Tag size={22} className="text-purple-500" />} label="Deals" onClick={() => setIsMoreMenuOpen(false)} />
                                     <SlideGridItem to="/app/settings" icon={<Settings size={22} className="text-slate-500" />} label="Settings" onClick={() => setIsMoreMenuOpen(false)} />
                                 </div>
 

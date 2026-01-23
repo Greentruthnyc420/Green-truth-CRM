@@ -20,7 +20,8 @@ import {
     Settings,
     ShieldCheck,
     Car,
-    Crown
+    Crown,
+    ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, SUPER_ADMIN_EMAILS } from '../../contexts/AuthContext';
@@ -88,6 +89,7 @@ export default function AdminLayout() {
     const navItems = [
         { path: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
         { path: '/admin/workflow', label: 'Workflow', icon: CheckSquare },
+        { path: '/admin/orders', label: 'Orders', icon: ShoppingCart },
         { path: '/admin/activations', label: 'Activations', icon: Calendar },
         { path: '/admin/financials', label: 'Financials', icon: DollarSign },
         { path: '/admin/collections', label: 'Collections', icon: FileText },
