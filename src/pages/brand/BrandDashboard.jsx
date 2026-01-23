@@ -73,6 +73,13 @@ export default function BrandDashboard() {
 
     // Brand logo state - fetched from Supabase
     const [brandLogo, setBrandLogo] = useState(null);
+    const [brandIcon, setBrandIcon] = useState(null);  // Icon version for circular areas
+
+    // Icon versions for circular areas - some brands have different logos that fit better in circles
+    const BRAND_ICONS = {
+        'bud-cracker': '/logos/bud-cracker-secondary.png',      // Green token fits circles better
+        'honey-king': '/logos/partner-6.png',                    // Lion logo fits circles better
+    };
 
     // Fetch brand logo from admin_brands table
     useEffect(() => {
@@ -85,6 +92,8 @@ export default function BrandDashboard() {
                 const adminBrand = adminBrands.find(b => b.id === activeBrandId);
                 if (adminBrand?.logo) {
                     setBrandLogo(adminBrand.logo);
+                    // Use icon override if available, otherwise fall back to main logo
+                    setBrandIcon(BRAND_ICONS[activeBrandId] || adminBrand.logo);
                     return;
                 }
             } catch (e) {
@@ -92,7 +101,9 @@ export default function BrandDashboard() {
             }
 
             // Fallback to product catalog logo
-            setBrandLogo(brandData?.logo || null);
+            const fallbackLogo = brandData?.logo || null;
+            setBrandLogo(fallbackLogo);
+            setBrandIcon(BRAND_ICONS[activeBrandId] || fallbackLogo);
         }
         fetchBrandLogo();
     }, [activeBrandId, brandData]);
@@ -246,11 +257,11 @@ export default function BrandDashboard() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <div className="flex items-center gap-4">
-                        {/* Brand Logo */}
-                        {brandLogo && (
+                        {/* Brand Icon - uses circular-friendly version */}
+                        {brandIcon && (
                             <div className="w-16 h-16 rounded-2xl themed-card flex items-center justify-center p-2 shrink-0">
                                 <img
-                                    src={brandLogo}
+                                    src={brandIcon}
                                     alt={currentBrandName}
                                     className="max-w-full max-h-full object-contain"
                                 />

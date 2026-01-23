@@ -54,6 +54,17 @@ export default function BrandLogin() {
         return brand?.logo || DEFAULT_LOGO;
     };
 
+    // Icon versions for circular areas - some brands have different logos that fit better in circles
+    const BRAND_ICONS = {
+        'bud-cracker': '/logos/bud-cracker-secondary.png',      // Green token fits circles better
+        'honey-king': '/logos/partner-6.png',                    // Lion logo fits circles better
+    };
+
+    // Get icon version for circular displays (avatars, small headers)
+    const getBrandIcon = (brand) => {
+        return BRAND_ICONS[brand?.brandId] || getBrandLogo(brand);
+    };
+
 
     const handleBrandSelect = async (brand) => {
         setSelectedBrand(brand);
@@ -461,7 +472,7 @@ export default function BrandLogin() {
                             <div className="mb-6 flex justify-center">
                                 <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center p-3">
                                     <img
-                                        src={getBrandLogo(selectedBrand)}
+                                        src={getBrandIcon(selectedBrand)}
                                         alt={selectedBrand.brandName}
                                         className="w-full h-full object-contain"
                                     />
@@ -537,7 +548,7 @@ export default function BrandLogin() {
                             <div className="relative z-10 flex flex-col items-center">
                                 <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm border border-white/10 p-4">
                                     <img
-                                        src={getBrandLogo(selectedBrand)}
+                                        src={getBrandIcon(selectedBrand)}
                                         alt={selectedBrand.brandName}
                                         className="max-w-full max-h-full object-contain"
                                     />
