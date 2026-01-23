@@ -137,8 +137,8 @@ export default function Login() {
                         Back
                     </NavLink>
                     <div className="relative z-10">
-                        {/* Logo - Large and centered */}
-                        <div className="h-40 md:h-56 w-full flex items-center justify-center mb-4 md:mb-6">
+                        {/* Logo - Very large and visually centered (pr-4 compensates for NYC text on right) */}
+                        <div className="h-52 md:h-72 w-full flex items-center justify-center mb-4 md:mb-6 pr-3">
                             <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="h-full w-auto object-contain filter drop-shadow-lg" />
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">

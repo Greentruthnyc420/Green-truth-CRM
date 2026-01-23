@@ -91,8 +91,8 @@ export default function DispensaryVerification() {
                 </button>
 
                 <div className="text-center mb-10">
-                    {/* Logo - Large and centered */}
-                    <div className="h-40 md:h-56 w-full flex items-center justify-center mb-6">
+                    {/* Logo - Very large and visually centered (pr-3 compensates for NYC text) */}
+                    <div className="h-52 md:h-72 w-full flex items-center justify-center mb-6 pr-3">
                         <img
                             src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth NYC"
