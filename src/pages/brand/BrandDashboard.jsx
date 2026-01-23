@@ -314,7 +314,7 @@ export default function BrandDashboard() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div id="tour-stats-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Pending Sample Requests - HIGH VISIBILITY */}
                 {financials.pendingSampleRequests > 0 && (
                     <Link to="/brand/orders?tab=samples" className="col-span-1 md:col-span-2 lg:col-span-4 bg-purple-600 rounded-xl p-6 text-white shadow-xl shadow-purple-200 hover:bg-purple-700 transition-all flex items-center justify-between group">
@@ -533,7 +533,7 @@ export default function BrandDashboard() {
 
             {/* Charts Section - Placeholder until historical data aggregation is ready */}
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="tour-charts-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Sales Trend */}
                 <div className="themed-card rounded-xl p-6">
                     <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>

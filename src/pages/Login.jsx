@@ -3,6 +3,7 @@ import { useAuth, isTrialEmail } from '../contexts/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft, Instagram, Play } from 'lucide-react';
 import { createUserProfile } from '../services/firestoreService';
+import { getAuthErrorMessage } from '../utils/authErrors';
 
 export default function Login() {
     const { login, signup, loginWithGoogle, devLogin, resetPassword, currentUser } = useAuth();
@@ -84,13 +85,7 @@ export default function Login() {
             navigate('/app', { replace: true });
         } catch (err) {
             console.error(err);
-            let msg = err.message || "Unknown error";
-            if (msg.includes("api-key-not-valid")) {
-                msg = "Firebase API Key is missing or invalid. Please configure your .env file.";
-            } else if (msg.includes("Firebase: ")) {
-                msg = msg.replace('Firebase: ', '');
-            }
-            setError(msg);
+            setError(getAuthErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -105,11 +100,7 @@ export default function Login() {
             navigate('/app', { replace: true });
         } catch (err) {
             console.error(err);
-            let msg = err.message || "Unknown error";
-            if (msg.includes("api-key-not-valid")) {
-                msg = "Firebase API Key is missing or invalid. Please configure your .env file.";
-            }
-            setError(msg || "Failed to log in with Google.");
+            setError(getAuthErrorMessage(err));
         } finally {
             setLoading(false);
         }

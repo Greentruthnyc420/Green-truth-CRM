@@ -432,7 +432,7 @@ export default function Dashboard() {
             </div>
 
             {/* ===== PIPELINE STATS ===== */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div id="tour-stats-grid" className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="themed-card p-4 rounded-xl shadow-sm">
                     <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Total Pipeline</p>
                     <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{stats.totalLeads}</p>

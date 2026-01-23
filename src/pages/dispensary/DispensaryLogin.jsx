@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { getAuthErrorMessage } from '../../utils/authErrors';
 
 export default function DispensaryLogin() {
     const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export default function DispensaryLogin() {
             showNotification('Welcome back!', 'success');
             navigate('/dispensary');
         } catch (error) {
-            showNotification(error.message || 'Login failed', 'error');
+            showNotification(getAuthErrorMessage(error), 'error');
         } finally {
             setLoading(false);
         }
@@ -31,7 +32,7 @@ export default function DispensaryLogin() {
             await googleLogin();
             navigate('/dispensary');
         } catch (error) {
-            showNotification('Google login failed', 'error');
+            showNotification(getAuthErrorMessage(error), 'error');
         }
     };
 

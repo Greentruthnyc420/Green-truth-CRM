@@ -23,12 +23,31 @@ export default function OnboardingTour({
 }) {
     const navigate = useNavigate();
     const location = useLocation();
-    const [currentStep, setCurrentStep] = useState(0);
+
+    // Persist tour step in sessionStorage so navigation doesn't reset it
+    const storageKey = `tour_step_${tourKey}`;
+    const getStoredStep = () => {
+        const stored = sessionStorage.getItem(storageKey);
+        return stored ? parseInt(stored, 10) : 0;
+    };
+
+    const [currentStep, setCurrentStep] = useState(getStoredStep);
     const [targetRect, setTargetRect] = useState(null);
     const [isNextEnabled, setIsNextEnabled] = useState(!isFirstTime);
     const [countdown, setCountdown] = useState(isFirstTime ? 2 : 0);
     const [isNavigating, setIsNavigating] = useState(false);
     const clickHandlerRef = useRef(null);
+
+    // Save step to sessionStorage whenever it changes
+    useEffect(() => {
+        sessionStorage.setItem(storageKey, currentStep.toString());
+    }, [currentStep, storageKey]);
+
+    // Clear storage when tour completes
+    const handleTourComplete = useCallback(() => {
+        sessionStorage.removeItem(storageKey);
+        if (onComplete) onComplete();
+    }, [onComplete, storageKey]);
 
     // Anti-spam: On first-time tours, delay the Next button by 2 seconds per step
     useEffect(() => {
@@ -86,7 +105,7 @@ export default function OnboardingTour({
                         if (currentStep < steps.length - 1) {
                             setCurrentStep(prev => prev + 1);
                         } else {
-                            if (onComplete) onComplete();
+                            handleTourComplete();
                         }
                     }, 100); // Small delay to let natural click happen first
                 }
@@ -107,7 +126,7 @@ export default function OnboardingTour({
                 clickHandlerRef.current = null;
             }
         };
-    }, [currentStep, steps, onComplete]);
+    }, [currentStep, steps, handleTourComplete]);
 
     // Handle navigation when step has navigateTo property
     useEffect(() => {
@@ -163,7 +182,7 @@ export default function OnboardingTour({
         if (currentStep < steps.length - 1) {
             setCurrentStep(prev => prev + 1);
         } else {
-            if (onComplete) onComplete();
+            handleTourComplete();
         }
     };
 
@@ -174,7 +193,7 @@ export default function OnboardingTour({
     };
 
     const handleClose = () => {
-        if (onComplete) onComplete();
+        handleTourComplete();
     };
 
     // Don't render if no steps
@@ -307,6 +326,37 @@ export default function OnboardingTour({
                 />
             )}
 
+            {/* Clickable area over spotlight for clickToAdvance steps */}
+            {targetRect && step.clickToAdvance && isNextEnabled && (
+                <div
+                    className="fixed z-[9999] cursor-pointer"
+                    style={{
+                        top: targetRect.top - 8,
+                        left: targetRect.left - 8,
+                        width: targetRect.width + 16,
+                        height: targetRect.height + 16,
+                        borderRadius: '12px',
+                        pointerEvents: 'auto'
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Find and click the actual target element
+                        const targetElement = document.querySelector(step.target);
+                        if (targetElement) {
+                            targetElement.click();
+                        }
+                        // Advance to next step
+                        setTimeout(() => {
+                            if (currentStep < steps.length - 1) {
+                                setCurrentStep(prev => prev + 1);
+                            } else {
+                                handleTourComplete();
+                            }
+                        }, 150);
+                    }}
+                />
+            )}
+
             {/* Tooltip - mobile responsive */}
             <div
                 className="fixed z-[10000] bg-white rounded-xl shadow-2xl overflow-hidden sm:w-80"
@@ -357,15 +407,15 @@ export default function OnboardingTour({
                     {step.clickToAdvance && isNextEnabled ? (
                         <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg font-bold animate-pulse">
                             <MousePointer size={16} />
-                            <span>Click the Item Above ☝️</span>
+                            <span>Click the Highlighted Link</span>
                         </div>
                     ) : (
                         <button
                             onClick={handleNext}
                             disabled={!isNextEnabled || step.clickToAdvance}
                             className={`flex items-center gap-1 px-5 py-2 rounded-lg font-bold transition-all ${isNextEnabled && !step.clickToAdvance
-                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                                 }`}
                         >
                             {!isNextEnabled && countdown > 0 ? (

@@ -117,7 +117,7 @@ export default function DispensaryDashboard() {
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div id="tour-stats-grid" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard icon={<Package className="text-blue-600" />} label="Recent Orders" value={activeOrders.length || "0"} color="blue" link="/dispensary/orders" />
                 <StatCard icon={<Star className="text-amber-500" />} label="Favorite Brands" value="--" color="amber" link="/dispensary/marketplace" />
                 <StatCard icon={<Clock className="text-indigo-600" />} label="Avg Delivery" color="indigo" value="48h" />

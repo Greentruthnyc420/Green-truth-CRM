@@ -374,7 +374,7 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
     return (
         <>
             {/* KPI Row 1 - Main Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div id="tour-stats-grid" className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <KPICard
                     title="Total Revenue"
                     value={formatCurrency(combined.totalRevenue)}
@@ -465,7 +465,7 @@ function AllBrandsView({ combined, formatCurrency, formatNumber }) {
             </div>
 
             {/* Charts Row 1 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="tour-charts-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Revenue by Brand Pie Chart */}
                 <ChartCard title="Revenue Distribution" icon={<PieChart className="text-emerald-500" />}>
                     <div className="h-72">

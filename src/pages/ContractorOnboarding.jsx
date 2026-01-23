@@ -5,10 +5,12 @@ import { useNotification } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabaseClient';
 import {
     User, Calendar, Phone, MapPin, CreditCard, FileText,
-    ChevronRight, ChevronLeft, Check, Loader, AlertCircle
+    ChevronRight, ChevronLeft, Check, Loader, AlertCircle,
+    Briefcase, DollarSign, TrendingUp, Award, Sparkles, Shield
 } from 'lucide-react';
 
 const STEPS = [
+    { id: 'welcome', title: 'Welcome', icon: Sparkles },
     { id: 'personal', title: 'Personal Info', icon: User },
     { id: 'contact', title: 'Contact', icon: Phone },
     { id: 'payment', title: 'Payment', icon: CreditCard },
@@ -64,7 +66,9 @@ export default function ContractorOnboarding() {
     const validateStep = () => {
         const newErrors = {};
 
-        if (currentStep === 0) { // Personal Info
+        // Step 0 = Welcome (no validation needed)
+
+        if (currentStep === 1) { // Personal Info
             if (!formData.legalFirstName.trim()) newErrors.legalFirstName = 'Required';
             if (!formData.legalLastName.trim()) newErrors.legalLastName = 'Required';
             if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Required';
@@ -74,7 +78,7 @@ export default function ContractorOnboarding() {
             }
         }
 
-        if (currentStep === 1) { // Contact
+        if (currentStep === 2) { // Contact
             if (!formData.phone.trim()) newErrors.phone = 'Required';
             if (!formData.street.trim()) newErrors.street = 'Required';
             if (!formData.city.trim()) newErrors.city = 'Required';
@@ -82,7 +86,7 @@ export default function ContractorOnboarding() {
             if (!formData.zip.trim()) newErrors.zip = 'Required';
         }
 
-        if (currentStep === 2) { // Payment
+        if (currentStep === 3) { // Payment
             if (formData.paymentMethod === 'direct_deposit') {
                 if (!formData.bankName.trim()) newErrors.bankName = 'Required';
                 if (!formData.routingNumber.trim()) newErrors.routingNumber = 'Required';
@@ -90,7 +94,7 @@ export default function ContractorOnboarding() {
             }
         }
 
-        if (currentStep === 3) { // Legal
+        if (currentStep === 4) { // Legal
             if (!formData.ssnLastFour || formData.ssnLastFour.length !== 4) {
                 newErrors.ssnLastFour = 'Enter last 4 digits';
             }
@@ -159,7 +163,86 @@ export default function ContractorOnboarding() {
 
     const renderStepContent = () => {
         switch (currentStep) {
-            case 0: // Personal Info
+            case 0: // Welcome - Independent Contractor Overview
+                return (
+                    <div className="space-y-6">
+                        {/* Welcome Header */}
+                        <div className="text-center pb-4 border-b border-slate-200">
+                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                <Briefcase className="text-white" size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                                Welcome to the Team!
+                            </h3>
+                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                Before we begin, please review your contractor agreement
+                            </p>
+                        </div>
+
+                        {/* Independent Contractor Notice */}
+                        <div className="p-5 rounded-xl bg-amber-50 border border-amber-200">
+                            <div className="flex items-start gap-4">
+                                <div className="bg-amber-500 text-white p-2 rounded-lg shrink-0">
+                                    <Shield size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-amber-900 mb-1">Independent Contractor Status</h4>
+                                    <p className="text-sm text-amber-800">
+                                        As a Cannabis Consultant with GreenTruth, you are an <strong>independent contractor (1099)</strong>,
+                                        not an employee. This means:
+                                    </p>
+                                    <ul className="text-sm text-amber-700 mt-2 space-y-1 list-disc pl-4">
+                                        <li>You set your own schedule and availability</li>
+                                        <li>You're responsible for your own taxes (we'll send a 1099 if you earn $600+)</li>
+                                        <li>No benefits, but higher earning potential through commissions</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Compensation Highlights */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <DollarSign size={18} className="text-emerald-500" />
+                                    <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Hourly Pay</span>
+                                </div>
+                                <p className="text-2xl font-black text-emerald-500">$20-30<span className="text-sm font-normal">/hr</span></p>
+                                <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Based on active accounts</p>
+                            </div>
+                            <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <TrendingUp size={18} className="text-purple-500" />
+                                    <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Commission</span>
+                                </div>
+                                <p className="text-2xl font-black text-purple-500">2%<span className="text-sm font-normal"> of sales</span></p>
+                                <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Paid quarterly</p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Award size={18} className="text-blue-500" />
+                                <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Milestone Bonuses</span>
+                            </div>
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                Earn <strong className="text-emerald-600">$100-$1,000+</strong> bonuses for every 10 accounts you bring on.
+                                Full details available in the Compensation Guide after setup.
+                            </p>
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
+                            <AlertCircle size={20} className="text-blue-500 shrink-0 mt-0.5" />
+                            <p className="text-sm text-blue-700">
+                                After completing this setup, you'll see the <strong>Compensation Guide</strong> with
+                                full details on pay structure, then a quick tour of the platform.
+                            </p>
+                        </div>
+                    </div>
+                );
+
+            case 1: // Personal Info
                 return (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -211,7 +294,7 @@ export default function ContractorOnboarding() {
                     </div>
                 );
 
-            case 1: // Contact
+            case 2: // Contact
                 return (
                     <div className="space-y-4">
                         <div>
@@ -288,7 +371,7 @@ export default function ContractorOnboarding() {
                     </div>
                 );
 
-            case 2: // Payment
+            case 3: // Payment
                 return (
                     <div className="space-y-4">
                         <div>
@@ -380,7 +463,7 @@ export default function ContractorOnboarding() {
                     </div>
                 );
 
-            case 3: // Legal/Tax
+            case 4: // Legal/Tax
                 return (
                     <div className="space-y-4">
                         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">

@@ -20,7 +20,7 @@ export const salesRepTourSteps = [
 
     // Stats Grid - targeting the grid of stat cards
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Your Performance Stats 📊',
         description: 'These cards show your key metrics: pending wages from activations, unpaid commissions (2% of your sales), your hourly rate ($20-$30/hr based on doors), and active dispensary count. All data updates in real-time!',
         position: 'bottom'
@@ -43,36 +43,76 @@ export const salesRepTourSteps = [
         position: 'right'
     },
 
-    // Schedule
+    // Schedule - Click to navigate!
     {
         target: 'a[href="/app/schedule"]',
-        title: 'Your Schedule 📅',
-        description: 'View all your upcoming pop-up activations. See which dispensaries you\'re assigned to, dates, times, and which brands you\'ll represent. Check this DAILY!',
-        position: 'right'
+        title: 'Click: Your Schedule 📅',
+        description: 'View all your upcoming pop-up activations. Click the Schedule link to see your calendar!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // Log Shift / Hours
+    // Schedule Page View
+    {
+        target: 'main, .calendar, [class*="schedule"]',
+        title: 'Your Activation Calendar',
+        description: 'See which dispensaries you\'re assigned to, dates, times, and which brands you\'ll represent. Check this DAILY!',
+        position: 'bottom',
+        navigateTo: '/app/schedule'
+    },
+
+    // Log Shift / Hours - Click to navigate!
     {
         target: 'a[href="/app/log-shift"]',
-        title: 'Log Your Hours ⏱️',
-        description: 'After EVERY activation, log your hours here. Include start/end time, mileage, tolls, and parking. Pay ranges $20-$30/hr (starting at $20), paid biweekly via direct deposit.',
-        position: 'right'
+        title: 'Click: Log Your Hours ⏱️',
+        description: 'After EVERY activation, log your hours here. Click Log Shift to open the form!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // Log Sale
+    // Log Shift Page View
+    {
+        target: 'main, form, [class*="shift"]',
+        title: 'Hour Logging Form',
+        description: 'Include start/end time, mileage, tolls, and parking. Pay ranges $20-$30/hr (starting at $20), paid biweekly via direct deposit.',
+        position: 'bottom',
+        navigateTo: '/app/log-shift'
+    },
+
+    // Log Sale - Click to navigate!
     {
         target: 'a[href="/app/log-sale"]',
-        title: 'Log Sales 💰',
-        description: 'Record every sale here! Enter dispensary, products, quantities, and payment method. You earn 2% commission on all YOUR sales, paid quarterly. If someone else closes your lead, they get the commission.',
-        position: 'right'
+        title: 'Click: Log Sales 💰',
+        description: 'Record every sale here! Click Log Sale to enter a new sale.',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // Territory Map
+    // Log Sale Page View
+    {
+        target: 'main, form, [class*="sale"]',
+        title: 'Sales Entry Form',
+        description: 'Enter dispensary, products, quantities, and payment method. You earn 2% commission on all YOUR sales, paid quarterly.',
+        position: 'bottom',
+        navigateTo: '/app/log-sale'
+    },
+
+    // Territory Map - Click to navigate!
     {
         target: 'a[href="/app/map"]',
-        title: 'Territory Map 🗺️',
-        description: 'Interactive map of all dispensaries. Green pins = active accounts, gray = prospects. Use this to find nearby leads and plan your route.',
-        position: 'right'
+        title: 'Click: Territory Map 🗺️',
+        description: 'Interactive map of all dispensaries. Click Map to explore your territory!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Map Page View
+    {
+        target: 'main, [class*="map"], .leaflet-container',
+        title: 'Your Territory',
+        description: 'Green pins = active accounts, gray = prospects. Use this to find nearby leads and plan your route.',
+        position: 'bottom',
+        navigateTo: '/app/map'
     },
 
     // New Lead
@@ -83,12 +123,22 @@ export const salesRepTourSteps = [
         position: 'right'
     },
 
-    // Accounts
+    // Accounts - Click to navigate!
     {
         target: 'a[href="/app/accounts"]',
-        title: 'All Accounts 🏪',
-        description: 'View every dispensary in the system. See their status, order history, and assigned rep. Build relationships with your accounts for repeat business!',
-        position: 'right'
+        title: 'Click: All Accounts 🏪',
+        description: 'View every dispensary in the system. Click Accounts to see them all!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Accounts Page View
+    {
+        target: 'main, table, [class*="account"]',
+        title: 'Your Dispensary Accounts',
+        description: 'See their status, order history, and assigned rep. Build relationships for repeat business!',
+        position: 'bottom',
+        navigateTo: '/app/accounts'
     },
 
     // Leaderboard
@@ -160,7 +210,7 @@ export const socialManagerTourSteps = [
 
     // Dashboard Stats
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Your Performance Stats 📊',
         description: 'Track your personal metrics: pending wages from activations you do, your commission earnings (2% of sales), and your hourly rate. These update in real-time.',
         position: 'bottom'
@@ -174,12 +224,22 @@ export const socialManagerTourSteps = [
         position: 'right'
     },
 
-    // Schedule - Content Planning
+    // Schedule - Content Planning - Click to navigate!
     {
         target: 'a[href="/app/schedule"]',
-        title: 'Activation Calendar 📅',
-        description: 'THE GOLD MINE for content! See ALL upcoming pop-ups. Plan to visit activations for: behind-the-scenes content, consultant spotlights, product features, and dispensary partnerships.',
-        position: 'right'
+        title: 'Click: Activation Calendar 📅',
+        description: 'THE GOLD MINE for content! Click Schedule to see all upcoming pop-ups.',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Schedule Page View
+    {
+        target: 'main, .calendar, [class*="schedule"]',
+        title: 'Content Planning Calendar',
+        description: 'See ALL upcoming pop-ups. Plan to visit activations for: behind-the-scenes content, consultant spotlights, product features, and dispensary partnerships.',
+        position: 'bottom',
+        navigateTo: '/app/schedule'
     },
 
     // Schedule Strategy
@@ -190,12 +250,22 @@ export const socialManagerTourSteps = [
         position: 'center'
     },
 
-    // Map - Location Content
+    // Map - Location Content - Click to navigate!
     {
         target: 'a[href="/app/map"]',
-        title: 'Location Mapping 🗺️',
-        description: 'See all dispensary locations. Use this for: geo-tagging posts, neighborhood-specific content, planning content routes, and finding photo-worthy spots.',
-        position: 'right'
+        title: 'Click: Location Mapping 🗺️',
+        description: 'See all dispensary locations. Click Map to explore!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Map Page View
+    {
+        target: 'main, [class*="map"], .leaflet-container',
+        title: 'Content Location Guide',
+        description: 'Use this for: geo-tagging posts, neighborhood-specific content, planning content routes, and finding photo-worthy spots.',
+        position: 'bottom',
+        navigateTo: '/app/map'
     },
 
     // Map Content Ideas
@@ -206,12 +276,22 @@ export const socialManagerTourSteps = [
         position: 'center'
     },
 
-    // Accounts - Dispensary Relationships
+    // Accounts - Dispensary Relationships - Click to navigate!
     {
         target: 'a[href="/app/accounts"]',
-        title: 'Dispensary Partners 🏪',
-        description: 'View all our partner dispensaries. Check their status, location, and history. Great for: tagging in posts, featuring partners, and coordinating collaborations.',
-        position: 'right'
+        title: 'Click: Dispensary Partners 🏪',
+        description: 'View all our partner dispensaries. Click Accounts to see them!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Accounts Page View
+    {
+        target: 'main, table, [class*="account"]',
+        title: 'Partner Directory',
+        description: 'Check their status, location, and history. Great for: tagging in posts, featuring partners, and coordinating collaborations.',
+        position: 'bottom',
+        navigateTo: '/app/accounts'
     },
 
     // Accounts Content Strategy
@@ -339,7 +419,7 @@ export const brandTourSteps = [
 
     // Dashboard Stats
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Key Metrics 💰',
         description: 'Your top-line numbers: total revenue, pending orders, active dispensary accounts, and scheduled activations. Everything updates in real-time.',
         position: 'bottom'
@@ -347,7 +427,7 @@ export const brandTourSteps = [
 
     // Charts
     {
-        target: '[class*="chart"], [class*="recharts"]',
+        target: '#tour-charts-section',
         title: 'Revenue Trends 📈',
         description: 'Track your sales over time. See monthly performance, identify your best-selling products, and spot which dispensaries order most.',
         position: 'bottom'
@@ -607,7 +687,7 @@ export const processorTourSteps = [
 
     // Combined Analytics
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Portfolio Metrics 📊',
         description: 'In "All Brands" view: combined revenue, total orders, and portfolio-wide stats. In individual brand view: that brand\'s specific performance.',
         position: 'bottom'
@@ -615,7 +695,7 @@ export const processorTourSteps = [
 
     // Charts
     {
-        target: '[class*="chart"], [class*="recharts"]',
+        target: '#tour-charts-section',
         title: 'Brand Performance Comparison 📈',
         description: 'Compare brands side-by-side. Which is growing? Which needs marketing? Use these insights to allocate your budget and ambassador time.',
         position: 'bottom'
@@ -841,7 +921,7 @@ export const dispensaryTourSteps = [
 
     // Stats Dashboard
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Your Dashboard 📊',
         description: 'At a glance: pending orders, scheduled deliveries, outstanding balance, and upcoming activations at your location.',
         position: 'bottom'
@@ -855,12 +935,22 @@ export const dispensaryTourSteps = [
         position: 'right'
     },
 
-    // Marketplace
+    // Marketplace - Click to navigate!
     {
         target: 'a[href*="marketplace"]',
-        title: 'Browse Products 🛍️',
-        description: 'Full product catalog from all brands. Filter by category, strain type, THC%, or brand. See real-time pricing and availability.',
-        position: 'right'
+        title: 'Click: Browse Products 🛍️',
+        description: 'Full product catalog from all brands. Click Marketplace to start shopping!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Marketplace Page View
+    {
+        target: 'main, [class*="product"], [class*="marketplace"]',
+        title: 'Product Catalog',
+        description: 'Filter by category, strain type, THC%, or brand. See real-time pricing and availability.',
+        position: 'bottom',
+        navigateTo: '/dispensary/marketplace'
     },
 
     // Deals Widget
@@ -879,28 +969,58 @@ export const dispensaryTourSteps = [
         position: 'bottom'
     },
 
-    // Orders
+    // Orders - Click to navigate!
     {
         target: 'a[href*="orders"]',
-        title: 'Track Orders 📦',
-        description: 'All your orders from placed to delivered. See status, expected delivery, driver info, and order details.',
-        position: 'right'
+        title: 'Click: Track Orders 📦',
+        description: 'All your orders from placed to delivered. Click Orders to see them!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // Invoices
+    // Orders Page View
+    {
+        target: 'main, table, [class*="order"]',
+        title: 'Your Order History',
+        description: 'See status, expected delivery, driver info, and order details.',
+        position: 'bottom',
+        navigateTo: '/dispensary/orders'
+    },
+
+    // Invoices - Click to navigate!
     {
         target: 'a[href*="invoices"]',
-        title: 'Your Invoices 🧾',
-        description: 'View all invoices and payment status. Download for your records. Routing and account numbers are provided for ACH payments.',
-        position: 'right'
+        title: 'Click: Your Invoices 🧾',
+        description: 'View all invoices and payment status. Click Invoices to see them!',
+        position: 'right',
+        clickToAdvance: true
     },
 
-    // Schedule
+    // Invoices Page View
+    {
+        target: 'main, table, [class*="invoice"]',
+        title: 'Payment Management',
+        description: 'Download for your records. Routing and account numbers are provided for ACH payments.',
+        position: 'bottom',
+        navigateTo: '/dispensary/invoices'
+    },
+
+    // Schedule - Click to navigate!
     {
         target: 'a[href*="schedule"]',
-        title: 'Pop-Up Calendar 📅',
+        title: 'Click: Pop-Up Calendar 📅',
+        description: 'See upcoming brand activations. Click Schedule to view!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Schedule Page View
+    {
+        target: 'main, .calendar, [class*="schedule"]',
+        title: 'Your Activation Schedule',
         description: 'See upcoming brand activations AT YOUR LOCATION. Ambassadors come to sample products and help drive sales to your customers.',
-        position: 'right'
+        position: 'bottom',
+        navigateTo: '/dispensary/schedule'
     },
 
     // Request Activations
@@ -948,7 +1068,7 @@ export const adminTourSteps = [
 
     // Dashboard Stats
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Company Metrics 📊',
         description: 'Real-time overview: total revenue, active ambassadors, pending orders, today\'s activations. The pulse of Green Truth.',
         position: 'bottom'
@@ -978,12 +1098,22 @@ export const adminTourSteps = [
         position: 'right'
     },
 
-    // Workflow
+    // Workflow - Click to navigate!
     {
         target: 'a[href*="workflow"]',
-        title: 'Workflow / Approvals 📋',
-        description: 'Handle activation requests, hour approvals, and scheduling. Items flow through: Request → Approved → Scheduled → Completed.',
-        position: 'right'
+        title: 'Click: Workflow / Approvals 📋',
+        description: 'Handle activation requests, hour approvals, and scheduling. Click Workflow to manage!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Workflow Page View
+    {
+        target: 'main, [class*="workflow"], [class*="approval"]',
+        title: 'Approval Queue',
+        description: 'Items flow through: Request → Approved → Scheduled → Completed.',
+        position: 'bottom',
+        navigateTo: '/admin/workflow'
     },
 
     // Pipeline
@@ -994,12 +1124,22 @@ export const adminTourSteps = [
         position: 'right'
     },
 
-    // Financials
+    // Financials - Click to navigate!
     {
         target: 'a[href*="financials"]',
-        title: 'Financials 💰',
-        description: 'The money page. Revenue, expenses, profit margins, payroll costs, outstanding invoices. Export reports for accounting.',
-        position: 'right'
+        title: 'Click: Financials 💰',
+        description: 'The money page. Click Financials to see the numbers!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Financials Page View
+    {
+        target: 'main, [class*="financ"], [class*="revenue"]',
+        title: 'Financial Overview',
+        description: 'Revenue, expenses, profit margins, payroll costs, outstanding invoices. Export reports for accounting.',
+        position: 'bottom',
+        navigateTo: '/admin/financials'
     },
 
     // Invoices
@@ -1010,12 +1150,22 @@ export const adminTourSteps = [
         position: 'right'
     },
 
-    // Team
+    // Team - Click to navigate!
     {
         target: 'a[href*="team"]',
-        title: 'Team Management 👥',
-        description: 'All ambassadors and their metrics. Hours logged, sales made, activations done. Click anyone for detailed performance.',
-        position: 'right'
+        title: 'Click: Team Management 👥',
+        description: 'All ambassadors and their metrics. Click Team to see everyone!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Team Page View
+    {
+        target: 'main, table, [class*="team"]',
+        title: 'Your Team',
+        description: 'Hours logged, sales made, activations done. Click anyone for detailed performance.',
+        position: 'bottom',
+        navigateTo: '/admin/team'
     },
 
     // Trial User Upgrade - NEW
@@ -1026,12 +1176,22 @@ export const adminTourSteps = [
         position: 'center'
     },
 
-    // Brands
+    // Brands - Click to navigate!
     {
         target: 'a[href*="brands"]',
-        title: 'Brand Partners 📦',
-        description: 'All brands in the system. Their products, orders, relationship status. Add new brands, manage existing ones.',
-        position: 'right'
+        title: 'Click: Brand Partners 📦',
+        description: 'All brands in the system. Click Brands to manage them!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Brands Page View
+    {
+        target: 'main, table, [class*="brand"]',
+        title: 'Brand Management',
+        description: 'Their products, orders, relationship status. Add new brands, manage existing ones.',
+        position: 'bottom',
+        navigateTo: '/admin/brands'
     },
 
     // Territory
@@ -1070,7 +1230,7 @@ export const superAdminTourSteps = [
 
     // Stats
     {
-        target: '.grid',
+        target: '#tour-stats-grid',
         title: 'Complete Overview 📊',
         description: 'All company metrics at your fingertips. Revenue, team size, orders, activations - the full picture.',
         position: 'bottom'
@@ -1092,33 +1252,76 @@ export const superAdminTourSteps = [
         position: 'right'
     },
 
-    // All standard admin sections
+    // Workflow - Click to navigate!
     {
         target: 'a[href*="workflow"]',
-        title: 'Workflow 📋',
-        description: 'Approve hours, activations, and requests. Keep operations running smoothly.',
-        position: 'right'
+        title: 'Click: Workflow 📋',
+        description: 'Approve hours, activations, and requests. Click Workflow!',
+        position: 'right',
+        clickToAdvance: true
     },
 
+    // Workflow View
+    {
+        target: 'main, [class*="workflow"]',
+        title: 'Approval Queue',
+        description: 'Keep operations running smoothly.',
+        position: 'bottom',
+        navigateTo: '/admin/workflow'
+    },
+
+    // Financials - Click to navigate!
     {
         target: 'a[href*="financials"]',
-        title: 'Financials 💰',
-        description: 'Complete P&L visibility. Revenue, costs, margins. Export for accounting.',
-        position: 'right'
+        title: 'Click: Financials 💰',
+        description: 'Complete P&L visibility. Click Financials!',
+        position: 'right',
+        clickToAdvance: true
     },
 
+    // Financials View
+    {
+        target: 'main, [class*="financ"]',
+        title: 'Financial Dashboard',
+        description: 'Revenue, costs, margins. Export for accounting.',
+        position: 'bottom',
+        navigateTo: '/admin/financials'
+    },
+
+    // Team - Click to navigate!
     {
         target: 'a[href*="team"]',
-        title: 'Team 👥',
-        description: 'All team members and performance. Hire, fire, promote based on data.',
-        position: 'right'
+        title: 'Click: Team 👥',
+        description: 'All team members and performance. Click Team!',
+        position: 'right',
+        clickToAdvance: true
     },
 
+    // Team View
+    {
+        target: 'main, table, [class*="team"]',
+        title: 'Team Overview',
+        description: 'Hire, fire, promote based on data.',
+        position: 'bottom',
+        navigateTo: '/admin/team'
+    },
+
+    // Brands - Click to navigate!
     {
         target: 'a[href*="brands"]',
-        title: 'Brands 📦',
-        description: 'Manage all brand relationships. Onboard new partners, handle issues.',
-        position: 'right'
+        title: 'Click: Brands 📦',
+        description: 'Manage all brand relationships. Click Brands!',
+        position: 'right',
+        clickToAdvance: true
+    },
+
+    // Brands View
+    {
+        target: 'main, table, [class*="brand"]',
+        title: 'Brand Partners',
+        description: 'Onboard new partners, handle issues.',
+        position: 'bottom',
+        navigateTo: '/admin/brands'
     },
 
     {

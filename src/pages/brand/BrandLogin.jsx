@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { getAdminBrandByEmail, markBrandPasswordChanged } from '../../services/firestoreService';
+import { getAuthErrorMessage } from '../../utils/authErrors';
 
 // Default placeholder logo for brands without a logo
 const DEFAULT_LOGO = '/logos/partner-6.png';
@@ -127,7 +128,7 @@ export default function BrandLogin() {
                 navigate(from, { replace: true });
             }
         } catch (err) {
-            setError(err.message || 'Authentication failed. Please try again.');
+            setError(getAuthErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -181,7 +182,7 @@ export default function BrandLogin() {
             }, 1500);
         } catch (err) {
             console.error('Password change error:', err);
-            setError(err.message || 'Failed to change password');
+            setError(getAuthErrorMessage(err));
         } finally {
             setChangingPassword(false);
         }
@@ -220,7 +221,7 @@ export default function BrandLogin() {
             await loginWithGoogle(selectedBrand.license);
             navigate(from, { replace: true });
         } catch (err) {
-            setError(err.message || 'Google Login failed.');
+            setError(getAuthErrorMessage(err));
         } finally {
             setLoading(false);
         }

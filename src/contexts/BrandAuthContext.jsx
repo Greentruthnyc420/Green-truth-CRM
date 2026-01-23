@@ -11,6 +11,7 @@ import {
 import { useAuth, ADMIN_EMAILS } from "./AuthContext";
 import { supabase } from '../services/supabaseClient';
 import { sendAdminNotification, createUserRegistrationEmail } from '../services/adminNotifications';
+import { getAuthErrorMessage } from '../utils/authErrors';
 
 // Reserved System IDs
 export const INTERNAL_BRAND_ID = 'greentruth';
@@ -430,9 +431,7 @@ export function BrandAuthProvider({ children }) {
             throw new Error('Account not linked to any brand. Please contact your brand administrator for an invite.');
         } catch (error) {
             console.error("Login error:", error);
-            let msg = error.message;
-            if (msg.includes("auth/invalid-credential")) msg = "Invalid email or password.";
-            throw new Error(msg);
+            throw new Error(getAuthErrorMessage(error));
         } finally {
             setLoading(false);
         }

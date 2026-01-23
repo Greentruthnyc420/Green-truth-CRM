@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { createUserProfile, checkDuplicateLead, addLead } from '../../services/firestoreService';
 import { geocodeAddress } from '../../utils/geocoding';
+import { getAuthErrorMessage } from '../../utils/authErrors';
 
 export default function DispensaryRegistration() {
     const [formData, setFormData] = useState({
@@ -117,7 +118,7 @@ export default function DispensaryRegistration() {
             navigate('/dispensary');
         } catch (error) {
             console.error('Registration error:', error);
-            showNotification(error.message || 'Failed to create account', 'error');
+            showNotification(getAuthErrorMessage(error), 'error');
         } finally {
             setLoading(false);
         }

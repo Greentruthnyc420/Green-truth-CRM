@@ -353,7 +353,7 @@ export default function Dashboard() {
             )}
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div id="tour-stats-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link to="/app/payouts/wages" className="block">
                     <StatCard
                         title="Pending Wages"
