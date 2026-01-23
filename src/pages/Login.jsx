@@ -137,9 +137,9 @@ export default function Login() {
                         Back
                     </NavLink>
                     <div className="relative z-10">
-                        {/* Responsive logo - LARGE centered */}
-                        <div className="w-full max-w-lg h-48 md:h-64 mx-auto flex items-center justify-center mb-4 md:mb-6 transition-transform hover:scale-105 duration-300">
-                            <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="w-full h-full object-contain filter drop-shadow-lg" />
+                        {/* Logo - Large and centered */}
+                        <div className="h-40 md:h-56 w-full flex items-center justify-center mb-4 md:mb-6">
+                            <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="h-full w-auto object-contain filter drop-shadow-lg" />
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">
                             {isRegistering ? 'Create Account' : 'Welcome Back'}
