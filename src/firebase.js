@@ -3,6 +3,8 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
+import { getMessaging, isSupported } from "firebase/messaging";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 const firebaseConfig = {
     // Firebase config from environment variables (set in .env or hosting platform)
@@ -18,6 +20,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Initialize App Check for security (optional - requires reCAPTCHA key)
+const RECAPTCHA_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+if (RECAPTCHA_KEY && typeof window !== 'undefined') {
+    try {
+        initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(RECAPTCHA_KEY),
+            isTokenAutoRefreshEnabled: true
+        });
+        console.log('[Firebase] App Check initialized');
+    } catch (err) {
+        console.warn('[Firebase] App Check not available:', err.message);
+    }
+}
+
 // Initialize services
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
@@ -25,4 +41,16 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
+// Initialize Cloud Messaging (only if supported - not available in all browsers/contexts)
+let messaging = null;
+isSupported().then(supported => {
+    if (supported) {
+        messaging = getMessaging(app);
+        console.log('[Firebase] Cloud Messaging initialized');
+    }
+}).catch(err => console.warn('[Firebase] Messaging not supported:', err));
+
+export { messaging };
 export default app;
+
+
