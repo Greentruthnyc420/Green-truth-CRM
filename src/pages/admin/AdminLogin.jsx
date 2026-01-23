@@ -82,11 +82,12 @@ export default function AdminLogin() {
                         Back to Gateway
                     </NavLink>
 
-                    <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg p-3">
+                    {/* Updated logo to match Cannabis Consultant - larger and same image */}
+                    <div className="w-56 h-28 md:w-72 md:h-36 mx-auto flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
                         <img
-                            src="/logos/logo-main.png"
+                            src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth"
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain filter drop-shadow-lg"
                         />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Admin Portal</h2>

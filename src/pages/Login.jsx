@@ -137,8 +137,8 @@ export default function Login() {
                         Back
                     </NavLink>
                     <div className="relative z-10">
-                        {/* Responsive logo - smaller on mobile */}
-                        <div className="w-48 h-24 md:w-80 md:h-40 mx-auto flex items-center justify-center mb-4 md:mb-6 transition-transform hover:scale-105 duration-300">
+                        {/* Responsive logo - slightly larger */}
+                        <div className="w-56 h-28 md:w-96 md:h-48 mx-auto flex items-center justify-center mb-4 md:mb-6 transition-transform hover:scale-105 duration-300">
                             <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="w-full h-full object-contain filter drop-shadow-lg" />
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">
