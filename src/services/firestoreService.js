@@ -216,6 +216,30 @@ export async function getLeadCountForUser(userId) {
     return count || 0;
 }
 
+/**
+ * Get all sales reps with their points data for the leaderboard
+ * @returns Array of user objects with points: { id, name, email, lifetimePoints, currentMonthPoints }
+ */
+export async function getSalesRepsWithPoints() {
+    const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, lifetime_points, current_month_points')
+        .order('current_month_points', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching sales reps with points:', error);
+        return [];
+    }
+
+    return (data || []).map(u => ({
+        id: u.id,
+        name: u.name || u.email?.split('@')[0] || 'Unknown',
+        email: u.email,
+        lifetimePoints: parseFloat(u.lifetime_points || 0),
+        currentMonthPoints: parseFloat(u.current_month_points || 0)
+    }));
+}
+
 // --- USER ROLES (Admin/Social Manager Management) ---
 
 /**
