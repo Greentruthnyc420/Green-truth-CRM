@@ -44,7 +44,7 @@ export default function BrandDashboard() {
                 <Text style={styles.sectionTitle}>Recent Orders</Text>
                 <View style={styles.ordersList}>
                     {[
-                        { dispensary: 'Green Leaf NYC', amount: 850, products: 3, status: 'confirmed' },
+                        { dispensary: 'The Green Truth NYC', amount: 850, products: 3, status: 'confirmed' },
                         { dispensary: 'Canna Corner', amount: 620, products: 2, status: 'pending' },
                         { dispensary: 'NYC Wellness', amount: 1200, products: 4, status: 'shipped' },
                     ].map((order, i) => (

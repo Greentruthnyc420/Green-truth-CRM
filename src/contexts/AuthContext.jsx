@@ -8,7 +8,10 @@ import {
     signOut,
     onAuthStateChanged,
     sendPasswordResetEmail,
-    GoogleAuthProvider
+    GoogleAuthProvider,
+    setPersistence,
+    browserLocalPersistence,
+    browserSessionPersistence
 } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { logSecurityEvent, getUserRole } from "../services/firestoreService";
@@ -163,8 +166,16 @@ export function AuthProvider({ children }) {
         return createUserWithEmailAndPassword(auth, email, password);
     }
 
-    async function login(email, password) {
+    // Updated login with "Remember Me" functionality
+    async function login(email, password, rememberMe = true) {
         await validateDomain(email, 'LOGIN_ATTEMPT');
+
+        // Set persistence based on rememberMe preference
+        // browserLocalPersistence = stays logged in until explicit logout (default)
+        // browserSessionPersistence = clears when browser closes
+        const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, persistence);
+
         return signInWithEmailAndPassword(auth, email, password);
     }
 

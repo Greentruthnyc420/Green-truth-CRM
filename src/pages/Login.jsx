@@ -22,6 +22,7 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [instagramHandle, setInstagramHandle] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true); // Keep me signed in - defaults to true
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -80,7 +81,7 @@ export default function Login() {
                 sessionStorage.removeItem('referralRef');
                 sessionStorage.removeItem('signupRole');
             } else {
-                await login(email, password);
+                await login(email, password, rememberMe);
             }
             navigate('/app', { replace: true });
         } catch (err) {
@@ -216,6 +217,30 @@ export default function Login() {
                                 </button>
                             )}
                         </div>
+
+                        {/* Keep Me Signed In Checkbox */}
+                        {!isRegistering && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setRememberMe(!rememberMe)}
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-brand-600 border-brand-600' : 'border-slate-300 hover:border-brand-400'}`}
+                                >
+                                    {rememberMe && (
+                                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    )}
+                                </button>
+                                <label
+                                    onClick={() => setRememberMe(!rememberMe)}
+                                    className="text-sm cursor-pointer select-none"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                >
+                                    Keep me signed in
+                                </label>
+                            </div>
+                        )}
 
                         {/* Instagram Handle - Required for Registration */}
                         {isRegistering && (

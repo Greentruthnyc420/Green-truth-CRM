@@ -49,7 +49,11 @@ export default function RepProfile({ navigation }) {
 
                 <View style={styles.section}>
                     {profileItems.map((item, index) => (
-                        <TouchableOpacity key={index} style={styles.menuItem}>
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.menuItem}
+                            onPress={() => Alert.alert(item.label, 'This feature is coming soon!')}
+                        >
                             <Ionicons name={item.icon} size={22} color="#374151" />
                             <Text style={styles.menuLabel}>{item.label}</Text>
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />

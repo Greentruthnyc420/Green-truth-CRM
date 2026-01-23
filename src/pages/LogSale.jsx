@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Store, Calendar, CheckCircle, Plus, Trash2, Package, ArrowRight, ArrowLeft, ChevronRight, Camera, Sparkles, Loader, X } from 'lucide-react';
-import { addSale, getAvailableLeads, getMyDispensaries, getBrandProducts } from '../services/firestoreService';
+import { addSale, getAvailableLeads, getMyDispensaries, getBrandProducts, getLeads } from '../services/firestoreService';
 import { extractLicenseNumber } from '../services/geminiService';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { awardOrderPoints } from '../services/pointsService';
 import confetti from 'canvas-confetti';
@@ -17,11 +17,14 @@ export default function LogSale() {
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
 
+    // Check if current user is admin
+    const isAdmin = currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+
 
     // State management
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [availableStores, setAvailableStores] = useState({ active: [], myLeads: [], openLeads: [] });
+    const [availableStores, setAvailableStores] = useState({ active: [], myLeads: [], openLeads: [], allLeads: [] });
     const [basicInfo, setBasicInfo] = useState({ dispensaryName: '', dispensaryId: '', licenseNumber: '', date: new Date().toISOString().split('T')[0], paymentTerms: 'COD' });
     const [selectedBrandIds, setSelectedBrandIds] = useState([]);
     const [brandProductsMap, setBrandProductsMap] = useState({}); // Map<brandId, Product[]>
@@ -61,37 +64,57 @@ export default function LogSale() {
     useEffect(() => {
         async function fetchStores() {
             const uid = currentUser?.uid || 'test-user-123';
-            const [activeData, leadsData] = await Promise.all([
-                getMyDispensaries(uid),
-                getAvailableLeads(uid)
-            ]);
 
-            // Set of Active Store Names for easy lookup
-            const activeNames = new Set(activeData.map(s => s.name));
-
-            // Categorize
-            const myLeads = [];
-            const openLeads = [];
-
-            leadsData.forEach(lead => {
-                // If already active, skip (it's in Active Accounts)
-                if (activeNames.has(lead.dispensaryName)) return;
-
-                if (lead.userId === uid) {
-                    myLeads.push(lead);
+            try {
+                // For admins, fetch ALL leads; for reps, use the normal flow
+                if (isAdmin) {
+                    const allLeads = await getLeads();
+                    // Admins see all leads in one group
+                    setAvailableStores({
+                        active: [],
+                        myLeads: [],
+                        openLeads: [],
+                        allLeads: allLeads || [] // All leads for admin
+                    });
                 } else {
-                    openLeads.push(lead);
-                }
-            });
+                    const [activeData, leadsData] = await Promise.all([
+                        getMyDispensaries(uid),
+                        getAvailableLeads(uid)
+                    ]);
 
-            setAvailableStores({
-                active: activeData,
-                myLeads,
-                openLeads
-            });
+                    // Set of Active Store Names for easy lookup
+                    const activeNames = new Set((activeData || []).map(s => s.name || s.dispensaryName));
+
+                    // Categorize
+                    const myLeads = [];
+                    const openLeads = [];
+
+                    (leadsData || []).forEach(lead => {
+                        // If already active, skip (it's in Active Accounts)
+                        if (activeNames.has(lead.dispensaryName)) return;
+
+                        if (lead.userId === uid || lead.assignedAmbassadorId === uid) {
+                            myLeads.push(lead);
+                        } else {
+                            openLeads.push(lead);
+                        }
+                    });
+
+                    setAvailableStores({
+                        active: activeData || [],
+                        myLeads,
+                        openLeads,
+                        allLeads: []
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching stores:', error);
+                showNotification('Failed to load stores', 'error');
+                setAvailableStores({ active: [], myLeads: [], openLeads: [], allLeads: [] });
+            }
         }
         fetchStores();
-    }, [currentUser]);
+    }, [currentUser, isAdmin]);
 
     // Fetch Dynamic Products when Brands are Selected
     useEffect(() => {
@@ -381,7 +404,7 @@ export default function LogSale() {
                                         // Auto-find license
                                         let foundLicense = '';
                                         let foundId = '';
-                                        const allStores = [...availableStores.active, ...availableStores.myLeads, ...availableStores.openLeads];
+                                        const allStores = [...availableStores.active, ...availableStores.myLeads, ...availableStores.openLeads, ...(availableStores.allLeads || [])];
                                         const match = allStores.find(s => (s.dispensaryName === name || s.name === name));
                                         if (match) {
                                             if (match.licenseNumber) foundLicense = match.licenseNumber;
@@ -427,7 +450,7 @@ export default function LogSale() {
                                     <optgroup label="Open Leads">
                                         {availableStores.openLeads.map(lead => {
                                             // Calculate countdown
-                                            const createdAt = lead.createdAt ? new Date(lead.createdAt.toDate()) : new Date();
+                                            const createdAt = lead.createdAt ? new Date(lead.createdAt.toDate ? lead.createdAt.toDate() : lead.createdAt) : new Date();
                                             const now = new Date();
                                             const diffTime = Math.abs(now - createdAt);
                                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -445,6 +468,17 @@ export default function LogSale() {
                                                 </option>
                                             );
                                         })}
+                                    </optgroup>
+                                )}
+
+                                {/* Admin-only: All Leads */}
+                                {isAdmin && availableStores.allLeads.length > 0 && (
+                                    <optgroup label="📋 All Leads (Admin)">
+                                        {availableStores.allLeads.map(lead => (
+                                            <option key={lead.id} value={lead.dispensaryName}>
+                                                {lead.dispensaryName} {lead.repAssigned ? `(Rep: ${lead.repAssigned})` : '(Unassigned)'}
+                                            </option>
+                                        ))}
                                     </optgroup>
                                 )}
 

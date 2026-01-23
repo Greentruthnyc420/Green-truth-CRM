@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function BrandOrders() {
     const orders = [
-        { id: 'ORD-1234', dispensary: 'Green Leaf NYC', amount: 850, date: 'Jan 18', status: 'confirmed', paymentMethod: 'COD' },
+        { id: 'ORD-1234', dispensary: 'The Green Truth NYC', amount: 850, date: 'Jan 18', status: 'confirmed', paymentMethod: 'COD' },
         { id: 'ORD-1233', dispensary: 'Canna Corner', amount: 620, date: 'Jan 16', status: 'shipped', paymentMethod: 'Invoice' },
         { id: 'ORD-1232', dispensary: 'NYC Wellness', amount: 1200, date: 'Jan 14', status: 'delivered', paymentMethod: 'COD' },
     ];

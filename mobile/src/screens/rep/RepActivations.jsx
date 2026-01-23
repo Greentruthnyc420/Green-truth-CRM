@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function RepActivations() {
     // Mock data - will be replaced with real data
     const activations = [
-        { id: 1, dispensary: 'Green Leaf NYC', brand: 'JUSBUD', date: 'Jan 22, 2025', time: '2:00 PM', status: 'upcoming' },
+        { id: 1, dispensary: 'The Green Truth NYC', brand: 'JUSBUD', date: 'Jan 22, 2025', time: '2:00 PM', status: 'upcoming' },
         { id: 2, dispensary: 'Canna Corner', brand: 'Silly Nice', date: 'Jan 24, 2025', time: '11:00 AM', status: 'upcoming' },
         { id: 3, dispensary: 'NYC Wellness', brand: 'Helios', date: 'Jan 26, 2025', time: '3:00 PM', status: 'pending' },
     ];

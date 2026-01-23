@@ -8,6 +8,7 @@ export const ROLES = {
     REP: 'rep',
     BRAND: 'brand',
     DISPENSARY: 'dispensary',
+    ADMIN: 'admin',
 };
 
 export function AuthProvider({ children }) {
@@ -15,6 +16,8 @@ export function AuthProvider({ children }) {
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
     const [brandId, setBrandId] = useState(null);
+    const [shouldAutoLogin, setShouldAutoLogin] = useState(false);
+    const [navTarget, setNavTarget] = useState(null);
 
     useEffect(() => {
         // Check for stored session on mount
@@ -26,11 +29,17 @@ export function AuthProvider({ children }) {
             const storedUser = await AsyncStorage.getItem('@greentruth_user');
             const storedRole = await AsyncStorage.getItem('@greentruth_role');
             const storedBrandId = await AsyncStorage.getItem('@greentruth_brand_id');
+            const rememberMe = await AsyncStorage.getItem('@greentruth_remember_me');
+            const storedNavTarget = await AsyncStorage.getItem('@greentruth_nav_target');
 
-            if (storedUser && storedRole) {
+            if (storedUser && storedRole && rememberMe === 'true') {
                 setUser(JSON.parse(storedUser));
                 setRole(storedRole);
                 if (storedBrandId) setBrandId(storedBrandId);
+                if (storedNavTarget) {
+                    setShouldAutoLogin(true);
+                    setNavTarget(storedNavTarget);
+                }
             }
         } catch (error) {
             console.error('Error checking stored session:', error);
@@ -46,7 +55,7 @@ export function AuthProvider({ children }) {
                 id: `dev-${selectedRole}-${Date.now()}`,
                 email: `dev-${selectedRole}@greentruth.com`,
                 name: selectedRole === ROLES.REP ? 'John Doe' :
-                    selectedRole === ROLES.BRAND ? 'JUSBUD' : 'Green Leaf NYC',
+                    selectedRole === ROLES.BRAND ? 'JUSBUD' : 'The Green Truth NYC',
                 isDev: true,
                 ...extraData,
             };
@@ -127,14 +136,41 @@ export function AuthProvider({ children }) {
 
     const logout = async () => {
         try {
-            await AsyncStorage.multiRemove(['@greentruth_user', '@greentruth_role', '@greentruth_brand_id']);
+            await AsyncStorage.multiRemove([
+                '@greentruth_user',
+                '@greentruth_role',
+                '@greentruth_brand_id',
+                '@greentruth_remember_me',
+                '@greentruth_nav_target'
+            ]);
             await supabase.auth.signOut();
             setUser(null);
             setRole(null);
             setBrandId(null);
+            setShouldAutoLogin(false);
+            setNavTarget(null);
         } catch (error) {
             console.error('Logout error:', error);
         }
+    };
+
+    // Save remember me preference
+    const saveRememberMe = async (remember, target) => {
+        try {
+            if (remember) {
+                await AsyncStorage.setItem('@greentruth_remember_me', 'true');
+                await AsyncStorage.setItem('@greentruth_nav_target', target);
+            } else {
+                await AsyncStorage.multiRemove(['@greentruth_remember_me', '@greentruth_nav_target']);
+            }
+        } catch (error) {
+            console.error('Error saving remember preference:', error);
+        }
+    };
+
+    // Clear auto login after navigation
+    const clearAutoLogin = () => {
+        setShouldAutoLogin(false);
     };
 
     const value = {
@@ -142,6 +178,8 @@ export function AuthProvider({ children }) {
         role,
         brandId,
         loading,
+        shouldAutoLogin,
+        navTarget,
         isAuthenticated: !!user,
         isRep: role === ROLES.REP,
         isBrand: role === ROLES.BRAND,
@@ -150,6 +188,8 @@ export function AuthProvider({ children }) {
         pinLogin,
         emailLogin,
         logout,
+        saveRememberMe,
+        clearAutoLogin,
     };
 
     return (

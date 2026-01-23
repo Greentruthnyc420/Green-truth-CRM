@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function RepOrders() {
     const orders = [
-        { id: 1, dispensary: 'Green Leaf NYC', amount: 450, commission: 9.00, status: 'paid', date: 'Jan 18' },
+        { id: 1, dispensary: 'The Green Truth NYC', amount: 450, commission: 9.00, status: 'paid', date: 'Jan 18' },
         { id: 2, dispensary: 'Canna Corner', amount: 280, commission: 5.60, status: 'pending', date: 'Jan 16' },
         { id: 3, dispensary: 'NYC Wellness', amount: 620, commission: 12.40, status: 'pending', date: 'Jan 14' },
     ];

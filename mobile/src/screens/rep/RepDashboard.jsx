@@ -1,18 +1,56 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../contexts/AuthContext';
+import { getRepStats, getRepRecentActivity, formatTimeAgo } from '../../services/dataService';
 
 export default function RepDashboard() {
     const navigation = useNavigation();
+    const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        lifetimePoints: 0,
+        monthPoints: 0,
+        pendingCommission: 0,
+        upcomingActivations: 0,
+    });
+    const [activity, setActivity] = useState([]);
 
-    // Mock data - will be replaced with real data from shared services
-    const stats = {
-        lifetimePoints: 2450,
-        monthPoints: 320,
-        pendingCommission: 156.50,
-        upcomingActivations: 3,
+    useEffect(() => {
+        loadData();
+    }, [user?.id]);
+
+    const loadData = async () => {
+        if (!user?.id) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const [statsData, activityData] = await Promise.all([
+                getRepStats(user.id),
+                getRepRecentActivity(user.id, 5),
+            ]);
+            setStats(statsData);
+            setActivity(activityData);
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#10b981" />
+                    <Text style={styles.loadingText}>Loading dashboard...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -36,7 +74,7 @@ export default function RepDashboard() {
                     </View>
                     <View style={styles.statCard}>
                         <Ionicons name="cash" size={24} color="#3b82f6" />
-                        <Text style={styles.statValue}>${stats.pendingCommission}</Text>
+                        <Text style={styles.statValue}>${stats.pendingCommission.toFixed(2)}</Text>
                         <Text style={styles.statLabel}>Pending</Text>
                     </View>
                     <View style={styles.statCard}>
@@ -72,27 +110,19 @@ export default function RepDashboard() {
                 {/* Recent Activity */}
                 <Text style={styles.sectionTitle}>Recent Activity</Text>
                 <View style={styles.activityCard}>
-                    <View style={styles.activityItem}>
-                        <View style={[styles.activityDot, { backgroundColor: '#10b981' }]} />
-                        <View style={styles.activityContent}>
-                            <Text style={styles.activityTitle}>Sale logged at Green Leaf Dispensary</Text>
-                            <Text style={styles.activityTime}>2 hours ago • $245.00</Text>
-                        </View>
-                    </View>
-                    <View style={styles.activityItem}>
-                        <View style={[styles.activityDot, { backgroundColor: '#3b82f6' }]} />
-                        <View style={styles.activityContent}>
-                            <Text style={styles.activityTitle}>Activation completed</Text>
-                            <Text style={styles.activityTime}>Yesterday • 4 hours</Text>
-                        </View>
-                    </View>
-                    <View style={styles.activityItem}>
-                        <View style={[styles.activityDot, { backgroundColor: '#fbbf24' }]} />
-                        <View style={styles.activityContent}>
-                            <Text style={styles.activityTitle}>+50 points earned</Text>
-                            <Text style={styles.activityTime}>2 days ago</Text>
-                        </View>
-                    </View>
+                    {activity.length === 0 ? (
+                        <Text style={styles.emptyText}>No recent activity</Text>
+                    ) : (
+                        activity.map((item) => (
+                            <View key={item.id} style={styles.activityItem}>
+                                <View style={[styles.activityDot, { backgroundColor: item.color }]} />
+                                <View style={styles.activityContent}>
+                                    <Text style={styles.activityTitle}>{item.title}</Text>
+                                    <Text style={styles.activityTime}>{formatTimeAgo(item.date)} • {item.subtitle}</Text>
+                                </View>
+                            </View>
+                        ))
+                    )}
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -229,5 +259,21 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#9ca3af',
         marginTop: 2,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#6b7280',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#9ca3af',
+        textAlign: 'center',
+        paddingVertical: 20,
     },
 });

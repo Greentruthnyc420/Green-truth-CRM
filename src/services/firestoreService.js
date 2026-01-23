@@ -596,6 +596,16 @@ export async function getLeads() {
     // Filter out soft-deleted leads
     const { data, error } = await supabase.from('leads').select('*').neq('status', 'deleted');
 
+    if (error) {
+        console.error('Error fetching leads:', error);
+        return [];
+    }
+
+    if (!data) {
+        console.warn('No leads data returned');
+        return [];
+    }
+
     return data.map(l => ({
         id: l.id,
         dispensaryName: l.dispensary_name,
@@ -681,10 +691,20 @@ export async function getBrandLeads(brandId) {
 export async function getMyDispensaries(userId) {
     // Get all leads assigned to this user (excluding soft-deleted)
     const { data, error } = await supabase.from('leads').select('*').eq('assigned_ambassador_id', userId).neq('status', 'deleted');
-    if (error) return [];
+
+    if (error) {
+        console.error('Error fetching dispensaries:', error);
+        return [];
+    }
+
+    if (!data) {
+        console.warn('No dispensaries data returned');
+        return [];
+    }
 
     return data.map(l => ({
         id: l.id,
+        name: l.dispensary_name, // Alias for LogSale.jsx compatibility
         dispensaryName: l.dispensary_name,
         licenseNumber: l.license_number,
         address: l.address,
@@ -866,7 +886,14 @@ export async function addSale(saleData) {
         updated_at: new Date().toISOString()
     }]).select().single();
 
-    if (error) throw error;
+    if (error) {
+        console.error('Error adding sale:', error);
+        throw error;
+    }
+    if (!sale) {
+        console.error('No sale data returned after insert');
+        throw new Error('Failed to create sale');
+    }
     return sale.id;
 }
 
@@ -874,6 +901,11 @@ export async function getSales() {
     const { data, error } = await supabase.from('sales').select('*');
     if (error) {
         console.error('getSales error:', error);
+        return [];
+    }
+
+    if (!data) {
+        console.warn('No sales data returned');
         return [];
     }
 
@@ -948,32 +980,41 @@ export async function checkDuplicateLead(name) {
 }
 
 export async function getAllAccounts(userId, isAdmin) {
-    const [leads, sales] = await Promise.all([getLeads(), getSales()]);
+    try {
+        const [leads, sales] = await Promise.all([getLeads(), getSales()]);
 
-    // Create a map of dispensary names that have sales
-    const soldDispensaries = new Set();
-    sales.forEach(sale => {
-        if (sale.dispensaryName) {
-            soldDispensaries.add(sale.dispensaryName.toLowerCase());
-        }
-    });
+        // Ensure we have arrays even if fetches return null/undefined
+        const safeLeads = Array.isArray(leads) ? leads : [];
+        const safeSales = Array.isArray(sales) ? sales : [];
 
-    // Merge leads with sales info - mark leads as Sold if they have sales
-    const mergedAccounts = leads.map(lead => {
-        const hasBeenSold = soldDispensaries.has((lead.dispensaryName || '').toLowerCase()) ||
-            lead.status === 'Sold' ||
-            lead.leadStatus === 'active';
+        // Create a map of dispensary names that have sales
+        const soldDispensaries = new Set();
+        safeSales.forEach(sale => {
+            if (sale.dispensaryName) {
+                soldDispensaries.add(sale.dispensaryName.toLowerCase());
+            }
+        });
 
-        return {
-            ...lead,
-            status: hasBeenSold ? 'Sold' : (lead.status || 'New'),
-            hasSales: hasBeenSold
-        };
-    });
-    // Filter out soft-deleted leads
-    const activeLeads = mergedAccounts.filter(lead => lead.status !== 'deleted');
+        // Merge leads with sales info - mark leads as Sold if they have sales
+        const mergedAccounts = safeLeads.map(lead => {
+            const hasBeenSold = soldDispensaries.has((lead.dispensaryName || '').toLowerCase()) ||
+                lead.status === 'Sold' ||
+                lead.leadStatus === 'active';
 
-    return activeLeads;
+            return {
+                ...lead,
+                status: hasBeenSold ? 'Sold' : (lead.status || 'New'),
+                hasSales: hasBeenSold
+            };
+        });
+        // Filter out soft-deleted leads
+        const activeLeads = mergedAccounts.filter(lead => lead.status !== 'deleted');
+
+        return activeLeads;
+    } catch (error) {
+        console.error('Error in getAllAccounts:', error);
+        return []; // Return empty array instead of crashing
+    }
 }
 
 // --- BRAND PRODUCTS (Menu Items) ---

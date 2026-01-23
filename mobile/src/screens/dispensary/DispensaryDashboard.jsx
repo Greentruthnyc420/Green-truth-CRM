@@ -14,7 +14,7 @@ export default function DispensaryDashboard() {
         <SafeAreaView style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
-                    <Text style={styles.storeName}>🏪 Green Leaf NYC</Text>
+                    <Text style={styles.storeName}>🏪 The Green Truth NYC</Text>
                     <Text style={styles.title}>Dashboard</Text>
                 </View>
 

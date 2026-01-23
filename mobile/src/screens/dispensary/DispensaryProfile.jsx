@@ -40,7 +40,7 @@ export default function DispensaryProfile({ navigation }) {
                     <View style={styles.storeIcon}>
                         <Ionicons name="storefront" size={40} color="#3b82f6" />
                     </View>
-                    <Text style={styles.storeName}>{user?.name || 'Green Leaf NYC'}</Text>
+                    <Text style={styles.storeName}>{user?.name || 'The Green Truth NYC'}</Text>
                     <Text style={styles.storeAddress}>123 Cannabis Ave, New York, NY</Text>
                     <View style={styles.licenseBadge}>
                         <Ionicons name="shield-checkmark" size={14} color="#10b981" />
@@ -62,7 +62,11 @@ export default function DispensaryProfile({ navigation }) {
 
                 <View style={styles.menuSection}>
                     {menuItems.map((item, i) => (
-                        <TouchableOpacity key={i} style={styles.menuItem}>
+                        <TouchableOpacity
+                            key={i}
+                            style={styles.menuItem}
+                            onPress={() => Alert.alert(item.label, 'This feature is coming soon!')}
+                        >
                             <Ionicons name={item.icon} size={22} color="#374151" />
                             <Text style={styles.menuLabel}>{item.label}</Text>
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />

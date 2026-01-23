@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, ROLES } from '../contexts/AuthContext';
 
 export default function LoginScreen({ navigation }) {
-    const { devLogin, pinLogin } = useAuth();
+    const { devLogin, pinLogin, saveRememberMe, shouldAutoLogin, navTarget, clearAutoLogin, loading: authLoading } = useAuth();
     const [selectedRole, setSelectedRole] = useState(null);
     const [showPinInput, setShowPinInput] = useState(false);
     const [pin, setPin] = useState('');
     const [loading, setLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
+
+    // Auto-redirect if user chose "Keep me signed in"
+    useEffect(() => {
+        if (shouldAutoLogin && navTarget && !authLoading) {
+            clearAutoLogin();
+            navigation.replace(navTarget);
+        }
+    }, [shouldAutoLogin, navTarget, authLoading]);
 
     const roles = [
         { id: ROLES.REP, name: 'Sales Rep', icon: 'people', color: '#10b981', bgColor: '#d1fae5', navTarget: 'RepTabs' },
         { id: ROLES.BRAND, name: 'Brand Partner', icon: 'business', color: '#8b5cf6', bgColor: '#ede9fe', navTarget: 'BrandTabs' },
         { id: ROLES.DISPENSARY, name: 'Dispensary', icon: 'storefront', color: '#3b82f6', bgColor: '#dbeafe', navTarget: 'DispensaryTabs' },
+        { id: ROLES.ADMIN, name: 'Admin', icon: 'shield-checkmark', color: '#ef4444', bgColor: '#fee2e2', navTarget: 'AdminTabs' },
     ];
 
     const handleRoleSelect = (role) => {
@@ -29,6 +39,8 @@ export default function LoginScreen({ navigation }) {
             });
 
             if (result.success) {
+                // Save remember preference
+                await saveRememberMe(rememberMe, role.navTarget);
                 navigation.replace(role.navTarget);
             } else {
                 Alert.alert('Login Failed', result.error || 'Unknown error');
@@ -51,6 +63,8 @@ export default function LoginScreen({ navigation }) {
             const result = await pinLogin(selectedRole.id, pin);
 
             if (result.success) {
+                // Save remember preference
+                await saveRememberMe(rememberMe, selectedRole.navTarget);
                 navigation.replace(selectedRole.navTarget);
             } else {
                 Alert.alert('Login Failed', result.error || 'Invalid credentials');
@@ -88,6 +102,17 @@ export default function LoginScreen({ navigation }) {
                         autoFocus
                     />
 
+                    {/* Keep me signed in checkbox */}
+                    <TouchableOpacity
+                        style={styles.rememberMeContainer}
+                        onPress={() => setRememberMe(!rememberMe)}
+                    >
+                        <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                            {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
+                        </View>
+                        <Text style={styles.rememberMeText}>Keep me signed in</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         style={[styles.loginButton, { backgroundColor: selectedRole.color }]}
                         onPress={handlePinSubmit}
@@ -117,7 +142,7 @@ export default function LoginScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.logo}>🌿 GreenTruth</Text>
+                <Text style={styles.logo}>🌿 The Green Truth NYC</Text>
                 <Text style={styles.subtitle}>Cannabis B2B Platform</Text>
             </View>
 
@@ -328,5 +353,29 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.8)',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    rememberMeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        alignSelf: 'flex-start',
+    },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#d1d5db',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    checkboxChecked: {
+        backgroundColor: '#10b981',
+        borderColor: '#10b981',
+    },
+    rememberMeText: {
+        fontSize: 14,
+        color: '#374151',
     },
 });

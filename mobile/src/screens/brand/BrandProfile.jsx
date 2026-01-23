@@ -66,7 +66,11 @@ export default function BrandProfile({ navigation }) {
 
                 <View style={styles.menuSection}>
                     {menuItems.map((item, i) => (
-                        <TouchableOpacity key={i} style={styles.menuItem}>
+                        <TouchableOpacity
+                            key={i}
+                            style={styles.menuItem}
+                            onPress={() => Alert.alert(item.label, 'This feature is coming soon!')}
+                        >
                             <Ionicons name={item.icon} size={22} color="#374151" />
                             <Text style={styles.menuLabel}>{item.label}</Text>
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />

@@ -16,6 +16,7 @@ export default function Accounts() {
     const { showNotification } = useNotification();
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all');
 
@@ -36,13 +37,22 @@ export default function Accounts() {
 
     useEffect(() => {
         async function load() {
-            if (currentUser) {
-                const data = await getAllAccounts(currentUser.uid, isAdmin);
-                // Handle if getAllAccounts returns object or array
-                const accountsArray = Array.isArray(data) ? data : (data?.leads || []);
-                setAccounts(accountsArray);
+            setLoading(true);
+            setError(null);
+            try {
+                if (currentUser) {
+                    const data = await getAllAccounts(currentUser.uid, isAdmin);
+                    // Handle if getAllAccounts returns object or array
+                    const accountsArray = Array.isArray(data) ? data : (data?.leads || []);
+                    setAccounts(accountsArray);
+                }
+            } catch (err) {
+                console.error('Error loading accounts:', err);
+                setError('Failed to load accounts. Please try refreshing the page.');
+                showNotification('Failed to load accounts', 'error');
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
         load();
     }, [currentUser, isAdmin]);
@@ -146,6 +156,17 @@ export default function Accounts() {
                 <div className="text-center py-12 text-slate-500">
                     <Loader size={32} className="animate-spin mx-auto mb-2" />
                     Loading accounts...
+                </div>
+            ) : error ? (
+                <div className="text-center py-12 bg-red-50 rounded-xl border border-red-200">
+                    <AlertTriangle size={32} className="text-red-500 mx-auto mb-2" />
+                    <p className="text-red-600 font-medium">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors inline-flex items-center gap-2"
+                    >
+                        <RefreshCw size={16} /> Refresh Page
+                    </button>
                 </div>
             ) : filteredAccounts.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">

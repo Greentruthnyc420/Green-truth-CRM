@@ -18,6 +18,10 @@ import DispensaryDashboard from '../screens/dispensary/DispensaryDashboard';
 import DispensaryMarketplace from '../screens/dispensary/DispensaryMarketplace';
 import DispensaryOrders from '../screens/dispensary/DispensaryOrders';
 import DispensaryProfile from '../screens/dispensary/DispensaryProfile';
+import AdminDashboard from '../screens/admin/AdminDashboard';
+import AdminTeam from '../screens/admin/AdminTeam';
+import AdminPipeline from '../screens/admin/AdminPipeline';
+import AdminSettings from '../screens/admin/AdminSettings';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -100,6 +104,32 @@ function DispensaryTabs() {
     );
 }
 
+// Admin Tab Navigator
+function AdminTabs() {
+    return (
+        <Tab.Navigator
+            screenOptions={({ route }) => ({
+                tabBarIcon: ({ focused, color, size }) => {
+                    let iconName;
+                    if (route.name === 'Dashboard') iconName = focused ? 'grid' : 'grid-outline';
+                    else if (route.name === 'Team') iconName = focused ? 'people' : 'people-outline';
+                    else if (route.name === 'Pipeline') iconName = focused ? 'business' : 'business-outline';
+                    else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
+                    return <Ionicons name={iconName} size={size} color={color} />;
+                },
+                tabBarActiveTintColor: '#ef4444',
+                tabBarInactiveTintColor: 'gray',
+                headerShown: false,
+            })}
+        >
+            <Tab.Screen name="Dashboard" component={AdminDashboard} />
+            <Tab.Screen name="Team" component={AdminTeam} />
+            <Tab.Screen name="Pipeline" component={AdminPipeline} />
+            <Tab.Screen name="Settings" component={AdminSettings} />
+        </Tab.Navigator>
+    );
+}
+
 // Main App Navigator
 export default function AppNavigator() {
     return (
@@ -109,6 +139,7 @@ export default function AppNavigator() {
                 <Stack.Screen name="RepTabs" component={RepTabs} />
                 <Stack.Screen name="BrandTabs" component={BrandTabs} />
                 <Stack.Screen name="DispensaryTabs" component={DispensaryTabs} />
+                <Stack.Screen name="AdminTabs" component={AdminTabs} />
             </Stack.Navigator>
         </NavigationContainer>
     );
