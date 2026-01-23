@@ -130,6 +130,32 @@ export async function sendTeamInvite(to, inviteData) {
     });
 }
 
+/**
+ * Send dispensary signup notification to admin
+ * Called when a new dispensary registers on the platform
+ */
+export async function sendDispensarySignupNotification(dispensaryData) {
+    // Send to admin email(s)
+    const adminEmail = 'omar@thegreentruthnyc.com';
+
+    return sendEmailNotification('dispensary_signup', adminEmail, {
+        dispensaryName: dispensaryData.dispensaryName,
+        contactName: dispensaryData.contactName,
+        email: dispensaryData.email,
+        address: dispensaryData.address,
+        licenseNumber: dispensaryData.licenseNumber,
+        referredBy: dispensaryData.referredBy || 'Self-Service',
+        registrationDate: new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }),
+    });
+}
+
 // Legacy Firebase function for backward compatibility
 export { sendInvoiceEmail } from './emailServiceLegacy';
 
@@ -141,4 +167,5 @@ export default {
     sendActivationScheduled,
     sendInvoiceReady,
     sendTeamInvite,
+    sendDispensarySignupNotification,
 };

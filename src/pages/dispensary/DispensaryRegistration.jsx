@@ -6,6 +6,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { createUserProfile, checkDuplicateLead, addLead } from '../../services/firestoreService';
 import { geocodeAddress } from '../../utils/geocoding';
 import { getAuthErrorMessage } from '../../utils/authErrors';
+import { sendDispensarySignupNotification } from '../../services/emailService';
 
 export default function DispensaryRegistration() {
     const [formData, setFormData] = useState({
@@ -114,6 +115,23 @@ export default function DispensaryRegistration() {
             // Clean up session storage
             sessionStorage.removeItem('verified_license');
             sessionStorage.removeItem('dispensary_referral_rep');
+
+            // Send email notification to admin about new dispensary signup
+            try {
+                await sendDispensarySignupNotification({
+                    dispensaryName: dispensaryName,
+                    contactName: formData.name,
+                    email: formData.email,
+                    address: formData.address,
+                    licenseNumber: licenseNumber,
+                    referredBy: verifiedData.referralRepId || null
+                });
+                console.log('✅ Admin notified of new dispensary signup');
+            } catch (emailError) {
+                console.warn('Failed to send signup notification email:', emailError);
+                // Don't fail registration if email fails
+            }
+
             showNotification('Account created successfully!', 'success');
             navigate('/dispensary');
         } catch (error) {
