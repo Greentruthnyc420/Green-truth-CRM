@@ -68,7 +68,7 @@ export default function DispensaryVerification() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="max-w-md w-full">
+            <div className="max-w-xl w-full">
                 {/* Referral Banner */}
                 {referralRep && (
                     <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3">
@@ -91,12 +91,13 @@ export default function DispensaryVerification() {
                 </button>
 
                 <div className="text-center mb-10">
-                    {/* Logo - Very large and visually centered (pr-3 compensates for NYC text) */}
-                    <div className="h-52 md:h-72 w-full flex items-center justify-center mb-6 pr-3">
+                    {/* Logo - Large, width-based, with transform to visually center */}
+                    <div className="w-full flex items-center justify-center mb-6">
                         <img
                             src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth NYC"
-                            className="h-full w-auto object-contain filter drop-shadow-lg"
+                            className="w-full max-w-md object-contain filter drop-shadow-lg"
+                            style={{ transform: 'translateX(-8px)' }}
                         />
                     </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dispensary Portal</h1>

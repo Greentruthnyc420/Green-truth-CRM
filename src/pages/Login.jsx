@@ -127,7 +127,7 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
-            <div className="themed-card w-full max-w-md rounded-2xl overflow-hidden">
+            <div className="themed-card w-full max-w-xl rounded-2xl overflow-hidden">
 
                 {/* Header Section - Reduced padding on mobile */}
                 <div className="bg-slate-900 p-6 md:p-8 text-center relative overflow-hidden">
@@ -137,9 +137,9 @@ export default function Login() {
                         Back
                     </NavLink>
                     <div className="relative z-10">
-                        {/* Logo - Very large and visually centered (pr-4 compensates for NYC text on right) */}
-                        <div className="h-52 md:h-72 w-full flex items-center justify-center mb-4 md:mb-6 pr-3">
-                            <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="h-full w-auto object-contain filter drop-shadow-lg" />
+                        {/* Logo - Large, width-based, with transform to visually center (shift left 8px for NYC text) */}
+                        <div className="w-full flex items-center justify-center mb-4 md:mb-6">
+                            <img src="/logos/green-truth-logo-dark.png" alt="GreenTruth Logo" className="w-full max-w-md object-contain filter drop-shadow-lg" style={{ transform: 'translateX(-8px)' }} />
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">
                             {isRegistering ? 'Create Account' : 'Welcome Back'}

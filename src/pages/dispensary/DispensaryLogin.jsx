@@ -38,7 +38,7 @@ export default function DispensaryLogin() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col justify-center p-4">
-            <div className="max-w-md w-full mx-auto">
+            <div className="max-w-xl w-full mx-auto">
                 <button
                     onClick={() => navigate('/dispensary/verify')}
                     className="flex items-center gap-2 text-slate-500 hover:text-emerald-600 font-medium transition-colors mb-6 ml-2"
@@ -47,12 +47,13 @@ export default function DispensaryLogin() {
                 </button>
 
                 <div className="text-center mb-8">
-                    {/* Logo - Very large and visually centered (pr-3 compensates for NYC text) */}
-                    <div className="h-52 md:h-72 w-full flex items-center justify-center mb-4 pr-3">
+                    {/* Logo - Large, width-based, with transform to visually center */}
+                    <div className="w-full flex items-center justify-center mb-4">
                         <img
                             src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth NYC"
-                            className="h-full w-auto object-contain filter drop-shadow-lg"
+                            className="w-full max-w-md object-contain filter drop-shadow-lg"
+                            style={{ transform: 'translateX(-8px)' }}
                         />
                     </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dispensary Login</h1>

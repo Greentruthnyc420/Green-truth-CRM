@@ -73,7 +73,7 @@ export default function AdminLogin() {
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
             </div>
 
-            <div className="relative z-10 bg-slate-800/50 backdrop-blur-xl w-full max-w-md rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+            <div className="relative z-10 bg-slate-800/50 backdrop-blur-xl w-full max-w-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
 
                 {/* Header */}
                 <div className="bg-slate-950/50 p-8 text-center border-b border-slate-700/50">
@@ -82,12 +82,13 @@ export default function AdminLogin() {
                         Back to Gateway
                     </NavLink>
 
-                    {/* Logo - Very large and visually centered (pr-3 compensates for NYC text) */}
-                    <div className="h-52 md:h-72 w-full flex items-center justify-center mb-4 pr-3">
+                    {/* Logo - Large, width-based, with transform to visually center */}
+                    <div className="w-full flex items-center justify-center mb-4">
                         <img
                             src="/logos/green-truth-logo-dark.png"
                             alt="GreenTruth"
-                            className="h-full w-auto object-contain filter drop-shadow-lg"
+                            className="w-full max-w-md object-contain filter drop-shadow-lg"
+                            style={{ transform: 'translateX(-8px)' }}
                         />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Admin Portal</h2>
