@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 export default function RepDashboard() {
+    const navigation = useNavigation();
+
     // Mock data - will be replaced with real data from shared services
     const stats = {
         lifetimePoints: 2450,
@@ -46,9 +49,24 @@ export default function RepDashboard() {
                 {/* Quick Actions */}
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
                 <View style={styles.actionsContainer}>
-                    <ActionButton icon="add-circle" label="Log Sale" color="#10b981" onPress={() => Alert.alert('Log Sale', 'Navigate to Log Sale screen')} />
-                    <ActionButton icon="scan" label="Check In" color="#3b82f6" onPress={() => Alert.alert('Check In', 'Navigate to Check In screen')} />
-                    <ActionButton icon="document-text" label="Submit Hours" color="#8b5cf6" onPress={() => Alert.alert('Submit Hours', 'Navigate to Submit Hours screen')} />
+                    <ActionButton
+                        icon="add-circle"
+                        label="Log Sale"
+                        color="#10b981"
+                        onPress={() => navigation.navigate('Orders')}
+                    />
+                    <ActionButton
+                        icon="scan"
+                        label="Check In"
+                        color="#3b82f6"
+                        onPress={() => navigation.navigate('Activations')}
+                    />
+                    <ActionButton
+                        icon="document-text"
+                        label="Submit Hours"
+                        color="#8b5cf6"
+                        onPress={() => navigation.navigate('Activations')}
+                    />
                 </View>
 
                 {/* Recent Activity */}
