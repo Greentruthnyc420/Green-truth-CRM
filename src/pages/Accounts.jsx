@@ -379,6 +379,17 @@ export default function Accounts() {
                                 </div>
 
                                 <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Created Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full p-3 border border-slate-200 rounded-xl focus:ring-brand-500 focus:border-brand-500 outline-none"
+                                        value={selectedAccount?.createdAt ? new Date(selectedAccount.createdAt).toISOString().split('T')[0] : ''}
+                                        onChange={e => setSelectedAccount({ ...selectedAccount, createdAt: new Date(e.target.value).toISOString() })}
+                                    />
+                                    <p className="text-xs text-slate-400 mt-1">📅 Update this to fix "date unknown" issues on invoices</p>
+                                </div>
+
+                                <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
                                     <div className="flex gap-2">
                                         <input

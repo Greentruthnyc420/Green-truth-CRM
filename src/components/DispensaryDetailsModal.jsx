@@ -136,7 +136,11 @@ export default function DispensaryDetailsModal({ isOpen, onClose, dispensary, on
                                 <div>
                                     <p className="text-xs text-slate-400 font-bold mb-1">Created Date</p>
                                     <p className="text-sm text-slate-600">
-                                        {dispensary.createdAt?.toDate ? dispensary.createdAt.toDate().toLocaleDateString() : 'Unknown'}
+                                        {dispensary.createdAt
+                                            ? (dispensary.createdAt.toDate
+                                                ? dispensary.createdAt.toDate().toLocaleDateString()
+                                                : new Date(dispensary.createdAt).toLocaleDateString())
+                                            : 'Unknown - Click Edit to update'}
                                     </p>
                                 </div>
                             </div>
