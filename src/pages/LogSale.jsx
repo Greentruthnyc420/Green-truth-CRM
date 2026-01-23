@@ -35,8 +35,8 @@ export default function LogSale() {
     const [analyzingLicense, setAnalyzingLicense] = useState(false);
     const [licensePreview, setLicensePreview] = useState(null);
 
-    // Helper to get mode
-    const getMode = (productId) => pricingModes[productId] || 'unit';
+    // Helper to get mode - defaults to 'case' for all users
+    const getMode = (productId) => pricingModes[productId] || 'case';
 
     const handleLicenseImageChange = async (e) => {
         const file = e.target.files[0];
