@@ -151,15 +151,21 @@ export async function getDispensaryAnalytics(dispensaryId) {
     if (!dispensaryId) return getEmptyDispensaryContext();
 
     try {
-        const [ordersResult, invoicesResult, activationsResult] = await Promise.all([
+        const [ordersResult, invoicesResult, activationsResult, dealsResult, productsResult] = await Promise.all([
             supabase.from('orders').select('*').eq('dispensary_id', dispensaryId).order('created_at', { ascending: false }),
             supabase.from('invoices').select('*').eq('dispensary_id', dispensaryId),
-            supabase.from('activations').select('*').or(`dispensary_id.eq.${dispensaryId},dispensaryId.eq.${dispensaryId}`)
+            supabase.from('activations').select('*').or(`dispensary_id.eq.${dispensaryId},dispensaryId.eq.${dispensaryId}`),
+            // Fetch all active deals
+            supabase.from('deals').select('*').eq('is_active', true).or('expires_at.is.null,expires_at.gt.' + new Date().toISOString()),
+            // Fetch all products with in_stock = true
+            supabase.from('products').select('*').eq('in_stock', true)
         ]);
 
         const orders = ordersResult.data || [];
         const invoices = invoicesResult.data || [];
         const activations = activationsResult.data || [];
+        const deals = dealsResult.data || [];
+        const products = productsResult.data || [];
 
         // Calculate metrics
         const totalSpend = orders.reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0);
@@ -193,6 +199,36 @@ export async function getDispensaryAnalytics(dispensaryId) {
                 repName: a.rep_name || a.repName
             }));
 
+        // Format active deals for AI context
+        const activeDeals = deals
+            .filter(d => d.is_active)
+            .map(d => ({
+                name: d.name,
+                type: d.deal_type,
+                discount: d.discount_percent ? `${d.discount_percent}%` : d.discount_amount ? `$${d.discount_amount}` : 'Varies',
+                target: d.target_type === 'brand' ? 'All Products' : d.target_category || d.target_type,
+                expiresAt: d.expires_at,
+                minOrderQty: d.min_order_qty || 1,
+                badgeText: d.badge_text
+            }));
+
+        // Format products by brand for AI context
+        const productsByBrand = {};
+        products.forEach(p => {
+            const brandName = p.brand_name || 'Unknown Brand';
+            if (!productsByBrand[brandName]) {
+                productsByBrand[brandName] = [];
+            }
+            productsByBrand[brandName].push({
+                name: p.name,
+                category: p.category,
+                price: p.price,
+                caseSize: p.case_size || p.quantity,
+                strainType: p.strain_type,
+                thc: p.thc_content
+            });
+        });
+
         return {
             dispensaryId,
             totalSpend,
@@ -204,6 +240,10 @@ export async function getDispensaryAnalytics(dispensaryId) {
             recentOrders,
             upcomingActivations,
             averageOrderValue: totalOrders > 0 ? totalSpend / totalOrders : 0,
+            // NEW: Real deals and products for AI grounding
+            activeDeals,
+            productsByBrand,
+            totalProductCount: products.length,
             lastUpdated: new Date().toISOString()
         };
     } catch (error) {
@@ -335,7 +375,11 @@ function getEmptyDispensaryContext() {
         brandsOrdered: [],
         recentOrders: [],
         upcomingActivations: [],
-        averageOrderValue: 0
+        averageOrderValue: 0,
+        // AI Chatbot grounding fields
+        activeDeals: [],
+        productsByBrand: {},
+        totalProductCount: 0
     };
 }
 

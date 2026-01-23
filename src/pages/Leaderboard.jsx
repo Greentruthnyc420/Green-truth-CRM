@@ -65,38 +65,52 @@ export default function Leaderboard() {
     }, []);
 
     const getRankIcon = (index) => {
-        if (index === 0) return <Crown className="text-yellow-500 fill-yellow-100" size={32} />;
-        if (index === 1) return <Medal className="text-slate-400 fill-slate-100" size={28} />;
-        if (index === 2) return <Medal className="text-amber-600 fill-amber-100" size={28} />;
-        return <span className="text-slate-400 font-bold text-lg">#{index + 1}</span>;
+        if (index === 0) return <Crown className="text-yellow-500 fill-yellow-500/20" size={32} />;
+        if (index === 1) return <Medal className="text-slate-400 fill-slate-400/20" size={28} />;
+        if (index === 2) return <Medal className="text-amber-600 fill-amber-600/20" size={28} />;
+        return <span style={{ color: 'var(--text-tertiary)' }} className="font-bold text-lg">#{index + 1}</span>;
     };
 
+    // Use inline styles with CSS variables for theme compatibility
     const getRowStyle = (index) => {
-        if (index === 0) return "bg-yellow-50/50 border-yellow-100";
-        if (index === 1) return "bg-slate-50/50 border-slate-100";
-        if (index === 2) return "bg-orange-50/30 border-orange-100";
-        return "bg-white border-slate-50";
+        if (index === 0) return {
+            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.05))',
+            borderColor: 'rgba(234, 179, 8, 0.3)'
+        };
+        if (index === 1) return {
+            background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.15), rgba(148, 163, 184, 0.05))',
+            borderColor: 'rgba(148, 163, 184, 0.3)'
+        };
+        if (index === 2) return {
+            background: 'linear-gradient(135deg, rgba(194, 65, 12, 0.15), rgba(194, 65, 12, 0.05))',
+            borderColor: 'rgba(194, 65, 12, 0.3)'
+        };
+        return {
+            background: 'var(--bg-card)',
+            borderColor: 'var(--border-primary)'
+        };
     };
 
     return (
         <div className="space-y-6">
             <div className="text-center mb-6">
                 <KingCropHeader />
-                <p className="text-slate-400 font-bold tracking-widest text-sm uppercase mt-2">
+                <p style={{ color: 'var(--text-tertiary)' }} className="font-bold tracking-widest text-sm uppercase mt-2">
                     Season: {getCurrentQuarterLabel()}
                 </p>
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-slate-400">Loading the tank...</div>
+                <div className="text-center py-12" style={{ color: 'var(--text-tertiary)' }}>Loading the tank...</div>
             ) : leaderboard.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">No sales reps found. Add some leads to start earning points!</div>
+                <div className="text-center py-12" style={{ color: 'var(--text-tertiary)' }}>No sales reps found. Add some leads to start earning points!</div>
             ) : (
                 <div className="grid gap-4">
                     {leaderboard.map((rep, index) => (
                         <div
                             key={rep.id || index}
-                            className={`relative p-6 rounded-2xl border-2 transition-transform hover:scale-[1.01] ${getRowStyle(index)} shadow-sm`}
+                            className="relative p-6 rounded-2xl border-2 transition-transform hover:scale-[1.01] shadow-sm"
+                            style={getRowStyle(index)}
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-6">
@@ -105,11 +119,20 @@ export default function Leaderboard() {
                                     </div>
 
                                     <div>
-                                        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                        <h3 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                                             {rep.name}
-                                            {index === 0 && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full border border-yellow-200">Current Leader</span>}
+                                            {index === 0 && (
+                                                <span className="px-2 py-0.5 text-xs rounded-full border"
+                                                    style={{
+                                                        background: 'rgba(234, 179, 8, 0.2)',
+                                                        color: 'rgb(202, 138, 4)',
+                                                        borderColor: 'rgba(234, 179, 8, 0.3)'
+                                                    }}>
+                                                    Current Leader
+                                                </span>
+                                            )}
                                         </h3>
-                                        <div className="flex gap-4 mt-1 text-sm text-slate-500">
+                                        <div className="flex gap-4 mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                             <span className="flex items-center gap-1">
                                                 <Award size={14} />
                                                 {rep.salesCount} Sales (5pts)
@@ -123,10 +146,10 @@ export default function Leaderboard() {
                                 </div>
 
                                 <div className="text-right">
-                                    <div className="text-3xl font-black text-brand-600">
-                                        {rep.score.toFixed(2)} <span className="text-sm font-medium text-slate-400">pts</span>
+                                    <div className="text-3xl font-black" style={{ color: 'var(--accent-primary)' }}>
+                                        {rep.score.toFixed(2)} <span className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>pts</span>
                                     </div>
-                                    <div className="text-sm font-semibold text-emerald-600 flex items-center justify-end gap-1 mt-1">
+                                    <div className="text-sm font-semibold flex items-center justify-end gap-1 mt-1" style={{ color: 'rgb(16, 185, 129)' }}>
                                         <TrendingUp size={14} />
                                         ${rep.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
@@ -139,3 +162,4 @@ export default function Leaderboard() {
         </div>
     );
 }
+

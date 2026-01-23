@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, THEMES } from '../contexts/ThemeContext';
 import ThemeSwitcher, { ThemeToggleButton } from './ThemeSwitcher';
+import NotificationBell from './NotificationBell';
+
 export default function AdminLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
     const { logout, currentUser } = useAuth();
@@ -147,12 +149,20 @@ export default function AdminLayout() {
                 {/* Mobile Top Bar */}
                 <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-30">
                     <span className="font-bold text-white tracking-widest uppercase text-sm">Admin Portal</span>
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                        {currentUser?.email?.[0].toUpperCase() || 'A'}
+                    <div className="flex items-center gap-3">
+                        <NotificationBell />
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                            {currentUser?.email?.[0].toUpperCase() || 'A'}
+                        </div>
                     </div>
                 </div >
 
-                <div className="p-4 md:p-8 pb-24 md:pb-8">
+                {/* Desktop Top Bar with Notifications */}
+                <div className="hidden md:flex items-center justify-end gap-4 p-4 sticky top-0 z-30" style={{ background: 'var(--bg-primary)' }}>
+                    <NotificationBell />
+                </div>
+
+                <div className="p-4 md:p-8 pb-24 md:pb-8 md:pt-0">
                     <Outlet />
                 </div>
 

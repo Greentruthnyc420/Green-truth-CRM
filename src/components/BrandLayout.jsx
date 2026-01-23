@@ -7,6 +7,7 @@ import LayoutTourWrapper from './LayoutTourWrapper';
 import { LayoutDashboard, ShoppingCart, FileText, Menu, Package, ArrowDownLeft, ArrowUpRight, Navigation, Calendar, UserPlus, Settings, X, Car, GitBranch, MoreHorizontal, Tag, Link2, LogOut, ShieldCheck, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandUnifiedSettingsMenu from './BrandUnifiedSettingsMenu';
+import NotificationBell from './NotificationBell';
 
 export default function BrandLayout() {
     const { brandUser, logoutBrand, switchBrand } = useBrandAuth();
@@ -228,8 +229,11 @@ export default function BrandLayout() {
                             )}
                             <span className="font-bold text-white truncate max-w-[150px]">{brandUser?.brandName}</span>
                         </div>
-                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-sm font-bold text-white">
-                            {initials}
+                        <div className="flex items-center gap-2">
+                            <NotificationBell />
+                            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-sm font-bold text-white">
+                                {initials}
+                            </div>
                         </div>
                     </header>
 

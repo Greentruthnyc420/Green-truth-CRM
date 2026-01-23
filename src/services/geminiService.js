@@ -542,8 +542,8 @@ Guidelines:
 /**
  * Generates AI responses for the Dispensary chatbot about pricing, deals, and orders.
  * @param {string} question - The user's question
- * @param {Array} productCatalog - The product catalog data
- * @param {Object} dispensaryContext - Live dispensary analytics (orders, spending, etc.)
+ * @param {Array} productCatalog - The product catalog data (fallback, prefers context.productsByBrand)
+ * @param {Object} dispensaryContext - Live dispensary analytics (orders, spending, deals, products)
  * @returns {Promise<string>} - AI response
  */
 export async function generateDispensaryResponse(question, productCatalog, dispensaryContext = {}) {
@@ -551,14 +551,45 @@ export async function generateDispensaryResponse(question, productCatalog, dispe
         return "AI service not configured. Please check your API key.";
     }
 
-    // Build product and pricing summary
-    const catalogSummary = productCatalog.map(brand => {
-        const priceRange = brand.products.length > 0
-            ? `$${Math.min(...brand.products.map(p => p.price)).toFixed(2)} - $${Math.max(...brand.products.map(p => p.price)).toFixed(2)}`
-            : 'N/A';
-        const minOrder = brand.minimumOrder?.value ? `$${brand.minimumOrder.value} min` : 'No minimum';
-        return `**${brand.name}**: ${brand.products.length} products, ${priceRange}, ${minOrder}`;
-    }).join('\n');
+    // Build product summary - prefer real database products if available
+    let catalogSummary = '';
+    if (dispensaryContext.productsByBrand && Object.keys(dispensaryContext.productsByBrand).length > 0) {
+        // Use real products from database
+        catalogSummary = Object.entries(dispensaryContext.productsByBrand).map(([brandName, products]) => {
+            const priceRange = products.length > 0
+                ? `$${Math.min(...products.map(p => p.price || 0)).toFixed(2)} - $${Math.max(...products.map(p => p.price || 0)).toFixed(2)}`
+                : 'N/A';
+            const topProducts = products.slice(0, 3).map(p => p.name).join(', ');
+            return `**${brandName}**: ${products.length} products (${priceRange}) - ${topProducts}`;
+        }).join('\n');
+    } else if (productCatalog && productCatalog.length > 0) {
+        // Fall back to static product catalog
+        catalogSummary = productCatalog.map(brand => {
+            const priceRange = brand.products.length > 0
+                ? `$${Math.min(...brand.products.map(p => p.price)).toFixed(2)} - $${Math.max(...brand.products.map(p => p.price)).toFixed(2)}`
+                : 'N/A';
+            const minOrder = brand.minimumOrder?.value ? `$${brand.minimumOrder.value} min` : 'No minimum';
+            return `**${brand.name}**: ${brand.products.length} products, ${priceRange}, ${minOrder}`;
+        }).join('\n');
+    } else {
+        catalogSummary = 'Product catalog not available. Contact sales rep for pricing.';
+    }
+
+    // Build deals section from real database data
+    let dealsSection = '';
+    if (dispensaryContext.activeDeals && dispensaryContext.activeDeals.length > 0) {
+        dealsSection = `CURRENT DEALS & PROMOTIONS:
+${dispensaryContext.activeDeals.map(d => {
+            const expiry = d.expiresAt ? ` (expires ${new Date(d.expiresAt).toLocaleDateString()})` : '';
+            return `- ${d.badgeText ? `[${d.badgeText}] ` : ''}${d.name}: ${d.discount} off ${d.target}${expiry}`;
+        }).join('\n')}`;
+    } else {
+        // Default deals if no active deals in database
+        dealsSection = `CURRENT DEALS:
+- Bulk orders over $2,000: 5% discount
+- Cash on Delivery: Additional 3% discount
+- First-time orders: Free shipping`;
+    }
 
     // Build dispensary-specific context
     const dispensaryInfo = dispensaryContext.totalOrders > 0 ? `
@@ -578,17 +609,13 @@ ${dispensaryContext.recentOrders?.length > 0 ? `\nRecent Orders:\n${dispensaryCo
 
 You help dispensary owners with:
 - Product pricing and availability
-- Bulk discount information
-- Cash-on-delivery (COD) deals
+- Current deals and discount information
 - Minimum order requirements
 - Brand comparisons
 - Placing orders
 - Order history and account status
 
-CURRENT DEALS:
-- Bulk orders over $2,000: 5% discount
-- Cash on Delivery: Additional 3% discount
-- First-time orders: Free shipping
+${dealsSection}
 
 ${dispensaryInfo}
 
@@ -597,9 +624,8 @@ ${catalogSummary}
 
 Guidelines:
 - Be professional and helpful (max 100 words)
-- Mention deals when relevant
+- ONLY mention deals that are listed above - do NOT make up deals
 - Always confirm minimum order requirements
-- Encourage bulk + COD for best savings
 - Reference their order history when relevant
 - If they have outstanding balance, gently remind them
 - If unsure about inventory, recommend contacting sales rep`;

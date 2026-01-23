@@ -65,6 +65,18 @@ const ERP_SYSTEMS = [
     }
 ];
 
+// Integration data for Compliance systems
+const COMPLIANCE_SYSTEMS = [
+    {
+        id: 'metrc',
+        name: 'METRC',
+        logo: '🔒',
+        description: 'State-mandated seed-to-sale cannabis tracking system used across multiple states',
+        color: '#059669',
+        features: ['Package tracking', 'Transfer manifests', 'Regulatory reporting']
+    }
+];
+
 // Integration Card Component
 function IntegrationCard({ integration, index }) {
     return (
@@ -94,7 +106,7 @@ function IntegrationCard({ integration, index }) {
                     {integration.logo}
                 </div>
                 <div className="min-w-0">
-                    <h3 className="font-bold text-lg truncate" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
                         {integration.name}
                     </h3>
                     <span className="text-xs" style={{ color: integration.color }}>
@@ -139,7 +151,7 @@ function IntegrationCard({ integration, index }) {
 }
 
 // Main Component
-export default function IntegrationsPreview({ showPOS = true, showERP = true, portalType = 'dispensary' }) {
+export default function IntegrationsPreview({ showPOS = true, showERP = true, showCompliance = true, portalType = 'dispensary' }) {
     return (
         <div className="mt-8 p-6 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
             {/* Section Header */}
@@ -202,6 +214,26 @@ export default function IntegrationsPreview({ showPOS = true, showERP = true, po
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {ERP_SYSTEMS.map((integration, index) => (
+                            <IntegrationCard key={integration.id} integration={integration} index={index} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Compliance Systems Section */}
+            {showCompliance && (
+                <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="text-lg">🔒</span>
+                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                            Compliance & Tracking
+                        </h3>
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669' }}>
+                            {COMPLIANCE_SYSTEMS.length} integrations
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {COMPLIANCE_SYSTEMS.map((integration, index) => (
                             <IntegrationCard key={integration.id} integration={integration} index={index} />
                         ))}
                     </div>

@@ -1,6 +1,7 @@
 // firestoreService.js - Updated to fix activation exports
 import { supabase } from './supabaseClient';
 import { db } from "../firebase"; // Keeping for Auth ref if needed, but mostly unused now
+import { notifyAdminsLeadAdded, notifyAdminsSaleLogged, notifyAdminsActivationLogged } from './notificationService';
 
 // Status Constants (Keep same)
 export const LEAD_STATUS = {
@@ -620,6 +621,17 @@ export async function addLead(leadData) {
         console.warn("Supabase addLead failed", error);
         throw error;
     }
+
+    // Notify admins about the new lead
+    try {
+        await notifyAdminsLeadAdded(
+            leadData.dispensaryName || 'New Dispensary',
+            leadData.repAssigned || 'Sales Rep'
+        );
+    } catch (notifyError) {
+        console.warn('Failed to send lead notification:', notifyError);
+    }
+
     return { id: data.id };
 }
 
@@ -931,6 +943,18 @@ export async function addSale(saleData) {
         console.error('No sale data returned after insert');
         throw new Error('Failed to create sale');
     }
+
+    // Notify admins about the new sale
+    try {
+        await notifyAdminsSaleLogged(
+            saleData.dispensaryName || 'Unknown Dispensary',
+            saleData.totalAmount || saleData.amount || 0,
+            repName
+        );
+    } catch (notifyError) {
+        console.warn('Failed to send sale notification:', notifyError);
+    }
+
     return sale.id;
 }
 
@@ -1205,6 +1229,19 @@ export async function addActivation(data) {
     }]).select().single();
 
     if (error) throw error;
+
+    // Notify admins about the new activation
+    try {
+        // We need to get dispensary name and rep name - fetch them if needed
+        let dispensaryName = data.dispensaryName || 'Unknown Dispensary';
+        let brandName = data.brandName || 'Unknown Brand';
+        let repName = data.repName || 'Sales Rep';
+
+        await notifyAdminsActivationLogged(dispensaryName, brandName, repName);
+    } catch (notifyError) {
+        console.warn('Failed to send activation notification:', notifyError);
+    }
+
     return { id: activation.activation_id };
 }
 

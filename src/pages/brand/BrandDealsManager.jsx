@@ -5,6 +5,8 @@ import {
     Filter, Search, AlertCircle, CheckCircle, TrendingUp
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
+import { notifySalesRepsNewDeal } from '../../services/notificationService';
+
 
 // Flash sale duration presets
 const DURATION_PRESETS = [
@@ -434,6 +436,13 @@ function CreateDealModal({ deal, brandId, onClose, onSave }) {
             } else {
                 const { error } = await supabase.from('deals').insert([payload]);
                 if (error) throw error;
+
+                // Notify sales reps about the new deal
+                try {
+                    await notifySalesRepsNewDeal(brandName, formData.name);
+                } catch (notifyError) {
+                    console.warn('Failed to send deal notification:', notifyError);
+                }
             }
 
             onSave();

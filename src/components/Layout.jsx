@@ -8,6 +8,7 @@ import LayoutTourWrapper from './LayoutTourWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 import PWAInstallPrompt from './PWAInstallPrompt';
 import OfflineIndicator from './OfflineIndicator';
+import NotificationBell from './NotificationBell';
 
 
 const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
@@ -182,9 +183,12 @@ export default function Layout() {
                         {/* Logo */}
                         <img src="/logos/logo-main.png" alt="The Green Truth" className="h-14 w-auto object-contain" />
 
-                        {/* User Avatar */}
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                            {initials}
+                        {/* Notifications and User Avatar */}
+                        <div className="flex items-center gap-2">
+                            <NotificationBell />
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                                {initials}
+                            </div>
                         </div>
                     </header>
 
