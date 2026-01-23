@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Store, User, FileText, Calendar, DollarSign, Camera, X, Plus, Sparkles, Loader } from 'lucide-react';
+import { Store, User, FileText, Calendar, DollarSign, Camera, X, Plus, Sparkles, Loader, Wand2 } from 'lucide-react';
 import { addLead, checkDuplicateLead } from '../services/firestoreService';
 import { uploadTollReceipt } from '../services/storageService'; // Reusing existing upload logic
 import { geocodeAddress } from '../utils/geocoding';
-import { extractLicenseNumber } from '../services/geminiService'; // New Service
+import { extractLicenseNumber, lookupDispensaryAddress } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 import { awardLeadPoints } from '../services/pointsService';
 import { sendAdminNotification, createLeadEmail } from '../services/adminNotifications';
+import { formatPhoneNumber } from '../utils/phoneUtils';
 
 
 export default function NewLead() {
@@ -17,11 +18,13 @@ export default function NewLead() {
     const { showNotification } = useNotification();
 
     const [loading, setLoading] = useState(false);
+    const [isActiveAccount, setIsActiveAccount] = useState(false); // Toggle: Lead vs Active Account
 
     // License Image State
     const [licenseImage, setLicenseImage] = useState(null);
     const [licensePreview, setLicensePreview] = useState(null);
     const [analyzingLicense, setAnalyzingLicense] = useState(false);
+    const [lookingUpAddress, setLookingUpAddress] = useState(false);
 
     const [formData, setFormData] = useState({
         dispensaryName: '',
@@ -30,6 +33,11 @@ export default function NewLead() {
         meetingDate: '',
         samplesRequested: [],
         priority: 'Normal', // Default priority
+        // Structured address fields for better geocoding
+        street: '',
+        city: '',
+        state: 'NY', // Default to NY
+        zipCode: '',
         contacts: [
             { name: '', role: 'Manager', email: '', phone: '' }
         ]
@@ -81,7 +89,9 @@ export default function NewLead() {
     // Contact Helpers
     const updateContact = (index, field, value) => {
         const newContacts = [...formData.contacts];
-        newContacts[index] = { ...newContacts[index], [field]: value };
+        // Format phone numbers as (XXX) XXX-XXXX
+        const formattedValue = field === 'phone' ? formatPhoneNumber(value) : value;
+        newContacts[index] = { ...newContacts[index], [field]: formattedValue };
 
         // Sync primary contact for backward compatibility
         const updates = { contacts: newContacts };
@@ -114,54 +124,63 @@ export default function NewLead() {
 
         setLoading(true);
         try {
-            // 1. Smart Traffic Control
+            // 1. Smart Traffic Control (Skip for Active Accounts - we're adding existing clients)
             // -------------------------------------------------------------
-            const match = await checkDuplicateLead(formData.dispensaryName);
+            if (!isActiveAccount) {
+                const match = await checkDuplicateLead(formData.dispensaryName);
 
-            if (match) {
-                const repName = match.repAssigned || 'Another Rep';
-                const isSold = match.status === 'Sold';
-                const isMyLead = match.userId === currentUser?.uid;
+                if (match) {
+                    const repName = match.repAssigned || 'Another Rep';
+                    const isSold = match.status === 'Sold' || match.leadStatus === 'active';
+                    const isMyLead = match.userId === currentUser?.uid;
 
-                const createdAt = match.createdAt ? (match.createdAt.toDate ? match.createdAt.toDate() : new Date(match.createdAt)) : new Date(0);
-                const now = new Date();
-                const daysOld = (now - createdAt) / (1000 * 60 * 60 * 24);
+                    const createdAt = match.createdAt ? (match.createdAt.toDate ? match.createdAt.toDate() : new Date(match.createdAt)) : new Date(0);
+                    const now = new Date();
+                    const daysOld = (now - createdAt) / (1000 * 60 * 60 * 24);
 
-                // Scenario A: Match Found (Status = 'Sold')
-                if (isSold) {
-                    alert(`Stop! This store is already a Client (Sold by ${repName}).`);
-                    setLoading(false);
-                    return;
-                }
+                    // Scenario A: Match Found (Status = 'Sold' or 'active')
+                    if (isSold) {
+                        alert(`Stop! This store is already a Client (Sold by ${repName}).`);
+                        setLoading(false);
+                        return;
+                    }
 
-                // Scenario B: Match Found (New & < 45 Days & Not Mine)
-                if (daysOld < 45 && !isMyLead) {
-                    alert(`This lead is currently assigned to ${repName}. You cannot access it yet.`);
-                    setLoading(false);
-                    return;
-                }
+                    // Scenario B: Match Found (New & < 45 Days & Not Mine)
+                    if (daysOld < 45 && !isMyLead) {
+                        alert(`This lead is currently assigned to ${repName}. You cannot access it yet.`);
+                        setLoading(false);
+                        return;
+                    }
 
-                // Scenario C: Match Found (New & > 45 Days) -> Open Pool
-                if (daysOld >= 45) {
-                    alert("Good news! This lead is in the Open Pool. Redirecting you to close the sale...");
-                    navigate('/log-sale', { state: { prefill: { dispensary: match.dispensaryName } } });
-                    return;
-                }
+                    // Scenario C: Match Found (New & > 45 Days) -> Open Pool
+                    if (daysOld >= 45) {
+                        alert("Good news! This lead is in the Open Pool. Redirecting you to close the sale...");
+                        navigate('/log-sale', { state: { prefill: { dispensary: match.dispensaryName } } });
+                        return;
+                    }
 
-                // Scenario D: Match Found (New & < 45 Days & MINE)
-                if (isMyLead) {
-                    alert("You already have this lead! Redirecting you to log a sale.");
-                    navigate('/log-sale', { state: { prefill: { dispensary: match.dispensaryName } } });
-                    return;
+                    // Scenario D: Match Found (New & < 45 Days & MINE)
+                    if (isMyLead) {
+                        alert("You already have this lead! Redirecting you to log a sale.");
+                        navigate('/log-sale', { state: { prefill: { dispensary: match.dispensaryName } } });
+                        return;
+                    }
                 }
             }
             // -------------------------------------------------------------
 
-            // Geocoding Step
-            let locationData = { lat: null, lng: null, address: formData.address };
+            // Geocoding Step - construct full address from parts
+            const fullAddress = [
+                formData.street,
+                formData.city,
+                formData.state,
+                formData.zipCode
+            ].filter(Boolean).join(', ');
+
+            let locationData = { lat: null, lng: null, address: fullAddress };
             try {
-                if (formData.address) {
-                    const coords = await geocodeAddress(formData.address);
+                if (fullAddress) {
+                    const coords = await geocodeAddress(fullAddress);
                     if (coords) {
                         locationData = coords;
                     } else {
@@ -180,16 +199,19 @@ export default function NewLead() {
 
             const leadRef = await addLead({
                 ...formData,
+                address: fullAddress, // Combined address for storage
                 location: locationData, // Saved to DB
                 licenseImageUrl,
                 userId: currentUser?.uid || 'test-user-123',
                 // Add explicit Rep Name for Leaderboard/Smart Checks
                 repAssigned: currentUser?.displayName || currentUser?.email || 'Unknown Rep',
                 createdAt: new Date().toISOString(),
-                status: 'New', // Legacy status
-                leadStatus: (formData.samplesRequested && formData.samplesRequested.length > 0)
-                    ? 'samples_requested'
-                    : 'prospect'
+                status: isActiveAccount ? 'Sold' : 'New', // Legacy status
+                leadStatus: isActiveAccount
+                    ? 'active'
+                    : (formData.samplesRequested && formData.samplesRequested.length > 0)
+                        ? 'samples_requested'
+                        : 'prospect'
             });
 
             // Award 1.000 Point
@@ -223,7 +245,12 @@ export default function NewLead() {
                 // Don't block user experience if email fails
             }
 
-            showNotification('Lead added successfully! 45-Day Exclusivity Started.', 'success');
+            showNotification(
+                isActiveAccount
+                    ? 'Active account added successfully!'
+                    : 'Lead added successfully! 45-Day Exclusivity Started.',
+                'success'
+            );
             navigate('/app');
         } catch (error) {
             console.error('Error adding lead:', error);
@@ -237,10 +264,40 @@ export default function NewLead() {
         <div className="max-w-2xl mx-auto pb-24 px-4 sm:px-0">
             <div className="mb-8 text-center">
                 <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4">
-                    <User size={32} />
+                    {isActiveAccount ? <Store size={32} /> : <User size={32} />}
                 </div>
-                <h1 className="text-2xl font-bold text-slate-800">New Lead</h1>
-                <p className="text-slate-500">Record details for a new potential dispensary.</p>
+                <h1 className="text-2xl font-bold text-slate-800">
+                    {isActiveAccount ? 'Add Active Account' : 'New Lead'}
+                </h1>
+                <p className="text-slate-500">
+                    {isActiveAccount
+                        ? 'Add an existing dispensary you already work with.'
+                        : 'Record details for a new potential dispensary.'}
+                </p>
+
+                {/* Lead/Active Toggle */}
+                <div className="mt-4 inline-flex bg-slate-100 rounded-lg p-1">
+                    <button
+                        type="button"
+                        onClick={() => setIsActiveAccount(false)}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${!isActiveAccount
+                            ? 'bg-white text-emerald-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        New Lead
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setIsActiveAccount(true)}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${isActiveAccount
+                            ? 'bg-emerald-500 text-white shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        Active Account
+                    </button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -258,19 +315,98 @@ export default function NewLead() {
                                 onChange={(e) => setFormData({ ...formData, dispensaryName: e.target.value })}
                             />
                         </div>
+                        {/* AI Address Lookup Button */}
+                        {formData.dispensaryName && formData.dispensaryName.length > 3 && (
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (!formData.dispensaryName) return;
+                                    setLookingUpAddress(true);
+                                    try {
+                                        const cityHint = formData.city ? `${formData.city}, ${formData.state || 'NY'}` : '';
+                                        const result = await lookupDispensaryAddress(formData.dispensaryName, cityHint);
+                                        if (result) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                street: result.street || prev.street,
+                                                city: result.city || prev.city,
+                                                state: result.state || prev.state,
+                                                zipCode: result.zipCode || prev.zipCode
+                                            }));
+                                            showNotification(`✅ Found address: ${result.fullAddress}`, 'success');
+                                        } else {
+                                            showNotification('Could not find address. Please enter manually.', 'info');
+                                        }
+                                    } catch (err) {
+                                        console.error('Address lookup error:', err);
+                                        showNotification('Address lookup failed', 'error');
+                                    } finally {
+                                        setLookingUpAddress(false);
+                                    }
+                                }}
+                                disabled={lookingUpAddress}
+                                className="mt-2 flex items-center gap-2 text-xs px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                                {lookingUpAddress ? (
+                                    <><Loader size={12} className="animate-spin" /> Finding address...</>
+                                ) : (
+                                    <><Wand2 size={12} /> Auto-fill Address with AI</>
+                                )}
+                            </button>
+                        )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Street Address</label>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">📍</div>
                             <input
                                 type="text"
                                 required
-                                placeholder="123 Main St, New York, NY"
+                                placeholder="123 Main Street"
                                 className="w-full pl-10 rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
-                                value={formData.address || ''}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                value={formData.street || ''}
+                                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-6 gap-3">
+                        <div className="col-span-3">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="New York"
+                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
+                                value={formData.city || ''}
+                                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+                            <select
+                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border bg-white"
+                                value={formData.state || 'NY'}
+                                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                            >
+                                <option value="NY">NY</option>
+                                <option value="NJ">NJ</option>
+                                <option value="CT">CT</option>
+                                <option value="PA">PA</option>
+                                <option value="MA">MA</option>
+                            </select>
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">ZIP Code</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="10001"
+                                maxLength={10}
+                                className="w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none p-3 border"
+                                value={formData.zipCode || ''}
+                                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
                             />
                         </div>
                     </div>

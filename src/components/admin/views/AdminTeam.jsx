@@ -476,7 +476,7 @@ export default function AdminTeam() {
                                                     {partner.address || 'Unknown Location'}
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
-                                                    <Link to={`/admin/team/${partner.id}`} className="text-xs bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-bold transition-colors">View Profile</Link>
+                                                    <Link to={`/admin/dispensary/${partner.id}`} className="text-xs bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-bold transition-colors">View Details</Link>
                                                 </td>
                                             </tr>
                                         ))}

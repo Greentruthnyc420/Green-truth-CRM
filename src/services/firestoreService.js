@@ -576,15 +576,11 @@ export async function addLead(leadData) {
         priority: leadData.priority || 'Normal',
         samples_requested: leadData.samplesRequested || [],
         active_brands: leadData.activeBrands || [],
-        assigned_ambassador_id: leadData.userId, // Mapping userId -> assigned_ambassador_id
+        assigned_ambassador_id: leadData.userId,
         rep_assigned_name: leadData.repAssigned,
         lead_status: initialStatus,
         location: leadData.location,
         license_image_url: leadData.licenseImageUrl,
-        // Attribution tracking - who added this lead
-        created_by_name: leadData.createdByName || leadData.repAssigned || null,
-        created_by_type: leadData.createdBy || 'rep', // 'rep' | 'brand' | 'dispensary'
-        owner_brand_id: leadData.ownerBrandId || null, // For brand-owned leads
         created_at: new Date().toISOString()
     }]).select().single();
 
@@ -597,8 +593,8 @@ export async function addLead(leadData) {
 
 export async function getLeads() {
     // Map snake_case DB back to camelCase App
-    const { data, error } = await supabase.from('leads').select('*');
-    if (error) return [];
+    // Filter out soft-deleted leads
+    const { data, error } = await supabase.from('leads').select('*').neq('status', 'deleted');
 
     return data.map(l => ({
         id: l.id,
@@ -636,8 +632,12 @@ export async function getBrandLeads(brandId) {
     }
 
     // Filter out rep-added leads that are still in prospect status
+    // Also filter out soft-deleted leads
     // Brands should only see: 1) leads they added themselves, or 2) leads that have progressed past prospect
     const filteredData = data.filter(l => {
+        // Always exclude soft-deleted leads
+        if (l.status === 'deleted') return false;
+
         const createdByType = l.created_by_type || 'rep';
         const status = l.lead_status || 'prospect';
         const isOwnedByThisBrand = l.owner_brand_id === brandId;
@@ -679,8 +679,8 @@ export async function getBrandLeads(brandId) {
 }
 
 export async function getMyDispensaries(userId) {
-    // Get all leads assigned to this user
-    const { data, error } = await supabase.from('leads').select('*').eq('assigned_ambassador_id', userId);
+    // Get all leads assigned to this user (excluding soft-deleted)
+    const { data, error } = await supabase.from('leads').select('*').eq('assigned_ambassador_id', userId).neq('status', 'deleted');
     if (error) return [];
 
     return data.map(l => ({
@@ -740,11 +740,19 @@ export async function updateLead(leadId, updates) {
     if (updates.assignedAmbassadorId) dbUpdates.assigned_ambassador_id = updates.assignedAmbassadorId;
     if (updates.repAssigned) dbUpdates.rep_assigned_name = updates.repAssigned;
     if (updates.lastSaleDate) dbUpdates.last_sale_date = updates.lastSaleDate;
+    if (updates.address !== undefined) dbUpdates.address = updates.address;
+    if (updates.location) dbUpdates.location = updates.location;
+    if (updates.priority) dbUpdates.priority = updates.priority;
+    if (updates.dispensaryName) dbUpdates.dispensary_name = updates.dispensaryName;
 
-    // Fallback for others or just spread if keys match?
-    // Supabase ignores unknown columns usually.
+    console.log('[updateLead] Saving lead:', leadId, 'with updates:', dbUpdates);
 
     const { error } = await supabase.from('leads').update(dbUpdates).eq('id', leadId);
+    if (error) {
+        console.error('[updateLead] Error saving:', error);
+    } else {
+        console.log('[updateLead] Successfully saved lead:', leadId);
+    }
     return !error;
 }
 
@@ -753,7 +761,12 @@ export async function deliverSamples(leadId) {
 }
 
 export async function deleteLead(leadId) {
-    const { error } = await supabase.from('leads').delete().eq('id', leadId);
+    // Soft delete: set status to 'deleted' instead of removing the record
+    // This preserves historical data for sales/activations while hiding from all views
+    const { error } = await supabase.from('leads').update({
+        status: 'deleted',
+        updated_at: new Date().toISOString()
+    }).eq('id', leadId);
     return !error;
 }
 
@@ -957,8 +970,10 @@ export async function getAllAccounts(userId, isAdmin) {
             hasSales: hasBeenSold
         };
     });
+    // Filter out soft-deleted leads
+    const activeLeads = mergedAccounts.filter(lead => lead.status !== 'deleted');
 
-    return mergedAccounts;
+    return activeLeads;
 }
 
 // --- BRAND PRODUCTS (Menu Items) ---

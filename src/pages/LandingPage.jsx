@@ -5,6 +5,7 @@ import { Database, Zap, Shield, BarChart, Gem, Layers, Send, CheckCircle2, Loade
 import { sendAdminNotification, createPartnershipEmail } from '../services/adminNotifications';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
+import { formatPhoneNumber } from '../utils/phoneUtils';
 
 const ParallaxSection = ({ children, backgroundImage, speed = -0.3 }) => {
   // ... existing ParallaxSection code ...
@@ -53,7 +54,10 @@ const PartnershipForm = () => {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    // Format phone numbers as (XXX) XXX-XXXX
+    const formattedValue = name === 'phone' ? formatPhoneNumber(value) : value;
+    setFormData({ ...formData, [name]: formattedValue });
   };
 
   return (

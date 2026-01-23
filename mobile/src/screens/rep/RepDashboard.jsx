@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RepDashboard() {
@@ -23,8 +23,8 @@ export default function RepDashboard() {
                 <View style={styles.statsGrid}>
                     <View style={[styles.statCard, styles.statCardPrimary]}>
                         <Ionicons name="star" size={24} color="#fbbf24" />
-                        <Text style={styles.statValue}>{stats.lifetimePoints}</Text>
-                        <Text style={styles.statLabel}>Lifetime Points</Text>
+                        <Text style={[styles.statValue, styles.statValueLight]}>{stats.lifetimePoints}</Text>
+                        <Text style={[styles.statLabel, styles.statLabelLight]}>Lifetime Points</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Ionicons name="trending-up" size={24} color="#10b981" />
@@ -46,9 +46,9 @@ export default function RepDashboard() {
                 {/* Quick Actions */}
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
                 <View style={styles.actionsContainer}>
-                    <ActionButton icon="add-circle" label="Log Sale" color="#10b981" />
-                    <ActionButton icon="scan" label="Check In" color="#3b82f6" />
-                    <ActionButton icon="document-text" label="Submit Hours" color="#8b5cf6" />
+                    <ActionButton icon="add-circle" label="Log Sale" color="#10b981" onPress={() => Alert.alert('Log Sale', 'Navigate to Log Sale screen')} />
+                    <ActionButton icon="scan" label="Check In" color="#3b82f6" onPress={() => Alert.alert('Check In', 'Navigate to Check In screen')} />
+                    <ActionButton icon="document-text" label="Submit Hours" color="#8b5cf6" onPress={() => Alert.alert('Submit Hours', 'Navigate to Submit Hours screen')} />
                 </View>
 
                 {/* Recent Activity */}
@@ -81,14 +81,14 @@ export default function RepDashboard() {
     );
 }
 
-function ActionButton({ icon, label, color }) {
+function ActionButton({ icon, label, color, onPress }) {
     return (
-        <View style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={onPress} activeOpacity={0.7}>
             <View style={[styles.actionIcon, { backgroundColor: color + '20' }]}>
                 <Ionicons name={icon} size={24} color={color} />
             </View>
             <Text style={styles.actionLabel}>{label}</Text>
-        </View>
+        </TouchableOpacity>
     );
 }
 
@@ -141,6 +141,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6b7280',
         marginTop: 2,
+    },
+    statValueLight: {
+        color: '#ffffff',
+    },
+    statLabelLight: {
+        color: '#9ca3af',
     },
     sectionTitle: {
         fontSize: 16,

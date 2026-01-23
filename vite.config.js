@@ -37,7 +37,10 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4000000, // 4MB
         skipWaiting: true,
         clientsClaim: true,
-        cleanupOutdatedCaches: true
+        cleanupOutdatedCaches: true,
+        // CRITICAL: Exclude Firebase internal paths from Service Worker
+        // This allows Firebase Auth popups to work correctly
+        navigateFallbackDenylist: [/^\/__\/.*/]
       }
     })
   ],

@@ -8,6 +8,7 @@ import ThemeSwitcher from '../components/ThemeSwitcher';
 import OnboardingTour from '../components/onboarding/OnboardingTour';
 import { getTourSteps } from '../data/tourSteps';
 import { getNotificationPreferences, saveNotificationPreferences, NOTIFICATION_TYPES } from '../services/notificationPreferencesService';
+import { formatPhoneNumber } from '../utils/phoneUtils';
 
 export default function ProfileSettings() {
     const { currentUser, logout } = useAuth();
@@ -239,11 +240,11 @@ export default function ProfileSettings() {
                             <div>
                                 <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Push Notifications</p>
                                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                    {typeof Notification !== 'undefined' && Notification.permission === 'granted' 
+                                    {typeof Notification !== 'undefined' && Notification.permission === 'granted'
                                         ? '✅ Enabled - you will receive browser notifications'
                                         : Notification.permission === 'denied'
-                                        ? '❌ Blocked - enable in browser settings'
-                                        : 'Enable push notifications for real-time alerts'
+                                            ? '❌ Blocked - enable in browser settings'
+                                            : 'Enable push notifications for real-time alerts'
                                     }
                                 </p>
                             </div>
@@ -274,13 +275,12 @@ export default function ProfileSettings() {
                                         showNotification('Failed to enable notifications', 'error');
                                     }
                                 }}
-                                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                                    typeof Notification !== 'undefined' && Notification.permission === 'granted'
+                                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${typeof Notification !== 'undefined' && Notification.permission === 'granted'
                                         ? 'bg-emerald-100 text-emerald-700'
                                         : Notification.permission === 'denied'
-                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                        : 'bg-brand-600 text-white hover:bg-brand-700'
-                                }`}
+                                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                            : 'bg-brand-600 text-white hover:bg-brand-700'
+                                    }`}
                             >
                                 {typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'Enabled' : 'Enable'}
                             </button>
@@ -385,7 +385,7 @@ export default function ProfileSettings() {
                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all"
                             placeholder="(555) 123-4567"
                             value={profile.phone}
-                            onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                            onChange={(e) => setProfile({ ...profile, phone: formatPhoneNumber(e.target.value) })}
                         />
                     </div>
                 </div>

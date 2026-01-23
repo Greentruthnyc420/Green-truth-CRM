@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAllAccounts, deleteLead, updateLead } from '../services/firestoreService';
-import { Search, Loader, Building2, User, CheckCircle, Pencil, Trash2, X, Save, AlertTriangle } from 'lucide-react';
+import { Search, Loader, Building2, User, CheckCircle, Pencil, Trash2, X, Save, AlertTriangle, MapPin, RefreshCw } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import DispensaryDetailsModal from '../components/DispensaryDetailsModal';
+import { geocodeAddress } from '../utils/geocoding';
+import { lookupDispensaryAddress } from '../services/geminiService';
+import { useNotification } from '../contexts/NotificationContext';
 
 const ADMIN_EMAILS = ['omar@thegreentruthnyc.com', 'realtest@test.com', 'omar@gmail.com'];
 
 export default function Accounts() {
     const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +23,8 @@ export default function Accounts() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState(null); // Used for editing
     const [saving, setSaving] = useState(false);
+    const [geocoding, setGeocoding] = useState(false);
+    const [lookingUpAddress, setLookingUpAddress] = useState(false);
 
     // Details Modal State
     const [viewAccount, setViewAccount] = useState(null); // Used for viewing details
@@ -286,11 +292,44 @@ export default function Accounts() {
                                     <select
                                         className="w-full p-3 border border-slate-200 rounded-xl focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
                                         value={selectedAccount?.status || 'New'}
-                                        onChange={e => setSelectedAccount({ ...selectedAccount, status: e.target.value })}
+                                        onChange={e => {
+                                            const newStatus = e.target.value;
+                                            // Sync leadStatus when status changes
+                                            const newLeadStatus = newStatus === 'Sold' ? 'active' :
+                                                (selectedAccount?.leadStatus || 'prospect');
+                                            setSelectedAccount({
+                                                ...selectedAccount,
+                                                status: newStatus,
+                                                leadStatus: newLeadStatus
+                                            });
+                                        }}
                                     >
                                         <option value="New">New Lead</option>
-                                        <option value="Sold">Sold Client</option>
+                                        <option value="Sold">Active Client (Sold)</option>
                                         <option value="Lost">Lost / Archive</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Pipeline Stage</label>
+                                    <select
+                                        className="w-full p-3 border border-slate-200 rounded-xl focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                        value={selectedAccount?.leadStatus || 'prospect'}
+                                        onChange={e => {
+                                            const newLeadStatus = e.target.value;
+                                            // Sync legacy status when leadStatus changes
+                                            const newStatus = newLeadStatus === 'active' ? 'Sold' : 'New';
+                                            setSelectedAccount({
+                                                ...selectedAccount,
+                                                leadStatus: newLeadStatus,
+                                                status: newStatus
+                                            });
+                                        }}
+                                    >
+                                        <option value="prospect">Prospect</option>
+                                        <option value="samples_requested">Samples Requested</option>
+                                        <option value="samples_delivered">Samples Delivered</option>
+                                        <option value="active">Active (Sold)</option>
                                     </select>
                                 </div>
 
@@ -316,6 +355,96 @@ export default function Accounts() {
                                         onChange={e => setSelectedAccount({ ...selectedAccount, repAssigned: e.target.value })}
                                         placeholder="Rep Name (e.g. Omar Elsayed)"
                                     />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 p-3 border border-slate-200 rounded-xl focus:ring-brand-500 focus:border-brand-500 outline-none"
+                                            value={selectedAccount?.address || ''}
+                                            onChange={e => setSelectedAccount({ ...selectedAccount, address: e.target.value })}
+                                            placeholder="123 Main St, Syracuse, NY 13202"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (!selectedAccount?.address) return;
+                                                setGeocoding(true);
+                                                try {
+                                                    const coords = await geocodeAddress(selectedAccount.address);
+                                                    if (coords) {
+                                                        setSelectedAccount({
+                                                            ...selectedAccount,
+                                                            location: { lat: coords.lat, lng: coords.lng, address: coords.address }
+                                                        });
+                                                        alert(`✅ Geocoded to: ${coords.address}\nLat: ${coords.lat}, Lng: ${coords.lng}`);
+                                                    } else {
+                                                        alert('❌ Could not geocode this address. Try being more specific.');
+                                                    }
+                                                } catch (err) {
+                                                    console.error('Geocode error:', err);
+                                                    alert('❌ Geocoding failed');
+                                                } finally {
+                                                    setGeocoding(false);
+                                                }
+                                            }}
+                                            disabled={geocoding || !selectedAccount?.address}
+                                            className="px-4 py-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors disabled:opacity-50 flex items-center gap-1"
+                                            title="Re-geocode address"
+                                        >
+                                            {geocoding ? <Loader size={16} className="animate-spin" /> : <MapPin size={16} />}
+                                        </button>
+                                    </div>
+                                    {selectedAccount?.location?.lat && (
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            📍 Current: {selectedAccount.location.lat.toFixed(4)}, {selectedAccount.location.lng.toFixed(4)}
+                                        </p>
+                                    )}
+                                    {/* AI Address Lookup Button */}
+                                    {selectedAccount?.dispensaryName && (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setLookingUpAddress(true);
+                                                try {
+                                                    const result = await lookupDispensaryAddress(selectedAccount.dispensaryName, '');
+                                                    if (result) {
+                                                        // Set address and immediately geocode
+                                                        const newAddress = result.fullAddress;
+                                                        setSelectedAccount(prev => ({ ...prev, address: newAddress }));
+
+                                                        // Also geocode it
+                                                        const coords = await geocodeAddress(newAddress);
+                                                        if (coords) {
+                                                            setSelectedAccount(prev => ({
+                                                                ...prev,
+                                                                address: newAddress,
+                                                                location: { lat: coords.lat, lng: coords.lng, address: coords.address }
+                                                            }));
+                                                            showNotification(`✅ Found: ${result.fullAddress}`, 'success');
+                                                        }
+                                                    } else {
+                                                        showNotification('Could not find address for this business. Enter manually.', 'info');
+                                                    }
+                                                } catch (err) {
+                                                    console.error('AI lookup error:', err);
+                                                    showNotification('AI lookup failed', 'error');
+                                                } finally {
+                                                    setLookingUpAddress(false);
+                                                }
+                                            }}
+                                            disabled={lookingUpAddress}
+                                            className="mt-2 w-full flex items-center justify-center gap-2 text-xs px-3 py-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {lookingUpAddress ? (
+                                                <><Loader size={12} className="animate-spin" /> Looking up address...</>
+                                            ) : (
+                                                <>✨ Auto-fill Address with AI</>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="pt-6 border-t border-slate-100">

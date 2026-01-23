@@ -13,6 +13,134 @@ if (API_KEY) {
 }
 
 /**
+ * Looks up a dispensary/business address by name using Gemini AI with Google Search grounding.
+ * This searches Google in real-time to find accurate, up-to-date business addresses.
+ * @param {string} businessName - The business name to look up
+ * @param {string} cityHint - Optional city hint (e.g., "Syracuse, NY")
+ * @returns {Promise<{street: string, city: string, state: string, zipCode: string, fullAddress: string} | null>}
+ */
+export async function lookupDispensaryAddress(businessName, cityHint = '') {
+    if (!genAI || !businessName) return null;
+
+    try {
+        // Use a model that supports grounding with Google Search
+        const model = genAI.getGenerativeModel({
+            model: GEMINI_MODEL,
+            // Enable Google Search grounding for real-time, accurate results
+            tools: [{
+                google_search_retrieval: {
+                    dynamic_retrieval_config: {
+                        mode: "MODE_DYNAMIC",
+                        dynamic_threshold: 0.3
+                    }
+                }
+            }]
+        });
+
+        const searchQuery = cityHint
+            ? `${businessName} ${cityHint} dispensary address`
+            : `${businessName} New York dispensary address location`;
+
+        const prompt = `
+Search for the exact street address of this cannabis dispensary:
+
+"${businessName}"${cityHint ? ` in ${cityHint}` : ' in New York State'}
+
+Use Google Search to find the REAL, VERIFIED business address. Look for:
+- The official business listing
+- Google Maps result
+- Their website contact page
+- Yelp or Weedmaps listing
+
+Return ONLY a valid JSON object with the verified address:
+{
+    "street": "exact street number and name",
+    "city": "city name",
+    "state": "NY",
+    "zipCode": "5-digit zip",
+    "fullAddress": "complete formatted address",
+    "source": "where you found this (e.g., Google Maps, Weedmaps)"
+}
+
+If you absolutely cannot find a verified address after searching, return:
+{"error": "NOT_FOUND"}
+
+IMPORTANT: Only return addresses you can verify from search results. Do not guess or make up addresses.
+`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().trim();
+
+        console.log('Grounded search result for', businessName, ':', text);
+
+        // Parse JSON from response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.error === 'NOT_FOUND') return null;
+            if (parsed.street && parsed.city && parsed.state) {
+                return parsed;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Address lookup error:', error);
+        // Fallback: try without grounding if it fails (some API plans may not support it)
+        return lookupDispensaryAddressFallback(businessName, cityHint);
+    }
+}
+
+/**
+ * Fallback address lookup without grounding (uses model knowledge only)
+ */
+async function lookupDispensaryAddressFallback(businessName, cityHint = '') {
+    if (!genAI || !businessName) return null;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+
+        const prompt = `
+You are looking up the address of a real cannabis dispensary business.
+
+Business: "${businessName}"
+Location: ${cityHint || 'New York State'}
+
+This is a REAL business. Search your knowledge for the actual street address.
+Popular NY dispensaries include locations in Syracuse, Buffalo, NYC, Albany, Rochester, etc.
+
+Return ONLY valid JSON:
+{
+    "street": "street address",
+    "city": "city",
+    "state": "NY",
+    "zipCode": "zip",
+    "fullAddress": "full address"
+}
+
+Or if not found: {"error": "NOT_FOUND"}
+`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().trim();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.error === 'NOT_FOUND') return null;
+            if (parsed.street && parsed.city && parsed.state) {
+                return parsed;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Fallback address lookup error:', error);
+        return null;
+    }
+}
+
+/**
  * Retry wrapper with exponential backoff for rate limiting
  * @param {Function} fn - Async function to retry
  * @param {number} maxRetries - Maximum retry attempts (default 3)

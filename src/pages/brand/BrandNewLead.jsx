@@ -8,6 +8,7 @@ import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { awardLeadPoints } from '../../services/pointsService';
+import { formatPhoneNumber } from '../../utils/phoneUtils';
 
 export default function BrandNewLead() {
     const navigate = useNavigate();
@@ -21,7 +22,11 @@ export default function BrandNewLead() {
 
     const [formData, setFormData] = useState({
         dispensaryName: '',
-        address: '',
+        // Structured address fields for better geocoding
+        street: '',
+        city: '',
+        state: 'NY', // Default to NY
+        zipCode: '',
         licenseNumber: '',
         meetingDate: new Date().toISOString().split('T')[0],
         leadStatus: LEAD_STATUS.PROSPECT,
@@ -60,7 +65,9 @@ export default function BrandNewLead() {
 
     const updateContact = (index, field, value) => {
         const newContacts = [...formData.contacts];
-        newContacts[index] = { ...newContacts[index], [field]: value };
+        // Format phone numbers as (XXX) XXX-XXXX
+        const formattedValue = field === 'phone' ? formatPhoneNumber(value) : value;
+        newContacts[index] = { ...newContacts[index], [field]: formattedValue };
         setFormData({ ...formData, contacts: newContacts });
     };
 
@@ -90,10 +97,18 @@ export default function BrandNewLead() {
                 return;
             }
 
-            let locationData = { lat: null, lng: null, address: formData.address };
-            if (formData.address) {
+            // Construct full address from parts
+            const fullAddress = [
+                formData.street,
+                formData.city,
+                formData.state,
+                formData.zipCode
+            ].filter(Boolean).join(', ');
+
+            let locationData = { lat: null, lng: null, address: fullAddress };
+            if (fullAddress) {
                 try {
-                    const coords = await geocodeAddress(formData.address);
+                    const coords = await geocodeAddress(fullAddress);
                     if (coords) locationData = coords;
                 } catch (err) {
                     console.error("Geocoding failed", err);
@@ -107,6 +122,7 @@ export default function BrandNewLead() {
 
             const leadRef = await addLead({
                 ...formData,
+                address: fullAddress, // Combined address for storage
                 location: locationData,
                 licenseImageUrl,
                 ownerBrandId: brandUser?.brandId,
@@ -193,21 +209,76 @@ export default function BrandNewLead() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Address</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Street Address</label>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }}>📍</div>
                             <input
                                 type="text"
                                 required
-                                placeholder="123 Main St, New York, NY"
+                                placeholder="123 Main Street"
                                 className="w-full pl-10 rounded-lg outline-none p-3"
                                 style={{
                                     background: 'var(--bg-secondary)',
                                     border: '1px solid var(--border-primary)',
                                     color: 'var(--text-primary)'
                                 }}
-                                value={formData.address}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                value={formData.street || ''}
+                                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-6 gap-3">
+                        <div className="col-span-3">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>City</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="New York"
+                                className="w-full rounded-lg outline-none p-3"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
+                                value={formData.city || ''}
+                                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>State</label>
+                            <select
+                                className="w-full rounded-lg outline-none p-3"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
+                                value={formData.state || 'NY'}
+                                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                            >
+                                <option value="NY">NY</option>
+                                <option value="NJ">NJ</option>
+                                <option value="CT">CT</option>
+                                <option value="PA">PA</option>
+                                <option value="MA">MA</option>
+                            </select>
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>ZIP Code</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="10001"
+                                maxLength={10}
+                                className="w-full rounded-lg outline-none p-3"
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-primary)',
+                                    color: 'var(--text-primary)'
+                                }}
+                                value={formData.zipCode || ''}
+                                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
                             />
                         </div>
                     </div>
