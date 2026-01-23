@@ -79,18 +79,26 @@ export async function getAllUsers() {
         return [];
     }
     // Map to frontend format
-    return data.map(u => ({
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        instagramHandle: u.instagram_handle,
-        phone: u.phone,
-        address: u.address,
-        assignedAmbassadorId: u.assigned_ambassador_id,
-        isBlocked: u.is_blocked || false,
-        createdAt: u.created_at
-    }));
+    return data.map(u => {
+        // Parse name into firstName/lastName for profileInfo
+        const nameParts = (u.name || '').split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        return {
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            role: u.role,
+            instagramHandle: u.instagram_handle,
+            phone: u.phone,
+            address: u.address,
+            assignedAmbassadorId: u.assigned_ambassador_id,
+            isBlocked: u.is_blocked || false,
+            createdAt: u.created_at,
+            profileInfo: { firstName, lastName }
+        };
+    });
 }
 
 export async function deleteUser(userId) {

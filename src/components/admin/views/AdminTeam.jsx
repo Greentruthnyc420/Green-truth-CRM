@@ -94,8 +94,9 @@ export default function AdminTeam() {
                 }
 
                 // --- 3-Way Split Logic ---
-                // 1. Sales Ambassadors: role === 'rep' OR role === 'admin' (for visibility)
-                const ambassadors = effectiveUsers.filter(u => u.role === 'rep' || u.role === 'admin');
+                // 1. Sales Ambassadors: Include all rep-type roles
+                const AMBASSADOR_ROLES = ['rep', 'admin', 'super_admin', 'cannabis_consultant_social'];
+                const ambassadors = effectiveUsers.filter(u => AMBASSADOR_ROLES.includes(u.role));
 
                 // 2. Brand Partners: Fetch from brands table (NOT users table)
                 const brands = await getAllBrands();
