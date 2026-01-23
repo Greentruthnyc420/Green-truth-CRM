@@ -56,8 +56,7 @@ export const awardLeadPoints = async (userId, leadId) => {
         // Update User
         const { error: updateError } = await supabase.from('users').update({
             lifetime_points: newLifetime,
-            current_month_points: newMonth,
-            updated_at: new Date().toISOString()
+            current_month_points: newMonth
         }).eq('id', userId);
 
         if (updateError) throw updateError;
@@ -107,8 +106,7 @@ export const awardOrderPoints = async (userId, dispensaryId, orderAmount, orderB
 
         await supabase.from('users').update({
             lifetime_points: newLifetime,
-            current_month_points: newMonth,
-            updated_at: new Date().toISOString()
+            current_month_points: newMonth
         }).eq('id', userId);
 
         // 4. Update Store History (add new brands to active_brands)
