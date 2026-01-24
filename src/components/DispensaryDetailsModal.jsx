@@ -18,7 +18,7 @@ export default function DispensaryDetailsModal({ isOpen, onClose, dispensary, on
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="dispensary-details-modal-title">
                 {/* Backdrop */}
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -39,7 +39,7 @@ export default function DispensaryDetailsModal({ isOpen, onClose, dispensary, on
                     <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <h2 className="text-2xl font-bold text-slate-800">
+                                <h2 id="dispensary-details-modal-title" className="text-2xl font-bold text-slate-800">
                                     {dispensary.dispensaryName || 'Dispensary Details'}
                                 </h2>
                                 <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${getStatusColor(dispensary.status)}`}>
@@ -55,8 +55,9 @@ export default function DispensaryDetailsModal({ isOpen, onClose, dispensary, on
                         <button
                             onClick={onClose}
                             className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500"
+                            aria-label="Close modal"
                         >
-                            <X size={20} />
+                            <X size={20} aria-hidden="true" />
                         </button>
                     </div>
 

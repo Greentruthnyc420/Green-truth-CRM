@@ -118,6 +118,9 @@ export default function BrandSettingsModal({ isOpen, onClose, brandUser }) {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="brand-settings-modal-title"
             >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -134,15 +137,16 @@ export default function BrandSettingsModal({ isOpen, onClose, brandUser }) {
                                 <Settings size={24} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Account Settings</h2>
+                                <h2 id="brand-settings-modal-title" className="text-xl font-bold text-white">Account Settings</h2>
                                 <p className="text-white/80 text-sm">{brandUser?.brandName}</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
                             className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center text-white"
+                            aria-label="Close modal"
                         >
-                            <X size={20} />
+                            <X size={20} aria-hidden="true" />
                         </button>
                     </div>
 

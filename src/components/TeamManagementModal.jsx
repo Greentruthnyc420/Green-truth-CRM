@@ -112,6 +112,9 @@ export default function TeamManagementModal({ isOpen, onClose, brandUser }) {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="team-management-modal-title"
             >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -128,15 +131,16 @@ export default function TeamManagementModal({ isOpen, onClose, brandUser }) {
                                 <Users size={20} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-white">Team Management</h2>
+                                <h2 id="team-management-modal-title" className="text-lg font-bold text-white">Team Management</h2>
                                 <p className="text-white/70 text-xs">Invite & manage team access</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
                             className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center text-white"
+                            aria-label="Close modal"
                         >
-                            <X size={18} />
+                            <X size={18} aria-hidden="true" />
                         </button>
                     </div>
 
