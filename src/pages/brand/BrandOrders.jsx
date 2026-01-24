@@ -294,8 +294,9 @@ export default function BrandOrders() {
                                                     OCM License: {order.licenseNumber}
                                                 </p>
                                             )}
-                                            {!order.dispensaryAddress && !order.licenseNumber && (
-                                                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">⚠️ Missing compliance info - verify before fulfilling</p>
+                                            {/* Only show warning for pending orders without license */}
+                                            {!order.licenseNumber && order.status === 'pending' && (
+                                                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">⚠️ Verify license before fulfilling</p>
                                             )}
                                         </div>
                                         <p className="text-[10px] font-bold uppercase tracking-widest mt-2" style={{ color: 'var(--text-tertiary)' }}>Contact: {order.contact} • Rep: {order.representative}</p>

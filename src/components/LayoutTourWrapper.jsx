@@ -20,6 +20,17 @@ export default function LayoutTourWrapper({
     children,
     showReplayButton = false // Default to false - Help is now in Settings pages
 }) {
+    // Check for skipTour flag SYNCHRONOUSLY before any effects run
+    // This ensures dev logins never trigger tours
+    const skipTourOnMount = React.useMemo(() => {
+        const skip = sessionStorage.getItem('skipTour');
+        if (skip) {
+            sessionStorage.removeItem('skipTour');
+            return true;
+        }
+        return false;
+    }, []); // Only runs once on mount
+
     const {
         isFirstTime,
         isLoading,
@@ -47,8 +58,13 @@ export default function LayoutTourWrapper({
         }
     }, [tourType]);
 
-    // Start tour for first-time users
+    // Start tour for first-time users (unless skipTour flag was set from dev login)
     useEffect(() => {
+        // If skipTour was set on mount, never auto-start
+        if (skipTourOnMount) {
+            return;
+        }
+
         if (!isLoading && isFirstTime && !tourCompleted) {
             // Delay to let the page render
             const timer = setTimeout(() => {
@@ -57,7 +73,7 @@ export default function LayoutTourWrapper({
             }, 800);
             return () => clearTimeout(timer);
         }
-    }, [isLoading, isFirstTime, tourCompleted]);
+    }, [isLoading, isFirstTime, tourCompleted, skipTourOnMount]);
 
     // Get tour steps for the effective tour type
     const steps = getTourSteps(effectiveTourType);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, isTrialEmail } from '../contexts/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
-import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft, Instagram, Play } from 'lucide-react';
+import { Mail, Lock, Loader, ArrowRight, Eye, EyeOff, Shield, Users, ArrowLeft, Instagram } from 'lucide-react';
 import { createUserProfile } from '../services/firestoreService';
 import { getAuthErrorMessage } from '../utils/authErrors';
 
@@ -317,36 +317,34 @@ export default function Login() {
                     </button>
 
                     {import.meta.env.DEV && (
-                        <div className="space-y-2 mt-4 p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
-                            <p className="text-xs font-bold text-slate-500 text-center mb-3">🧪 DEV MODE - Test Tours</p>
-
-                            {/* Canna Consultant Tour */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    devLogin('rep@thegreentruthnyc.com');
-                                    sessionStorage.setItem('triggerTour', 'sales_rep');
-                                    navigate('/app');
-                                }}
-                                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Play size={14} />
-                                Sales Rep Tour (16 steps)
-                            </button>
-
-                            {/* Social Media Manager Tour */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    devLogin('alyssa@thegreentruthnyc.com');
-                                    sessionStorage.setItem('triggerTour', 'social_manager');
-                                    navigate('/app');
-                                }}
-                                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-pink-600 hover:to-rose-700 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Users size={14} />
-                                Social Media Manager Tour (24 steps)
-                            </button>
+                        <div className="mt-4 p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
+                            <p className="text-xs font-bold text-slate-500 text-center mb-3">🧪 DEV MODE</p>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        sessionStorage.setItem('skipTour', 'true');
+                                        devLogin('rep@thegreentruthnyc.com');
+                                        navigate('/app');
+                                    }}
+                                    className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:from-emerald-600 hover:to-green-700 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Users size={14} />
+                                    Sales Rep
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        sessionStorage.setItem('skipTour', 'true');
+                                        devLogin('omar@thegreentruthnyc.com');
+                                        navigate('/admin');
+                                    }}
+                                    className="flex-1 bg-gradient-to-r from-slate-700 to-slate-900 text-white py-2.5 rounded-lg font-bold text-sm hover:from-slate-800 hover:to-black transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Shield size={14} />
+                                    Admin
+                                </button>
+                            </div>
                         </div>
                     )}
 

@@ -23,7 +23,16 @@ export async function generateInvoiceNumber(brandName, repName) {
         // Pad to 5 digits
         const sequentialNum = String(totalSalesCount + 1).padStart(5, '0');
 
-        return `${brandInitials}-${repInitials}-${sequentialNum}`;
+        // Get current date in DDMMYY format
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = String(now.getFullYear()).slice(-2);
+        const dateCode = `${day}${month}${year}`;
+
+        // Format: BRAND-REP-SEQ-DDMMYY
+        // Example: HK-OE-00142-230126
+        return `${brandInitials}-${repInitials}-${sequentialNum}-${dateCode}`;
     } catch (error) {
         console.error('Error generating invoice number:', error);
         // Fallback to timestamp-based number

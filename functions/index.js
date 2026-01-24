@@ -9,6 +9,57 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
+// Supabase client for points reset (points are stored in Supabase)
+const { createClient } = require('@supabase/supabase-js');
+const supabaseUrl = functions.config().supabase?.url || process.env.SUPABASE_URL;
+const supabaseServiceKey = functions.config().supabase?.service_key || process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+// ============================================================
+// SCHEDULED: Quarterly Points Reset (1st of Jan, Apr, Jul, Oct at midnight EST)
+// ============================================================
+exports.resetQuarterlyPoints = functions.pubsub
+    .schedule('0 0 1 1,4,7,10 *') // Cron: At 00:00 on day 1 of Jan, Apr, Jul, Oct
+    .timeZone('America/New_York')
+    .onRun(async (context) => {
+        functions.logger.info('🏆 Starting quarterly leaderboard points reset...');
+
+        if (!supabase) {
+            functions.logger.error('Supabase not configured - cannot reset points');
+            return null;
+        }
+
+        try {
+            // Reset all users' current_month_points to 0
+            const { data, error } = await supabase
+                .from('users')
+                .update({ current_month_points: 0 })
+                .neq('current_month_points', 0); // Only update those with points
+
+            if (error) {
+                functions.logger.error('Points reset failed:', error);
+                throw error;
+            }
+
+            functions.logger.info(`✅ Quarterly points reset complete. Affected users: ${data?.length || 'all with points'}`);
+
+            // Optional: Log this event for audit trail
+            await supabase.from('points_history').insert([{
+                user_id: 'SYSTEM',
+                action: 'quarterly_reset',
+                reference_id: `Q${Math.ceil((new Date().getMonth() + 1) / 3)}-${new Date().getFullYear()}`, // Quarter identifier (Q1-2026)
+                points_earned: 0,
+                breakdown: { type: 'quarterly_reset' },
+                created_at: new Date().toISOString()
+            }]);
+
+            return { success: true };
+        } catch (error) {
+            functions.logger.error('resetMonthlyPoints error:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
 // ============================================================
 // EMAIL: Transporter Setup
 // ============================================================

@@ -414,7 +414,10 @@ export default function BrandLogin() {
                         {(import.meta.env.DEV || window.location.hostname === 'localhost') && (
                             <div className="mt-8 pt-8 border-t border-slate-800/50 flex flex-col gap-3 items-center">
                                 <button
-                                    onClick={() => handleDevLogin()}
+                                    onClick={() => {
+                                        sessionStorage.setItem('skipTour', 'true');
+                                        handleDevLogin();
+                                    }}
                                     className="px-6 py-2 bg-slate-900/50 border border-amber-500/20 rounded-full text-amber-500 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/10 transition-all flex items-center gap-2"
                                 >
                                     <Shield size={14} /> Master Developer Bypass
@@ -516,7 +519,10 @@ export default function BrandLogin() {
                                 {(import.meta.env.DEV || window.location.hostname === 'localhost') && (
                                     <button
                                         type="button"
-                                        onClick={() => handleDevLogin(selectedBrand.brandId)}
+                                        onClick={() => {
+                                            sessionStorage.setItem('skipTour', 'true');
+                                            handleDevLogin(selectedBrand.brandId);
+                                        }}
                                         className="w-full mt-4 bg-transparent border border-zinc-700 text-zinc-500 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
                                     >
                                         <Shield size={12} /> Local Dev Bypass

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getLeads, getMyDispensaries } from '../services/firestoreService';
 import { Navigation } from 'lucide-react';
-import CRMMap from '../components/CRMMap';
+import GoogleCRMMap from '../components/GoogleCRMMap';
 
 export default function LeadMap() {
     const { currentUser, isAdmin } = useAuth();
@@ -57,7 +57,7 @@ export default function LeadMap() {
                         </div>
                     </div>
                 ) : (
-                    <CRMMap
+                    <GoogleCRMMap
                         leads={leads}
                         viewMode="admin"
                         currentBrandId={null}

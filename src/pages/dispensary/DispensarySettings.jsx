@@ -219,16 +219,25 @@ export default function DispensarySettings() {
                             <Palette size={18} className="text-purple-600" />
                             Theme
                         </h3>
-                        <div className="grid grid-cols-3 gap-3">
-                            {[{ id: 'light', label: 'Light', icon: Sun }, { id: 'dark', label: 'Dark', icon: Moon }, { id: 'system', label: 'System', icon: Monitor }].map(t => (
+                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                            Choose your preferred visual theme for the portal.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { id: 'classic', label: 'Classic', icon: '☀️', desc: 'Light green professional' },
+                                { id: 'dark-gold', label: 'Dark Gold', icon: '🏆', desc: 'Luxury black & gold' },
+                                { id: 'midnight-teal', label: 'Midnight Teal', icon: '🌊', desc: 'Futuristic navy & cyan' },
+                                { id: 'noir-emerald', label: 'Noir Emerald', icon: '💎', desc: 'Premium black & green' }
+                            ].map(t => (
                                 <button
                                     key={t.id}
                                     onClick={() => setTheme(t.id)}
                                     className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all ${theme === t.id ? 'ring-2 ring-emerald-500' : ''}`}
                                     style={{ background: 'var(--bg-secondary)' }}
                                 >
-                                    <t.icon size={24} className={theme === t.id ? 'text-emerald-600' : ''} style={{ color: theme !== t.id ? 'var(--text-secondary)' : undefined }} />
+                                    <span className="text-2xl">{t.icon}</span>
                                     <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span>
+                                    <span className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>{t.desc}</span>
                                 </button>
                             ))}
                         </div>

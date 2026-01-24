@@ -38,14 +38,50 @@ export default function Leaderboard() {
                     const salesCount = repSales.length;
                     const revenue = repSales.reduce((sum, s) => sum + parseFloat(s.totalAmount || s.amount || 0), 0);
 
+                    // Calculate new sales vs reorders
+                    // Group sales by dispensary to determine first-time vs repeat
+                    const salesByDispensary = {};
+                    repSales.forEach(sale => {
+                        const dispensaryKey = (sale.dispensaryName || sale.dispensaryId || '').toLowerCase();
+                        if (!salesByDispensary[dispensaryKey]) {
+                            salesByDispensary[dispensaryKey] = [];
+                        }
+                        salesByDispensary[dispensaryKey].push(sale);
+                    });
+
+                    // Count new sales (first sale per dispensary) and reorders (subsequent sales)
+                    let newSalesCount = 0;
+                    let reordersCount = 0;
+                    Object.values(salesByDispensary).forEach(dispensarySales => {
+                        // Sort by date to determine which is first
+                        dispensarySales.sort((a, b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt));
+                        dispensarySales.forEach((sale, index) => {
+                            if (index === 0) {
+                                newSalesCount++;
+                            } else {
+                                reordersCount++;
+                            }
+                        });
+                    });
+
+                    // Calculate points: Lead=1pt + New Sale=5pt + Reorder=3pt + Revenue=1pt/$100
+                    const leadPoints = leadsCount * 1;        // 1 point per lead
+                    const newSalePoints = newSalesCount * 5;  // 5 points per new sale
+                    const reorderPoints = reordersCount * 3;  // 3 points per reorder
+                    const revenuePoints = revenue / 100;      // 1 point per $100 sold
+                    const calculatedPoints = leadPoints + newSalePoints + reorderPoints + revenuePoints;
+
                     return {
                         id: rep.id,
                         name: rep.name,
                         email: rep.email,
-                        score: rep.currentMonthPoints, // Use REAL points from database
-                        lifetimeScore: rep.lifetimePoints,
+                        // Use calculated points from all sources
+                        score: calculatedPoints,
+                        lifetimeScore: rep.lifetimePoints || calculatedPoints,
                         salesCount,
                         leadsCount,
+                        newSalesCount,
+                        reordersCount,
                         revenue
                     };
                 });
@@ -135,7 +171,10 @@ export default function Leaderboard() {
                                         <div className="flex gap-4 mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                             <span className="flex items-center gap-1">
                                                 <Award size={14} />
-                                                {rep.salesCount} Sales (5pts)
+                                                {rep.newSalesCount || 0} New (5pts)
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                🔄 {rep.reordersCount || 0} Reorders (3pts)
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Users size={14} />

@@ -43,24 +43,53 @@ export default function DispensaryVerification() {
 
         setLoading(true);
         try {
-            const verified = await verifyLicense(license.trim().toUpperCase());
-            if (verified) {
-                showNotification(`License verified for ${verified.data.dispensaryName || verified.data.name}!`, 'success');
-                // Store verified license AND user-entered info in session for registration
-                // Include referral rep ID if present
-                const referralRepId = sessionStorage.getItem('dispensary_referral_rep');
+            const referralRepId = sessionStorage.getItem('dispensary_referral_rep');
+
+            // If license is provided, try to verify it
+            if (license.trim()) {
+                const verified = await verifyLicense(license.trim().toUpperCase());
+                if (verified) {
+                    showNotification(`License verified for ${verified.data.dispensaryName || verified.data.name}!`, 'success');
+                    sessionStorage.setItem('verified_license', JSON.stringify({
+                        ...verified.data,
+                        userEnteredName: dispensaryName,
+                        userEnteredAddress: address,
+                        referralRepId: referralRepId || null
+                    }));
+                } else {
+                    // License provided but not found - still allow registration with unverified flag
+                    showNotification('License not found in our records, but you can still register. We\'ll verify it later.', 'info');
+                    sessionStorage.setItem('verified_license', JSON.stringify({
+                        id: null,
+                        dispensaryName: dispensaryName,
+                        name: dispensaryName,
+                        licenseNumber: license.trim().toUpperCase(),
+                        licenseVerified: false,
+                        licensePending: false,
+                        userEnteredName: dispensaryName,
+                        userEnteredAddress: address,
+                        referralRepId: referralRepId || null
+                    }));
+                }
+            } else {
+                // No license provided - allow registration with pending status
+                showNotification('No license provided. You can add it later in settings.', 'info');
                 sessionStorage.setItem('verified_license', JSON.stringify({
-                    ...verified.data,
+                    id: null,
+                    dispensaryName: dispensaryName,
+                    name: dispensaryName,
+                    licenseNumber: null,
+                    licenseVerified: false,
+                    licensePending: true,
                     userEnteredName: dispensaryName,
                     userEnteredAddress: address,
                     referralRepId: referralRepId || null
                 }));
-                navigate('/dispensary/register');
-            } else {
-                showNotification('License not found in our records. Please contact support or your Sales Rep.', 'error');
             }
+
+            navigate('/dispensary/register');
         } catch (error) {
-            showNotification('An error occurred during verification.', 'error');
+            showNotification('An error occurred. Please try again.', 'error');
         } finally {
             setLoading(false);
         }
@@ -101,7 +130,7 @@ export default function DispensaryVerification() {
                         />
                     </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dispensary Portal</h1>
-                    <p className="mt-3 text-slate-500 font-medium">Please verify your OCM license to continue</p>
+                    <p className="mt-3 text-slate-500 font-medium">Register your dispensary to get started</p>
                 </div>
 
                 <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
@@ -137,29 +166,31 @@ export default function DispensaryVerification() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">OCM License Number</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">
+                                License Number <span className="text-slate-400 font-normal">(Optional)</span>
+                            </label>
                             <div className="relative group">
                                 <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={20} />
                                 <input
                                     type="text"
-                                    required
-                                    placeholder="e.g. OCM-AUCP-2023-000001"
+                                    placeholder="OCM, CAURD, Provisional, or Retail License"
                                     className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all font-mono text-sm uppercase"
                                     value={license}
                                     onChange={(e) => setLicense(e.target.value)}
                                 />
                             </div>
                             <p className="mt-3 text-xs text-slate-400 leading-relaxed ml-1">
-                                Entering your license helps us link your account to your dispensary's history and active orders.
+                                We accept OCM, CAURD, Provisional, Medical, or any NY cannabis retail license.
+                                <br />Don't have one yet? No problem - you can add it later.
                             </p>
                         </div>
 
                         <button
                             type="submit"
-                            disabled={loading || !license || !dispensaryName || !address}
+                            disabled={loading || !dispensaryName || !address}
                             className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:active:scale-100"
                         >
-                            {loading ? <Loader className="animate-spin" /> : <>Verify License <ArrowRight size={20} /></>}
+                            {loading ? <Loader className="animate-spin" /> : <>{license ? 'Verify & Continue' : 'Continue Without License'} <ArrowRight size={20} /></>}
                         </button>
                     </form>
 

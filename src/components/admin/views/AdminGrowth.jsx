@@ -179,9 +179,29 @@ export default function AdminGrowth() {
                                         </td>
                                         <td className="py-3 px-6 text-xs" style={{ color: 'var(--text-secondary)' }}>
                                             {(() => {
-                                                const u = users[lead.userId];
-                                                if (!u) return 'Unassigned';
-                                                return u.profileInfo?.firstName ? `${u.profileInfo.firstName} ${u.profileInfo.lastName || ''}` : (u.name || lead.userId?.substring(0, 8));
+                                                const u = users[lead.userId] || users[lead.assignedAmbassadorId];
+                                                // Priority: 1) User profile name, 2) lead.repAssigned, 3) Generate from email/ID
+                                                if (u) {
+                                                    if (u.profileInfo?.firstName) {
+                                                        return `${u.profileInfo.firstName} ${u.profileInfo.lastName || ''}`.trim();
+                                                    }
+                                                    if (u.name && !/^[a-f0-9-]{20,}$/i.test(u.name)) {
+                                                        return u.name;
+                                                    }
+                                                    if (u.email) {
+                                                        return u.email.split('@')[0].replace(/[._]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                                                    }
+                                                }
+                                                // Fallback to repAssigned stored on the lead
+                                                if (lead.repAssigned && lead.repAssigned !== 'Unknown') {
+                                                    return lead.repAssigned;
+                                                }
+                                                // Last resort - try to extract name from ID if it looks like an email
+                                                const idToCheck = lead.userId || lead.assignedAmbassadorId;
+                                                if (idToCheck && idToCheck.includes('@')) {
+                                                    return idToCheck.split('@')[0].replace(/[._]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                                                }
+                                                return 'Unassigned';
                                             })()}
                                         </td>
                                         <td className="py-3 px-6 text-right">

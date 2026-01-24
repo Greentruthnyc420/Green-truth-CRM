@@ -85,10 +85,22 @@ export async function getUnsyncedSales() {
     return new Promise((resolve, reject) => {
         const transaction = database.transaction([STORES.SALES_QUEUE], 'readonly');
         const store = transaction.objectStore(STORES.SALES_QUEUE);
-        const index = store.index('synced');
-        const request = index.getAll(IDBKeyRange.only(false));
+        const request = store.openCursor();
+        const unsyncedSales = [];
 
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                // Only include records where synced is explicitly false or undefined
+                if (cursor.value.synced === false || cursor.value.synced === undefined) {
+                    unsyncedSales.push(cursor.value);
+                }
+                cursor.continue();
+            } else {
+                // Cursor finished, return results
+                resolve(unsyncedSales);
+            }
+        };
         request.onerror = () => reject(request.error);
     });
 }

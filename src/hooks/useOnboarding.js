@@ -21,11 +21,13 @@ export function useOnboarding(tourType, userEmail, userId) {
     const [tourCompleted, setTourCompleted] = useState(false);
 
     // Determine effective tour type based on email
+    // Only apply special tour types when in the corresponding portal
     const getEffectiveTourType = useCallback(() => {
-        if (userEmail === 'alyssa@thegreentruthnyc.com') {
+        // Only apply super_admin tour in admin portal (not in sales rep portal)
+        if (userEmail === 'alyssa@thegreentruthnyc.com' && tourType === 'admin') {
             return 'social_manager';
         }
-        if (userEmail === 'omar@thegreentruthnyc.com') {
+        if (userEmail === 'omar@thegreentruthnyc.com' && tourType === 'admin') {
             return 'super_admin';
         }
         return tourType;

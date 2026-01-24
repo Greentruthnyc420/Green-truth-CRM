@@ -300,12 +300,29 @@ export function AuthProvider({ children }) {
                                 const signupRole = sessionStorage.getItem('signupRole');
                                 const isTrial = isTrialEmail(user.email);
 
+                                // Determine role for leaderboard visibility
+                                // Trial emails get cannabis_consultant role (appears on leaderboard)
+                                // Other signups: use signupRole, or 'rep' for sales team, or 'dispensary' if referral
+                                let assignedRole = signupRole;
+                                if (!assignedRole) {
+                                    if (isTrial) {
+                                        assignedRole = 'cannabis_consultant';
+                                    } else if (referralId) {
+                                        assignedRole = 'dispensary';
+                                    } else {
+                                        // Default to 'rep' for new signups - ensures leaderboard visibility
+                                        assignedRole = 'rep';
+                                    }
+                                }
+
                                 await createUserProfile(user.uid, {
                                     email: user.email,
                                     name: user.displayName || user.email?.split('@')[0],
-                                    role: signupRole || (referralId ? 'dispensary' : 'rep'),
+                                    role: assignedRole,
                                     assigned_ambassador_id: referralId || null,
                                     is_trial: isTrial,
+                                    current_month_points: 0, // Initialize points for leaderboard
+                                    lifetime_points: 0,
                                     created_at: new Date().toISOString()
                                 });
 

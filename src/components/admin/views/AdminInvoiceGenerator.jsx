@@ -191,6 +191,81 @@ const AdminInvoiceGenerator = () => {
                     return sale.dispensaryId === selectedDispensary ||
                         (sale.dispensaryName && sale.dispensaryName.toLowerCase() === dispName.toLowerCase());
                 });
+
+                // For dispensary invoices: Group sales by brand with separate totals
+                // Each brand gets its own section because dispensaries pay brands directly
+                const salesByBrand = {};
+                filteredSales.forEach(sale => {
+                    const brandId = sale.brandId || 'unknown';
+                    const brandName = sale.brandName || 'Unknown Brand';
+                    if (!salesByBrand[brandId]) {
+                        salesByBrand[brandId] = {
+                            brandId,
+                            brandName,
+                            sales: [],
+                            total: 0
+                        };
+                    }
+                    salesByBrand[brandId].sales.push(sale);
+                    salesByBrand[brandId].total += sale.totalAmount || sale.amount || 0;
+                });
+
+                // Create separate line items per brand with subtotals
+                const newItems = [];
+                Object.values(salesByBrand).forEach(brandGroup => {
+                    // Add brand header
+                    newItems.push({
+                        id: `brand-header-${brandGroup.brandId}`,
+                        description: `📦 ${brandGroup.brandName}`,
+                        quantity: '',
+                        rate: '',
+                        amount: '',
+                        isBrandHeader: true,
+                        brandId: brandGroup.brandId
+                    });
+
+                    // Add each sale under this brand
+                    brandGroup.sales.forEach(sale => {
+                        const products = sale.items || sale.products || [];
+                        newItems.push({
+                            id: `sale-${sale.id}`,
+                            description: `  ↳ Sale: ${sale.invoiceNumber || sale.id?.slice(0, 8)} - ${new Date(sale.date).toLocaleDateString()}`,
+                            quantity: 1,
+                            rate: sale.totalAmount || sale.amount || 0,
+                            amount: sale.totalAmount || sale.amount || 0,
+                            sourceType: 'sale',
+                            sourceId: sale.id,
+                            attachmentUrl: null,
+                            products: products,
+                            brandId: brandGroup.brandId,
+                            meta: {
+                                repName: 'Sales Rep',
+                                date: sale.date,
+                                dispensaryName: sale.dispensaryName,
+                                invoiceNumber: sale.invoiceNumber
+                            }
+                        });
+                    });
+
+                    // Add brand subtotal row
+                    newItems.push({
+                        id: `brand-subtotal-${brandGroup.brandId}`,
+                        description: `  💰 Pay to ${brandGroup.brandName}:`,
+                        quantity: '',
+                        rate: '',
+                        amount: brandGroup.total,
+                        isBrandSubtotal: true,
+                        brandId: brandGroup.brandId
+                    });
+                });
+
+                if (newItems.length === 0) {
+                    alert("No sales found for this dispensary.");
+                } else {
+                    setLineItems(prev => [...prev, ...newItems]);
+                    const brandCount = Object.keys(salesByBrand).length;
+                    alert(`Imported ${filteredSales.length} sales from ${brandCount} brand(s). Each brand's total is shown separately for direct payment.`);
+                }
             } else {
                 // Filter by brand (original logic)
                 const brandName = brandList.find(b => b.id === selectedBrand)?.name || selectedBrand;
@@ -206,42 +281,38 @@ const AdminInvoiceGenerator = () => {
                     return sale.brandId === selectedBrand ||
                         (sale.brandName && sale.brandName.toLowerCase().includes(brandName.toLowerCase()));
                 });
-            }
 
-            const newItems = filteredSales.map(sale => {
-                const products = sale.items || sale.products || [];
-                const productSummary = products.length > 0
-                    ? products.map(p => `${p.name || p.productId} x${p.quantity || 1}`).join(', ')
-                    : '';
+                const newItems = filteredSales.map(sale => {
+                    const products = sale.items || sale.products || [];
+                    const productSummary = products.length > 0
+                        ? products.map(p => `${p.name || p.productId} x${p.quantity || 1}`).join(', ')
+                        : '';
 
-                return {
-                    id: `sale-${sale.id}`,
-                    description: invoiceType === 'dispensary'
-                        ? `Sale: ${new Date(sale.date).toLocaleDateString()} - ${products.length} items`
-                        : `Wholesale: ${sale.dispensaryName} - ${new Date(sale.date).toLocaleDateString()}`,
-                    quantity: 1,
-                    rate: sale.totalAmount || sale.amount || 0,
-                    amount: sale.totalAmount || sale.amount || 0,
-                    sourceType: 'sale',
-                    sourceId: sale.id,
-                    attachmentUrl: null,
-                    products: products, // Include full product details for expansion
-                    meta: {
-                        repName: 'Sales Rep',
-                        date: sale.date,
-                        dispensaryName: sale.dispensaryName,
-                        productSummary: productSummary
-                    }
-                };
-            });
+                    return {
+                        id: `sale-${sale.id}`,
+                        description: `Wholesale: ${sale.dispensaryName} - ${new Date(sale.date).toLocaleDateString()}`,
+                        quantity: 1,
+                        rate: sale.totalAmount || sale.amount || 0,
+                        amount: sale.totalAmount || sale.amount || 0,
+                        sourceType: 'sale',
+                        sourceId: sale.id,
+                        attachmentUrl: null,
+                        products: products,
+                        meta: {
+                            repName: 'Sales Rep',
+                            date: sale.date,
+                            dispensaryName: sale.dispensaryName,
+                            productSummary: productSummary
+                        }
+                    };
+                });
 
-            if (newItems.length === 0) {
-                alert(invoiceType === 'dispensary'
-                    ? "No sales found for this dispensary."
-                    : "No sales found for this brand.");
-            } else {
-                setLineItems(prev => [...prev, ...newItems]);
-                alert(`Imported ${filteredSales.length} sales records.`);
+                if (newItems.length === 0) {
+                    alert("No sales found for this brand.");
+                } else {
+                    setLineItems(prev => [...prev, ...newItems]);
+                    alert(`Imported ${filteredSales.length} sales records.`);
+                }
             }
 
         } catch (error) {
@@ -421,7 +492,7 @@ const AdminInvoiceGenerator = () => {
                                     >
                                         <option value="">-- Choose Brand --</option>
                                         {brandList.map(brand => (
-                                            <option key={brand.id} value={brand.id}>{brand.name}</option>
+                                            <option key={brand.id} value={brand.id}>{brand.brandName}</option>
                                         ))}
                                     </select>
                                 ) : (
@@ -536,79 +607,100 @@ const AdminInvoiceGenerator = () => {
                                     ) : (
                                         lineItems.map((item, idx) => (
                                             <React.Fragment key={idx}>
-                                                <tr className="hover:bg-slate-50 group">
-                                                    <td className="px-4 py-2">
-                                                        <div className="flex items-center gap-2">
-                                                            {/* Expand button for items with products */}
-                                                            {item.products && item.products.length > 0 && (
-                                                                <button
-                                                                    onClick={() => toggleRowExpand(idx)}
-                                                                    className="p-1 text-slate-400 hover:text-brand-600 transition-colors"
-                                                                    title="View products"
-                                                                >
-                                                                    {expandedRows[idx] ? (
-                                                                        <ChevronDown size={14} />
-                                                                    ) : (
-                                                                        <ChevronRight size={14} />
-                                                                    )}
-                                                                </button>
-                                                            )}
+                                                {/* Brand Header Row */}
+                                                {item.isBrandHeader ? (
+                                                    <tr style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                                        <td colSpan="6" className="px-4 py-3 font-bold text-base">
+                                                            {item.description}
+                                                        </td>
+                                                    </tr>
+                                                ) : item.isBrandSubtotal ? (
+                                                    /* Brand Subtotal Row */
+                                                    <tr style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                                                        <td colSpan="3" className="px-4 py-3 font-bold" style={{ color: 'var(--success)' }}>
+                                                            {item.description}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-black text-lg" style={{ color: 'var(--success)' }}>
+                                                            ${parseFloat(item.amount || 0).toFixed(2)}
+                                                        </td>
+                                                        <td colSpan="2"></td>
+                                                    </tr>
+                                                ) : (
+                                                    /* Regular Item Row */
+                                                    <tr className="hover:bg-slate-50 group">
+                                                        <td className="px-4 py-2">
+                                                            <div className="flex items-center gap-2">
+                                                                {/* Expand button for items with products */}
+                                                                {item.products && item.products.length > 0 && (
+                                                                    <button
+                                                                        onClick={() => toggleRowExpand(idx)}
+                                                                        className="p-1 text-slate-400 hover:text-brand-600 transition-colors"
+                                                                        title="View products"
+                                                                    >
+                                                                        {expandedRows[idx] ? (
+                                                                            <ChevronDown size={14} />
+                                                                        ) : (
+                                                                            <ChevronRight size={14} />
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                                <input
+                                                                    className="w-full bg-transparent outline-none"
+                                                                    value={item.description}
+                                                                    onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
+                                                                    placeholder="Item description"
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-2">
                                                             <input
-                                                                className="w-full bg-transparent outline-none"
-                                                                value={item.description}
-                                                                onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
-                                                                placeholder="Item description"
+                                                                type="number"
+                                                                className="w-full bg-transparent outline-none text-right"
+                                                                value={item.quantity}
+                                                                onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
                                                             />
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <input
-                                                            type="number"
-                                                            className="w-full bg-transparent outline-none text-right"
-                                                            value={item.quantity}
-                                                            onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <input
-                                                            type="number"
-                                                            className="w-full bg-transparent outline-none text-right"
-                                                            value={item.rate}
-                                                            onChange={(e) => updateLineItem(idx, 'rate', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-2 text-right font-bold" style={{ color: 'var(--text-primary)' }}>
-                                                        ${parseFloat(item.amount || 0).toFixed(2)}
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">
-                                                        <label className="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors">
+                                                        </td>
+                                                        <td className="px-4 py-2">
                                                             <input
-                                                                type="file"
-                                                                className="hidden"
-                                                                onChange={(e) => handleFileUpload(idx, e.target.files[0])}
+                                                                type="number"
+                                                                className="w-full bg-transparent outline-none text-right"
+                                                                value={item.rate}
+                                                                onChange={(e) => updateLineItem(idx, 'rate', e.target.value)}
                                                             />
-                                                            {item.attachmentUrl ? (
-                                                                <div className="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg">
-                                                                    <FileText size={16} />
-                                                                </div>
-                                                            ) : (
-                                                                <div className="hover:bg-slate-100 p-1.5 rounded-lg">
-                                                                    <Import size={16} className="rotate-90" />
-                                                                </div>
-                                                            )}
-                                                        </label>
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">
-                                                        <button
-                                                            onClick={() => removeLineItem(idx)}
-                                                            className="text-slate-300 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {/* Expanded product details row */}
-                                                {expandedRows[idx] && item.products && item.products.length > 0 && (
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-bold" style={{ color: 'var(--text-primary)' }}>
+                                                            ${parseFloat(item.amount || 0).toFixed(2)}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <label className="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors">
+                                                                <input
+                                                                    type="file"
+                                                                    className="hidden"
+                                                                    onChange={(e) => handleFileUpload(idx, e.target.files[0])}
+                                                                />
+                                                                {item.attachmentUrl ? (
+                                                                    <div className="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg">
+                                                                        <FileText size={16} />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="hover:bg-slate-100 p-1.5 rounded-lg">
+                                                                        <Import size={16} className="rotate-90" />
+                                                                    </div>
+                                                                )}
+                                                            </label>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <button
+                                                                onClick={() => removeLineItem(idx)}
+                                                                className="text-slate-300 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                {/* Expanded product details row - only for regular items */}
+                                                {!item.isBrandHeader && !item.isBrandSubtotal && expandedRows[idx] && item.products && item.products.length > 0 && (
                                                     <tr className="bg-slate-50">
                                                         <td colSpan="6" className="px-6 py-3">
                                                             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">

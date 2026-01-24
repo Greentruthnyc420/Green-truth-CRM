@@ -117,6 +117,7 @@ export default function DispensaryLogin() {
                         <div className="mt-4 space-y-2">
                             <button
                                 onClick={() => {
+                                    sessionStorage.setItem('skipTour', 'true');
                                     showNotification('Developer access granted', 'success');
                                     navigate('/dispensary');
                                 }}

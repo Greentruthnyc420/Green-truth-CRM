@@ -198,6 +198,7 @@ export default function AdminLogin() {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    sessionStorage.setItem('skipTour', 'true');
                                     devLogin('omar@thegreentruthnyc.com');
                                     navigate('/admin');
                                 }}

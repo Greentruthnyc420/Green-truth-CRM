@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getAllAccounts } from '../../../services/firestoreService';
 import { Map, RefreshCw, Filter, Users, MapPin, TrendingUp, Building2 } from 'lucide-react';
-import CRMMap from '../../CRMMap';
+import GoogleCRMMap from '../../GoogleCRMMap';
 
 // NYC Borough territories
 const TERRITORIES = [
@@ -195,7 +195,7 @@ export default function AdminTerritory() {
                         </div>
                     </div>
                 ) : (
-                    <CRMMap
+                    <GoogleCRMMap
                         leads={filteredAccounts}
                         viewMode="admin"
                         currentBrandId={null}

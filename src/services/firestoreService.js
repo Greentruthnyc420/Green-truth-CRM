@@ -222,9 +222,13 @@ export async function getLeadCountForUser(userId) {
  * @returns Array of user objects with points: { id, name, email, lifetimePoints, currentMonthPoints }
  */
 export async function getSalesRepsWithPoints() {
+    // Only fetch users who are part of the sales team (not brands or dispensaries)
+    const salesTeamRoles = ['admin', 'super_admin', 'rep', 'cannabis_consultant', 'cannabis_consultant_social'];
+
     const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, lifetime_points, current_month_points')
+        .select('id, name, email, role, lifetime_points, current_month_points')
+        .in('role', salesTeamRoles)
         .order('current_month_points', { ascending: false });
 
     if (error) {
@@ -236,6 +240,7 @@ export async function getSalesRepsWithPoints() {
         id: u.id,
         name: u.name || u.email?.split('@')[0] || 'Unknown',
         email: u.email,
+        role: u.role,
         lifetimePoints: parseFloat(u.lifetime_points || 0),
         currentMonthPoints: parseFloat(u.current_month_points || 0)
     }));
@@ -902,60 +907,121 @@ export async function addSale(saleData) {
         leadId = newLead.id;
     }
 
-    // 2. Insert Sale - use correct Supabase column names
-    // Extract brand info from items if available
-    const brandInfo = saleData.items && saleData.items.length > 0 ? saleData.items[0] : {};
-    const brandName = brandInfo.brandName || saleData.brandName || 'Unknown';
+    // 2. Split items by brand and create separate sales
+    const items = saleData.items || [];
 
-    // Generate unique invoice number: BRAND-REP-SEQUENCE
-    let invoiceNumber = null;
-    try {
-        const { generateInvoiceNumber } = await import('./invoiceNumberService');
-        invoiceNumber = await generateInvoiceNumber(brandName, repName);
-    } catch (err) {
-        console.warn('Invoice number generation failed, using fallback:', err);
-        invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+    // Group items by brandId
+    const itemsByBrand = {};
+    items.forEach(item => {
+        const brandId = item.brandId || 'unknown';
+        if (!itemsByBrand[brandId]) {
+            itemsByBrand[brandId] = {
+                brandId: brandId,
+                brandName: item.brandName || 'Unknown Brand',
+                items: [],
+                total: 0
+            };
+        }
+        itemsByBrand[brandId].items.push(item);
+        itemsByBrand[brandId].total += (item.price || 0) * (item.quantity || 0);
+    });
+
+    // If no items, use fallback single sale approach
+    const brandGroups = Object.values(itemsByBrand);
+    if (brandGroups.length === 0) {
+        brandGroups.push({
+            brandId: saleData.brandId || null,
+            brandName: saleData.brandName || 'Unknown',
+            items: [],
+            total: saleData.totalAmount || saleData.amount || 0
+        });
     }
 
-    const { data: sale, error } = await supabase.from('sales').insert([{
-        dispensary_id: leadId,
-        rep_id: repId,
-        dispensary_name: saleData.dispensaryName,
-        total_amount: saleData.totalAmount || saleData.amount || 0,
-        // commission_rate stores the rate (e.g., 0.02 for 2%), not the dollar amount
-        // Database constraint: precision 5, scale 4 (max 9.9999)
-        commission_rate: saleData.commissionRate || 0.02,
-        products: saleData.items || [],
-        brand_id: brandInfo.brandId || saleData.brandId || null,
-        brand_name: brandName,
-        status: saleData.status || 'completed',
-        sale_date: saleData.date ? new Date(saleData.date).toISOString() : new Date().toISOString(),
-        invoice_number: invoiceNumber,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-    }]).select().single();
+    // Create separate sale for each brand
+    const saleIds = [];
+    let totalPointsEarned = 0;
 
-    if (error) {
-        console.error('Error adding sale:', error);
-        throw error;
-    }
-    if (!sale) {
-        console.error('No sale data returned after insert');
-        throw new Error('Failed to create sale');
-    }
+    for (const brandGroup of brandGroups) {
+        // Generate unique invoice number per brand
+        let invoiceNumber = null;
+        try {
+            const { generateInvoiceNumber } = await import('./invoiceNumberService');
+            invoiceNumber = await generateInvoiceNumber(brandGroup.brandName, repName);
+        } catch (err) {
+            console.warn('Invoice number generation failed, using fallback:', err);
+            invoiceNumber = `INV-${brandGroup.brandId?.slice(0, 3)?.toUpperCase() || 'UNK'}-${Date.now().toString(36).toUpperCase()}`;
+        }
 
-    // Notify admins about the new sale
+        const brandSaleAmount = brandGroup.total;
+
+        const { data: sale, error } = await supabase.from('sales').insert([{
+            dispensary_id: leadId,
+            rep_id: repId,
+            dispensary_name: saleData.dispensaryName,
+            total_amount: brandSaleAmount,
+            commission_rate: saleData.commissionRate || 0.02,
+            products: brandGroup.items,
+            brand_id: brandGroup.brandId,
+            brand_name: brandGroup.brandName,
+            status: saleData.status || 'pending',
+            sale_date: saleData.date ? new Date(saleData.date).toISOString() : new Date().toISOString(),
+            invoice_number: invoiceNumber,
+            payment_terms: saleData.paymentTerms || 'COD',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }]).select().single();
+
+        if (error) {
+            console.error('Error adding sale for brand', brandGroup.brandName, ':', error);
+            throw error;
+        }
+        if (!sale) {
+            throw new Error(`Failed to create sale for ${brandGroup.brandName}`);
+        }
+
+        saleIds.push(sale.id);
+        totalPointsEarned += brandSaleAmount / 100;
+        console.log(`✅ Created sale ${sale.id} for ${brandGroup.brandName}: $${brandSaleAmount.toFixed(2)}`);
+    } // End for loop
+
+    // Notify admins about the order (total across all brands)
+    const grandTotal = saleData.totalAmount || saleData.amount || brandGroups.reduce((sum, bg) => sum + bg.total, 0);
     try {
         await notifyAdminsSaleLogged(
             saleData.dispensaryName || 'Unknown Dispensary',
-            saleData.totalAmount || saleData.amount || 0,
+            grandTotal,
             repName
         );
     } catch (notifyError) {
         console.warn('Failed to send sale notification:', notifyError);
     }
 
-    return sale.id;
+    // Auto-update rep's points (total from all brand sales)
+    try {
+        const { error: pointsError } = await supabase.rpc('increment_user_points', {
+            user_id: repId,
+            points_to_add: totalPointsEarned
+        });
+
+        if (pointsError) {
+            console.warn('RPC increment failed, using direct update:', pointsError);
+            const { data: userData } = await supabase.from('users').select('current_month_points, lifetime_points').eq('id', repId).single();
+            if (userData) {
+                const newMonthPoints = (parseFloat(userData.current_month_points) || 0) + totalPointsEarned;
+                const newLifetimePoints = (parseFloat(userData.lifetime_points) || 0) + totalPointsEarned;
+                await supabase.from('users').update({
+                    current_month_points: newMonthPoints,
+                    lifetime_points: newLifetimePoints
+                }).eq('id', repId);
+            }
+        }
+
+        console.log(`✅ Added ${totalPointsEarned.toFixed(2)} points to rep ${repId} (${saleIds.length} brand sale(s))`);
+    } catch (pointsUpdateError) {
+        console.warn('Failed to update rep points:', pointsUpdateError);
+    }
+
+    return saleIds.length === 1 ? saleIds[0] : saleIds;
 }
 
 export async function getSales() {
