@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Percent, Calendar, Package, Clock, Zap, Gift, Search, Filter, Loader } from 'lucide-react';
+import { Tag, Percent, Calendar, Package, Clock, Zap, Gift, Search, Filter, Loader, TrendingUp, Award, Flame } from 'lucide-react';
+import { getDealRules, DEAL_RULE_TYPES, getTimeRemaining, isDealExpired } from '../services/dealService';
 import { supabase } from '../services/supabaseClient';
 import { useNotification } from '../contexts/NotificationContext';
 
@@ -17,14 +18,39 @@ export default function SalesRepDeals() {
     const fetchDeals = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('deals')
-                .select('*, brands(name)')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false });
+            // Fetch from deal_rules table (where brands create deals)
+            const dealRules = await getDealRules(); // Gets all active deals
 
-            if (error) throw error;
-            setDeals(data || []);
+            // Get brand names for each deal
+            const brandIds = [...new Set(dealRules.filter(d => d.brand_id).map(d => d.brand_id))];
+            let brandMap = {};
+
+            if (brandIds.length > 0) {
+                const { data: brands } = await supabase
+                    .from('brands')
+                    .select('id, name')
+                    .in('id', brandIds);
+
+                if (brands) {
+                    brandMap = brands.reduce((acc, b) => ({ ...acc, [b.id]: b.name }), {});
+                }
+            }
+
+            // Map deal_rules to display format
+            const formattedDeals = dealRules
+                .filter(d => !isDealExpired(d)) // Filter out expired deals
+                .map(d => ({
+                    ...d,
+                    brandName: brandMap[d.brand_id] || 'All Brands',
+                    deal_type: d.rule_type,
+                    title: d.name,
+                    discount_value: d.discount_value,
+                    discount_type: d.discount_type,
+                    expires_at: d.expires_at,
+                    min_order_amount: d.min_order_value
+                }));
+
+            setDeals(formattedDeals);
         } catch (error) {
             console.error('Error fetching deals:', error);
             showNotification('Failed to load deals', 'error');
@@ -37,8 +63,12 @@ export default function SalesRepDeals() {
         switch (type) {
             case 'flash_sale': return <Zap size={16} className="text-yellow-500" />;
             case 'bulk_discount': return <Package size={16} className="text-blue-500" />;
-            case 'limited_time': return <Clock size={16} className="text-purple-500" />;
-            case 'free_product': return <Gift size={16} className="text-green-500" />;
+            case 'cod_discount': return <Percent size={16} className="text-green-500" />;
+            case 'tiered_cod_discount': return <TrendingUp size={16} className="text-emerald-500" />;
+            case 'tiered_volume': return <TrendingUp size={16} className="text-blue-500" />;
+            case 'bogo': return <Gift size={16} className="text-pink-500" />;
+            case 'threshold_bonus': return <Award size={16} className="text-purple-500" />;
+            case 'clearance': return <Flame size={16} className="text-red-500" />;
             default: return <Percent size={16} className="text-orange-500" />;
         }
     };
@@ -47,19 +77,25 @@ export default function SalesRepDeals() {
         const colors = {
             flash_sale: 'bg-yellow-100 text-yellow-700',
             bulk_discount: 'bg-blue-100 text-blue-700',
-            limited_time: 'bg-purple-100 text-purple-700',
-            free_product: 'bg-green-100 text-green-700',
-            percentage: 'bg-orange-100 text-orange-700'
+            cod_discount: 'bg-green-100 text-green-700',
+            tiered_cod_discount: 'bg-emerald-100 text-emerald-700',
+            tiered_volume: 'bg-sky-100 text-sky-700',
+            bogo: 'bg-pink-100 text-pink-700',
+            threshold_bonus: 'bg-purple-100 text-purple-700',
+            clearance: 'bg-red-100 text-red-700'
         };
         const labels = {
             flash_sale: 'Flash Sale',
             bulk_discount: 'Bulk Discount',
-            limited_time: 'Limited Time',
-            free_product: 'Free Product',
-            percentage: 'Percentage Off'
+            cod_discount: 'COD Discount',
+            tiered_cod_discount: 'Tiered COD',
+            tiered_volume: 'Volume Discount',
+            bogo: 'Buy X Get Y',
+            threshold_bonus: 'Bonus Deal',
+            clearance: 'Clearance'
         };
         return (
-            <span className={`px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${colors[type] || colors.percentage}`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${colors[type] || 'bg-orange-100 text-orange-700'}`}>
                 {getDealTypeIcon(type)}
                 {labels[type] || 'Discount'}
             </span>
@@ -78,7 +114,7 @@ export default function SalesRepDeals() {
         .filter(d => filter === 'all' || d.deal_type === filter)
         .filter(d =>
             (d.title?.toLowerCase().includes(search.toLowerCase())) ||
-            (d.brands?.name?.toLowerCase().includes(search.toLowerCase()))
+            (d.brandName?.toLowerCase().includes(search.toLowerCase()))
         );
 
     if (loading) {
@@ -121,7 +157,7 @@ export default function SalesRepDeals() {
                     />
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                    {['all', 'percentage', 'bulk_discount', 'flash_sale', 'limited_time', 'free_product'].map((f) => (
+                    {['all', 'bulk_discount', 'cod_discount', 'tiered_volume', 'flash_sale', 'bogo', 'clearance'].map((f) => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
@@ -133,7 +169,7 @@ export default function SalesRepDeals() {
                                 border: '1px solid var(--border-primary)'
                             } : {}}
                         >
-                            {f === 'all' ? 'All' : f.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {f === 'all' ? 'All' : f.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </button>
                     ))}
                 </div>
@@ -179,7 +215,7 @@ export default function SalesRepDeals() {
                                         Brand
                                     </span>
                                     <span className="font-bold" style={{ color: 'var(--accent-primary)' }}>
-                                        {deal.brands?.name || 'Unknown Brand'}
+                                        {deal.brandName || 'All Brands'}
                                     </span>
                                 </div>
 
