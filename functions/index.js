@@ -1,4 +1,5 @@
 const functions = require('firebase-functions');
+const { defineSecret, defineString } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 const Joi = require('joi');
@@ -9,21 +10,37 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
+// Define secrets and config params (new approach - replaces deprecated functions.config())
+const SUPABASE_URL = defineString('SUPABASE_URL', { default: '' });
+const SUPABASE_SERVICE_KEY = defineSecret('SUPABASE_SERVICE_KEY');
+const EMAIL_USER = defineString('EMAIL_USER', { default: '' });
+const EMAIL_PASS = defineSecret('EMAIL_PASS');
+
 // Supabase client for points reset (points are stored in Supabase)
 const { createClient } = require('@supabase/supabase-js');
-const supabaseUrl = functions.config().supabase?.url || process.env.SUPABASE_URL;
-const supabaseServiceKey = functions.config().supabase?.service_key || process.env.SUPABASE_SERVICE_KEY;
-const supabase = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+// Helper to get Supabase client (deferred initialization for secrets)
+function getSupabaseClient() {
+    const url = SUPABASE_URL.value() || process.env.SUPABASE_URL;
+    const key = SUPABASE_SERVICE_KEY.value() || process.env.SUPABASE_SERVICE_KEY;
+    if (url && key) {
+        return createClient(url, key);
+    }
+    return null;
+}
 
 // ============================================================
 // SCHEDULED: Quarterly Points Reset (1st of Jan, Apr, Jul, Oct at midnight EST)
 // ============================================================
-exports.resetQuarterlyPoints = functions.pubsub
+exports.resetQuarterlyPoints = functions.runWith({
+    secrets: [SUPABASE_SERVICE_KEY]
+}).pubsub
     .schedule('0 0 1 1,4,7,10 *') // Cron: At 00:00 on day 1 of Jan, Apr, Jul, Oct
     .timeZone('America/New_York')
     .onRun(async (context) => {
         functions.logger.info('🏆 Starting quarterly leaderboard points reset...');
 
+        const supabase = getSupabaseClient();
         if (!supabase) {
             functions.logger.error('Supabase not configured - cannot reset points');
             return null;
@@ -63,13 +80,16 @@ exports.resetQuarterlyPoints = functions.pubsub
 // ============================================================
 // EMAIL: Transporter Setup
 // ============================================================
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: functions.config().email?.user || process.env.EMAIL_USER,
-        pass: functions.config().email?.pass || process.env.EMAIL_PASS
-    }
-});
+// Helper to get email transporter (deferred for secrets)
+function getEmailTransporter() {
+    return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: EMAIL_USER.value() || process.env.EMAIL_USER,
+            pass: EMAIL_PASS.value() || process.env.EMAIL_PASS
+        }
+    });
+}
 
 // ============================================================
 // FUNCTION: Send Invoice Email
@@ -79,7 +99,9 @@ const sendInvoiceEmailSchema = Joi.object({
     recipientEmail: Joi.string().email().required(),
 });
 
-exports.sendInvoiceEmail = functions.https.onCall(async (data, context) => {
+exports.sendInvoiceEmail = functions.runWith({
+    secrets: [EMAIL_PASS]
+}).https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -131,7 +153,11 @@ exports.sendInvoiceEmail = functions.https.onCall(async (data, context) => {
             </div>
         `;
 
-        if (!transporter.options.auth.user || !transporter.options.auth.pass) {
+        const transporter = getEmailTransporter();
+        const emailUser = EMAIL_USER.value() || process.env.EMAIL_USER;
+        const emailPass = EMAIL_PASS.value() || process.env.EMAIL_PASS;
+
+        if (!emailUser || !emailPass) {
             functions.logger.info('Email mock log (No credentials configured):', { recipientEmail, invoiceNumber: invoiceData.invoiceNumber });
             return {
                 success: true,
@@ -141,7 +167,7 @@ exports.sendInvoiceEmail = functions.https.onCall(async (data, context) => {
         }
 
         await transporter.sendMail({
-            from: `"Green Truth NYC" <${transporter.options.auth.user}>`,
+            from: `"Green Truth NYC" <${emailUser}>`,
             to: recipientEmail,
             subject: `Green Truth Invoice: ${invoiceData.invoiceNumber} - ${invoiceData.brand}`,
             html: html
@@ -163,7 +189,9 @@ const sendPartnershipEmailSchema = Joi.object({
     formData: Joi.object().required(),
 });
 
-exports.sendPartnershipInquiry = functions.https.onCall(async (data, context) => {
+exports.sendPartnershipInquiry = functions.runWith({
+    secrets: [EMAIL_PASS]
+}).https.onCall(async (data, context) => {
     const { error, value } = sendPartnershipEmailSchema.validate(data);
     if (error) {
         throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
@@ -191,8 +219,11 @@ exports.sendPartnershipInquiry = functions.https.onCall(async (data, context) =>
         `;
 
         const ADMIN_EMAIL = 'notifications@thegreentruthnyc.com';
+        const transporter = getEmailTransporter();
+        const emailUser = EMAIL_USER.value() || process.env.EMAIL_USER;
+        const emailPass = EMAIL_PASS.value() || process.env.EMAIL_PASS;
 
-        if (!transporter.options.auth.user || !transporter.options.auth.pass) {
+        if (!emailUser || !emailPass) {
             functions.logger.info('Partnership Email mock log:', formData);
             return {
                 success: true,
@@ -202,7 +233,7 @@ exports.sendPartnershipInquiry = functions.https.onCall(async (data, context) =>
         }
 
         await transporter.sendMail({
-            from: `"Green Truth CRM" <${transporter.options.auth.user}>`,
+            from: `"Green Truth CRM" <${emailUser}>`,
             to: ADMIN_EMAIL,
             subject: `Partnership Inquiry: ${formData.companyName}`,
             html: html
@@ -222,7 +253,9 @@ const sendActivationRequestSchema = Joi.object({
     requestData: Joi.object().required(),
 });
 
-exports.sendActivationRequestNotification = functions.https.onCall(async (data, context) => {
+exports.sendActivationRequestNotification = functions.runWith({
+    secrets: [EMAIL_PASS]
+}).https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
 
     const { error, value } = sendActivationRequestSchema.validate(data);
@@ -250,9 +283,11 @@ exports.sendActivationRequestNotification = functions.https.onCall(async (data, 
         `;
 
         const ADMIN_EMAIL = 'notifications@thegreentruthnyc.com';
+        const transporter = getEmailTransporter();
+        const emailUser = EMAIL_USER.value() || process.env.EMAIL_USER;
 
         await transporter.sendMail({
-            from: `"Green Truth CRM" <${transporter.options.auth.user}>`,
+            from: `"Green Truth CRM" <${emailUser}>`,
             to: ADMIN_EMAIL,
             subject: `Activation Request: ${requestData.brandName} @ ${requestData.dispensaryName}`,
             html: html

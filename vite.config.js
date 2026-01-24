@@ -65,4 +65,9 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000, // Increase limit since we're intentionally chunking
   },
+  esbuild: {
+    // Remove console.log in production builds (keeps console.error, console.warn for debugging)
+    pure: process.env.NODE_ENV === 'production' ? ['console.log'] : [],
+    drop: process.env.NODE_ENV === 'production' ? ['debugger'] : []
+  },
 })
