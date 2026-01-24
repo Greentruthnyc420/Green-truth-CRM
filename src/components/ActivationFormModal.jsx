@@ -217,11 +217,16 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
     const isRequestMode = isBrand || isProcessor || isDispensary || adminRequestMode;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="activation-modal-title"
+        >
             <div className="rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto" style={{ background: 'var(--bg-card)' }}>
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                     <div className="flex flex-col">
-                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <h2 id="activation-modal-title" className="text-xl font-bold text-slate-800 flex items-center gap-2">
                             <Calendar className="text-emerald-600" />
                             {isRequestMode ? 'Request Activation' : 'Schedule Activation'}
                         </h2>
@@ -237,8 +242,12 @@ export default function ActivationFormModal({ isOpen, onClose, onSuccess, initia
                             </label>
                         )}
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                        <X size={20} className="text-slate-500" />
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <X size={20} className="text-slate-500" aria-hidden="true" />
                     </button>
                 </div>
 
