@@ -119,7 +119,12 @@ export default function RequestActivationModal({ isOpen, onClose, brandUser }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="request-activation-modal-title"
+        >
             <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50/50 to-white sticky top-0 z-10">
@@ -128,7 +133,7 @@ export default function RequestActivationModal({ isOpen, onClose, brandUser }) {
                             <Sparkles size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">
+                            <h2 id="request-activation-modal-title" className="text-xl font-bold text-slate-800">
                                 Request Activation
                             </h2>
                             <p className="text-xs text-slate-500 font-medium">Schedule a brand pop-up event</p>
@@ -137,8 +142,9 @@ export default function RequestActivationModal({ isOpen, onClose, brandUser }) {
                     <button
                         onClick={onClose}
                         className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all duration-200 shadow-sm"
+                        aria-label="Close modal"
                     >
-                        <X size={20} />
+                        <X size={20} aria-hidden="true" />
                     </button>
                 </div>
 

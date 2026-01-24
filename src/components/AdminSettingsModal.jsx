@@ -117,6 +117,9 @@ export function AdminSettingsModal({ isOpen, onClose }) {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-settings-modal-title"
             >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -133,15 +136,16 @@ export function AdminSettingsModal({ isOpen, onClose }) {
                                 <Settings size={24} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">GreenTruth Settings</h2>
+                                <h2 id="admin-settings-modal-title" className="text-xl font-bold text-white">GreenTruth Settings</h2>
                                 <p className="text-white/80 text-sm">Payment info for brands</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
                             className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center text-white"
+                            aria-label="Close modal"
                         >
-                            <X size={20} />
+                            <X size={20} aria-hidden="true" />
                         </button>
                     </div>
 
@@ -421,6 +425,9 @@ export function ViewGreenTruthPaymentModal({ isOpen, onClose }) {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="payment-info-modal-title"
             >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -437,15 +444,16 @@ export function ViewGreenTruthPaymentModal({ isOpen, onClose }) {
                                 <CreditCard size={24} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Pay GreenTruth</h2>
+                                <h2 id="payment-info-modal-title" className="text-xl font-bold text-white">Pay GreenTruth</h2>
                                 <p className="text-white/80 text-sm">Payment information</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
                             className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center text-white"
+                            aria-label="Close modal"
                         >
-                            <X size={20} />
+                            <X size={20} aria-hidden="true" />
                         </button>
                     </div>
 
