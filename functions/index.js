@@ -1,4 +1,5 @@
-const functions = require('firebase-functions');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
@@ -29,53 +30,55 @@ function getSupabaseClient() {
     return null;
 }
 
+// For logging (firebase-functions/logger replaces functions.logger in v2)
+const { logger } = require('firebase-functions');
+
 // ============================================================
 // SCHEDULED: Quarterly Points Reset (1st of Jan, Apr, Jul, Oct at midnight EST)
 // ============================================================
-exports.resetQuarterlyPoints = functions.runWith({
+exports.resetQuarterlyPoints = onSchedule({
+    schedule: '0 0 1 1,4,7,10 *', // Cron: At 00:00 on day 1 of Jan, Apr, Jul, Oct
+    timeZone: 'America/New_York',
     secrets: [SUPABASE_SERVICE_KEY]
-}).pubsub
-    .schedule('0 0 1 1,4,7,10 *') // Cron: At 00:00 on day 1 of Jan, Apr, Jul, Oct
-    .timeZone('America/New_York')
-    .onRun(async (context) => {
-        functions.logger.info('🏆 Starting quarterly leaderboard points reset...');
+}, async (event) => {
+    logger.info('🏆 Starting quarterly leaderboard points reset...');
 
-        const supabase = getSupabaseClient();
-        if (!supabase) {
-            functions.logger.error('Supabase not configured - cannot reset points');
-            return null;
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+        logger.error('Supabase not configured - cannot reset points');
+        return null;
+    }
+
+    try {
+        // Reset all users' current_month_points to 0
+        const { data, error } = await supabase
+            .from('users')
+            .update({ current_month_points: 0 })
+            .neq('current_month_points', 0); // Only update those with points
+
+        if (error) {
+            logger.error('Points reset failed:', error);
+            throw error;
         }
 
-        try {
-            // Reset all users' current_month_points to 0
-            const { data, error } = await supabase
-                .from('users')
-                .update({ current_month_points: 0 })
-                .neq('current_month_points', 0); // Only update those with points
+        logger.info(`✅ Quarterly points reset complete. Affected users: ${data?.length || 'all with points'}`);
 
-            if (error) {
-                functions.logger.error('Points reset failed:', error);
-                throw error;
-            }
+        // Optional: Log this event for audit trail
+        await supabase.from('points_history').insert([{
+            user_id: 'SYSTEM',
+            action: 'quarterly_reset',
+            reference_id: `Q${Math.ceil((new Date().getMonth() + 1) / 3)}-${new Date().getFullYear()}`, // Quarter identifier (Q1-2026)
+            points_earned: 0,
+            breakdown: { type: 'quarterly_reset' },
+            created_at: new Date().toISOString()
+        }]);
 
-            functions.logger.info(`✅ Quarterly points reset complete. Affected users: ${data?.length || 'all with points'}`);
-
-            // Optional: Log this event for audit trail
-            await supabase.from('points_history').insert([{
-                user_id: 'SYSTEM',
-                action: 'quarterly_reset',
-                reference_id: `Q${Math.ceil((new Date().getMonth() + 1) / 3)}-${new Date().getFullYear()}`, // Quarter identifier (Q1-2026)
-                points_earned: 0,
-                breakdown: { type: 'quarterly_reset' },
-                created_at: new Date().toISOString()
-            }]);
-
-            return { success: true };
-        } catch (error) {
-            functions.logger.error('resetMonthlyPoints error:', error);
-            return { success: false, error: error.message };
-        }
-    });
+        return { success: true };
+    } catch (error) {
+        logger.error('resetMonthlyPoints error:', error);
+        return { success: false, error: error.message };
+    }
+});
 
 // ============================================================
 // EMAIL: Transporter Setup
@@ -99,16 +102,16 @@ const sendInvoiceEmailSchema = Joi.object({
     recipientEmail: Joi.string().email().required(),
 });
 
-exports.sendInvoiceEmail = functions.runWith({
+exports.sendInvoiceEmail = onCall({
     secrets: [EMAIL_PASS]
-}).https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { error, value } = sendInvoiceEmailSchema.validate(data);
+    const { error, value } = sendInvoiceEmailSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { invoiceData, recipientEmail } = value;
 
@@ -158,7 +161,7 @@ exports.sendInvoiceEmail = functions.runWith({
         const emailPass = EMAIL_PASS.value() || process.env.EMAIL_PASS;
 
         if (!emailUser || !emailPass) {
-            functions.logger.info('Email mock log (No credentials configured):', { recipientEmail, invoiceNumber: invoiceData.invoiceNumber });
+            logger.info('Email mock log (No credentials configured):', { recipientEmail, invoiceNumber: invoiceData.invoiceNumber });
             return {
                 success: true,
                 mock: true,
@@ -173,12 +176,12 @@ exports.sendInvoiceEmail = functions.runWith({
             html: html
         });
 
-        functions.logger.info(`Invoice email sent successfully to ${recipientEmail}`);
+        logger.info(`Invoice email sent successfully to ${recipientEmail}`);
 
         return { success: true };
     } catch (error) {
-        functions.logger.error('sendInvoiceEmail error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
+        logger.error('sendInvoiceEmail error:', error);
+        throw new HttpsError('internal', error.message);
     }
 });
 
@@ -189,12 +192,12 @@ const sendPartnershipEmailSchema = Joi.object({
     formData: Joi.object().required(),
 });
 
-exports.sendPartnershipInquiry = functions.runWith({
+exports.sendPartnershipInquiry = onCall({
     secrets: [EMAIL_PASS]
-}).https.onCall(async (data, context) => {
-    const { error, value } = sendPartnershipEmailSchema.validate(data);
+}, async (request) => {
+    const { error, value } = sendPartnershipEmailSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { formData } = value;
 
@@ -224,7 +227,7 @@ exports.sendPartnershipInquiry = functions.runWith({
         const emailPass = EMAIL_PASS.value() || process.env.EMAIL_PASS;
 
         if (!emailUser || !emailPass) {
-            functions.logger.info('Partnership Email mock log:', formData);
+            logger.info('Partnership Email mock log:', formData);
             return {
                 success: true,
                 mock: true,
@@ -241,8 +244,8 @@ exports.sendPartnershipInquiry = functions.runWith({
 
         return { success: true };
     } catch (error) {
-        functions.logger.error('sendPartnershipInquiry error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
+        logger.error('sendPartnershipInquiry error:', error);
+        throw new HttpsError('internal', error.message);
     }
 });
 
@@ -253,13 +256,13 @@ const sendActivationRequestSchema = Joi.object({
     requestData: Joi.object().required(),
 });
 
-exports.sendActivationRequestNotification = functions.runWith({
+exports.sendActivationRequestNotification = onCall({
     secrets: [EMAIL_PASS]
-}).https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+}, async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
-    const { error, value } = sendActivationRequestSchema.validate(data);
-    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { error, value } = sendActivationRequestSchema.validate(request.data);
+    if (error) throw new HttpsError('invalid-argument', error.details[0].message);
     const { requestData } = value;
 
     try {
@@ -295,7 +298,7 @@ exports.sendActivationRequestNotification = functions.runWith({
 
         return { success: true };
     } catch (error) {
-        functions.logger.error('sendActivationRequestNotification error:', error);
+        logger.error('sendActivationRequestNotification error:', error);
         return { success: false, error: error.message };
     }
 });
@@ -303,14 +306,17 @@ exports.sendActivationRequestNotification = functions.runWith({
 // ============================================================
 // OAUTH: Monday.com
 // ============================================================
-// ============================================================
-// OAUTH: Monday.com
-// ============================================================
 const { exchangeMondayToken } = require('./oauth');
-// Grant access to secrets
-exports.exchangeMondayToken = functions.runWith({
-    secrets: ['MONDAY_CLIENT_ID', 'MONDAY_CLIENT_SECRET', 'MONDAY_SIGNING_SECRET']
-}).https.onCall(exchangeMondayToken);
+const MONDAY_CLIENT_ID = defineSecret('MONDAY_CLIENT_ID');
+const MONDAY_CLIENT_SECRET = defineSecret('MONDAY_CLIENT_SECRET');
+const MONDAY_SIGNING_SECRET = defineSecret('MONDAY_SIGNING_SECRET');
+
+// Grant access to secrets - wrap the handler for v2 API
+exports.exchangeMondayToken = onCall({
+    secrets: [MONDAY_CLIENT_ID, MONDAY_CLIENT_SECRET, MONDAY_SIGNING_SECRET]
+}, async (request) => {
+    return exchangeMondayToken(request.data, { auth: request.auth });
+});
 
 
 // ============================================================
@@ -344,13 +350,13 @@ const syncSaleToMondaySchema = Joi.object({
     sale: Joi.object().required()
 });
 
-exports.syncSaleToMonday = functions.https.onCall(async (data, context) => {
+exports.syncSaleToMonday = onCall(async (request) => {
     // 1. Auth Check
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     // 2. Validation
-    const { error, value } = syncSaleToMondaySchema.validate(data);
-    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { error, value } = syncSaleToMondaySchema.validate(request.data);
+    if (error) throw new HttpsError('invalid-argument', error.details[0].message);
     const { brandId, sale } = value;
 
     try {
@@ -398,7 +404,7 @@ exports.syncSaleToMonday = functions.https.onCall(async (data, context) => {
         return { success: true, mondayItemId: result.data.create_item.id };
 
     } catch (error) {
-        functions.logger.error('syncSaleToMonday error:', error);
+        logger.error('syncSaleToMonday error:', error);
         await logSyncEvent(brandId, 'syncSale', false, { saleId: sale.id }, error.message);
         return { success: false, error: error.message };
     }
@@ -412,13 +418,13 @@ const syncAccountToMondaySchema = Joi.object({
     lead: Joi.object().required()
 });
 
-exports.syncAccountToMonday = functions.https.onCall(async (data, context) => {
+exports.syncAccountToMonday = onCall(async (request) => {
     // 1. Auth Check
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
     // 2. Validation
-    const { error, value } = syncAccountToMondaySchema.validate(data);
-    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { error, value } = syncAccountToMondaySchema.validate(request.data);
+    if (error) throw new HttpsError('invalid-argument', error.details[0].message);
     const { brandId, lead } = value;
 
     try {
@@ -462,7 +468,7 @@ exports.syncAccountToMonday = functions.https.onCall(async (data, context) => {
         return { success: true, mondayItemId: result.data.create_item.id };
 
     } catch (error) {
-        functions.logger.error('syncAccountToMonday error:', error);
+        logger.error('syncAccountToMonday error:', error);
         await logSyncEvent(brandId, 'syncAccount', false, { leadId: lead.id }, error.message);
         return { success: false, error: error.message };
     }
@@ -483,10 +489,10 @@ const syncDispensaryInvoiceSchema = Joi.object({
 /**
  * Get dispensary Monday settings
  */
-exports.getDispensaryIntegration = functions.https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.getDispensaryIntegration = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
-    const doc = await db.collection('dispensary_integrations').doc(context.auth.uid).get();
+    const doc = await db.collection('dispensary_integrations').doc(request.auth.uid).get();
     if (!doc.exists) return { connected: false };
 
     const d = doc.data();
@@ -500,14 +506,14 @@ exports.getDispensaryIntegration = functions.https.onCall(async (data, context) 
 /**
  * Sync Dispensary Invoice to Monday
  */
-exports.syncDispensaryInvoiceToMonday = functions.https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.syncDispensaryInvoiceToMonday = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
-    const { error, value } = syncDispensaryInvoiceSchema.validate(data);
-    if (error) throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+    const { error, value } = syncDispensaryInvoiceSchema.validate(request.data);
+    if (error) throw new HttpsError('invalid-argument', error.details[0].message);
 
     const { invoice } = value;
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
 
     try {
         const doc = await db.collection('dispensary_integrations').doc(uid).get();
@@ -551,7 +557,7 @@ exports.syncDispensaryInvoiceToMonday = functions.https.onCall(async (data, cont
         return { success: true, mondayItemId: result.data.create_item.id };
 
     } catch (err) {
-        functions.logger.error('syncDispensaryInvoiceToMonday Error', err);
+        logger.error('syncDispensaryInvoiceToMonday Error', err);
         return { success: false, error: err.message };
     }
 });
@@ -562,12 +568,12 @@ exports.syncDispensaryInvoiceToMonday = functions.https.onCall(async (data, cont
 /**
  * Create standard Monday.com boards for a brand
  */
-exports.createMondayDashboards = functions.https.onCall(async (data, context) => {
+exports.createMondayDashboards = onCall(async (request) => {
     // 1. Auth Check
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in');
 
-    const { brandId } = data;
-    if (!brandId) throw new functions.https.HttpsError('invalid-argument', 'Brand ID required');
+    const { brandId } = request.data;
+    if (!brandId) throw new HttpsError('invalid-argument', 'Brand ID required');
 
     try {
         const settings = await getBrandMondayIntegration(brandId);
@@ -641,7 +647,7 @@ exports.createMondayDashboards = functions.https.onCall(async (data, context) =>
         return { success: true, createdBoards };
 
     } catch (error) {
-        functions.logger.error('createMondayDashboards error:', error);
+        logger.error('createMondayDashboards error:', error);
         return { success: false, error: error.message };
     }
 });

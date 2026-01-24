@@ -4,7 +4,9 @@
  * This file consolidates all third-party integration logic, starting with Monday.com.
  */
 
-const functions = require('firebase-functions');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const Joi = require('joi');
 const fetch = require('node-fetch');
@@ -56,7 +58,7 @@ async function mondayRequest(apiToken, query, variables = {}) {
 
         const data = await response.json();
         if (data.errors) {
-            functions.logger.error("Monday.com API Error", { errors: data.errors });
+            logger.error("Monday.com API Error", { errors: data.errors });
             throw new Error(data.errors[0]?.message || 'Monday.com API Error');
         }
         return data;
@@ -65,7 +67,7 @@ async function mondayRequest(apiToken, query, variables = {}) {
         factor: 2,
         minTimeout: 1000,
         onRetry: (error, attempt) => {
-            functions.logger.warn(`Retrying Monday.com request (attempt ${attempt})`, { error: error.message });
+            logger.warn(`Retrying Monday.com request (attempt ${attempt})`, { error: error.message });
         }
     });
 }
@@ -81,12 +83,12 @@ async function getBrandMondayIntegration(brandId) {
     const doc = await docRef.get();
 
     if (!doc.exists) {
-        throw new functions.https.HttpsError('not-found', 'No integration settings found for this brand.');
+        throw new HttpsError('not-found', 'No integration settings found for this brand.');
     }
 
     const data = doc.data();
     if (!data.mondayApiToken) {
-        throw new functions.https.HttpsError('failed-precondition', 'Monday.com API token not configured.');
+        throw new HttpsError('failed-precondition', 'Monday.com API token not configured.');
     }
 
     return {
@@ -128,7 +130,7 @@ async function logSyncEvent(brandId, action, success, details, error = null) {
             }
         });
     } catch (logError) {
-        functions.logger.error('Failed to log sync event', {
+        logger.error('Failed to log sync event', {
             brandId,
             action,
             error: logError.message
@@ -146,14 +148,14 @@ const getMondaySettingsSchema = Joi.object({
     brandId: Joi.string().required(),
 });
 
-exports.getMondaySettings = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in to view settings.');
+exports.getMondaySettings = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in to view settings.');
     }
 
-    const { error, value } = getMondaySettingsSchema.validate(data);
+    const { error, value } = getMondaySettingsSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId } = value;
 
@@ -176,8 +178,8 @@ exports.getMondaySettings = functions.https.onCall(async (data, context) => {
             invoicesBoardId: settings.invoicesBoardId || null,
         };
     } catch (err) {
-        functions.logger.error('Error in getMondaySettings:', err);
-        throw new functions.https.HttpsError('internal', 'Could not retrieve Monday.com settings.');
+        logger.error('Error in getMondaySettings:', err);
+        throw new HttpsError('internal', 'Could not retrieve Monday.com settings.');
     }
 });
 
@@ -193,14 +195,14 @@ const saveMondaySettingsSchema = Joi.object({
 });
 
 
-exports.saveMondaySettings = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in to save settings.');
+exports.saveMondaySettings = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in to save settings.');
     }
 
-    const { error, value } = saveMondaySettingsSchema.validate(data);
+    const { error, value } = saveMondaySettingsSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId, settings } = value;
 
@@ -209,13 +211,13 @@ exports.saveMondaySettings = functions.https.onCall(async (data, context) => {
         await docRef.set({
             ...settings,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedBy: context.auth.uid,
+            updatedBy: request.auth.uid,
         }, { merge: true });
 
         return { success: true };
     } catch (err) {
-        functions.logger.error('Error in saveMondaySettings:', err);
-        throw new functions.https.HttpsError('internal', 'Failed to save Monday.com settings.');
+        logger.error('Error in saveMondaySettings:', err);
+        throw new HttpsError('internal', 'Failed to save Monday.com settings.');
     }
 });
 
@@ -226,14 +228,14 @@ const testMondayConnectionSchema = Joi.object({
     apiToken: Joi.string().required(),
 });
 
-exports.testMondayConnection = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in to test connection.');
+exports.testMondayConnection = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in to test connection.');
     }
 
-    const { error, value } = testMondayConnectionSchema.validate(data);
+    const { error, value } = testMondayConnectionSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { apiToken } = value;
 
@@ -253,14 +255,14 @@ const getRecentSyncHistorySchema = Joi.object({
     brandId: Joi.string().required(),
 });
 
-exports.getRecentSyncHistory = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in to view sync history.');
+exports.getRecentSyncHistory = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in to view sync history.');
     }
 
-    const { error, value } = getRecentSyncHistorySchema.validate(data);
+    const { error, value } = getRecentSyncHistorySchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId } = value;
 
@@ -274,8 +276,8 @@ exports.getRecentSyncHistory = functions.https.onCall(async (data, context) => {
         const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return history;
     } catch (err) {
-        functions.logger.error('Error fetching sync history:', err);
-        throw new functions.https.HttpsError('internal', 'Could not retrieve sync history.');
+        logger.error('Error fetching sync history:', err);
+        throw new HttpsError('internal', 'Could not retrieve sync history.');
     }
 });
 
@@ -286,18 +288,18 @@ const triggerFullSyncSchema = Joi.object({
     brandId: Joi.string().required(),
 });
 
-exports.triggerFullSync = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.triggerFullSync = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { error, value } = triggerFullSyncSchema.validate(data);
+    const { error, value } = triggerFullSyncSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId } = value;
 
-    functions.logger.info(`Manual sync triggered for brand: ${brandId} by user: ${context.auth.uid}`);
+    logger.info(`Manual sync triggered for brand: ${brandId} by user: ${request.auth.uid}`);
 
     return { success: true, message: 'Full sync initiated. This may take a few minutes.' };
 });
@@ -310,14 +312,14 @@ const syncInvoiceToMondaySchema = Joi.object({
     invoice: Joi.object().required(),
 });
 
-exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.syncInvoiceToMonday = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { error, value } = syncInvoiceToMondaySchema.validate(data);
+    const { error, value } = syncInvoiceToMondaySchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId, invoice } = value;
 
@@ -366,7 +368,7 @@ exports.syncInvoiceToMonday = functions.https.onCall(async (data, context) => {
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
-        functions.logger.error('syncInvoiceToMonday error:', error);
+        logger.error('syncInvoiceToMonday error:', error);
         await logSyncEvent(brandId, 'syncInvoice', false, { invoiceId: invoice.id }, error.message);
         return {
             success: false,
@@ -383,14 +385,14 @@ const syncLeadToMondaySchema = Joi.object({
     lead: Joi.object().required(),
 });
 
-exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.syncLeadToMonday = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { error, value } = syncLeadToMondaySchema.validate(data);
+    const { error, value } = syncLeadToMondaySchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId, lead } = value;
 
@@ -439,7 +441,7 @@ exports.syncLeadToMonday = functions.https.onCall(async (data, context) => {
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
-        functions.logger.error('syncLeadToMonday error:', error);
+        logger.error('syncLeadToMonday error:', error);
         await logSyncEvent(brandId, 'syncLead', false, { leadId: lead.id }, error.message);
         return {
             success: false,
@@ -456,14 +458,14 @@ const syncOrderToMondaySchema = Joi.object({
     order: Joi.object().required(),
 });
 
-exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.syncOrderToMonday = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { error, value } = syncOrderToMondaySchema.validate(data);
+    const { error, value } = syncOrderToMondaySchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId, order } = value;
 
@@ -512,7 +514,7 @@ exports.syncOrderToMonday = functions.https.onCall(async (data, context) => {
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
-        functions.logger.error('syncOrderToMonday error:', error);
+        logger.error('syncOrderToMonday error:', error);
         await logSyncEvent(brandId, 'syncOrder', false, { orderId: order.id }, error.message);
         return {
             success: false,
@@ -529,14 +531,14 @@ const syncActivationToMondaySchema = Joi.object({
     activation: Joi.object().required(),
 });
 
-exports.syncActivationToMonday = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+exports.syncActivationToMonday = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in');
     }
 
-    const { error, value } = syncActivationToMondaySchema.validate(data);
+    const { error, value } = syncActivationToMondaySchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { brandId, activation } = value;
 
@@ -585,7 +587,7 @@ exports.syncActivationToMonday = functions.https.onCall(async (data, context) =>
             mondayItemId: result.data.create_item.id
         };
     } catch (error) {
-        functions.logger.error('syncActivationToMonday error:', error);
+        logger.error('syncActivationToMonday error:', error);
         await logSyncEvent(brandId, 'syncActivation', false, { activationId: activation.id }, error.message);
         return {
             success: false,
@@ -612,7 +614,7 @@ exports.mondayRequest = mondayRequest;
 exports.logSyncEvent = logSyncEvent;
 exports.getBrandMondayIntegration = getBrandMondayIntegration;
 
-exports.trimSyncLogs = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+exports.trimSyncLogs = onSchedule('every 24 hours', async (event) => {
     const integrationsSnapshot = await db.collection('brand_integrations').get();
     for (const doc of integrationsSnapshot.docs) {
         const brandId = doc.id;
@@ -636,23 +638,23 @@ exports.trimSyncLogs = functions.pubsub.schedule('every 24 hours').onRun(async (
 // ============================================================
 // HELPER: Verify Admin Role
 // ============================================================
-async function ensureAdmin(context) {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+async function ensureAdmin(request) {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     // Check for admin custom claim
     // Note: Assuming custom claims are set up. If not, this might fail unless we verify ID in a different way.
     // For now, trusting the intent of the code.
-    if (context.auth.token.admin !== true) {
-        throw new functions.https.HttpsError('permission-denied', 'The function must be called by an administrator.');
+    if (request.auth.token.admin !== true) {
+        throw new HttpsError('permission-denied', 'The function must be called by an administrator.');
     }
 }
 
 // ============================================================
 // FUNCTION: Get Admin Monday.com Integration Settings
 // ============================================================
-exports.getAdminMondaySettings = functions.https.onCall(async (data, context) => {
-    await ensureAdmin(context);
+exports.getAdminMondaySettings = onCall(async (request) => {
+    await ensureAdmin(request);
 
     try {
         const docRef = db.collection('admin_integrations').doc('monday');
@@ -669,8 +671,8 @@ exports.getAdminMondaySettings = functions.https.onCall(async (data, context) =>
             invoicesBoardId: settings.invoicesBoardId || null,
         };
     } catch (error) {
-        functions.logger.error('getAdminMondaySettings error:', error);
-        throw new functions.https.HttpsError('internal', 'Could not retrieve Monday.com settings');
+        logger.error('getAdminMondaySettings error:', error);
+        throw new HttpsError('internal', 'Could not retrieve Monday.com settings');
     }
 });
 
@@ -681,12 +683,12 @@ const saveAdminMondaySettingsSchema = Joi.object({
     settings: Joi.object().required(),
 });
 
-exports.saveAdminMondaySettings = functions.https.onCall(async (data, context) => {
-    await ensureAdmin(context);
+exports.saveAdminMondaySettings = onCall(async (request) => {
+    await ensureAdmin(request);
 
-    const { error, value } = saveAdminMondaySettingsSchema.validate(data);
+    const { error, value } = saveAdminMondaySettingsSchema.validate(request.data);
     if (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.details[0].message);
+        throw new HttpsError('invalid-argument', error.details[0].message);
     }
     const { settings } = value;
 
@@ -696,12 +698,12 @@ exports.saveAdminMondaySettings = functions.https.onCall(async (data, context) =
         await docRef.set({
             ...settings,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedBy: context.auth.uid
+            updatedBy: request.auth.uid
         }, { merge: true });
 
         return { success: true };
     } catch (error) {
-        functions.logger.error('saveAdminMondaySettings error:', error);
-        throw new functions.https.HttpsError('internal', 'Could not save admin Monday.com settings.');
+        logger.error('saveAdminMondaySettings error:', error);
+        throw new HttpsError('internal', 'Could not save admin Monday.com settings.');
     }
 });
