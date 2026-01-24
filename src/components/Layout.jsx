@@ -22,8 +22,12 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
     const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
 
     return (
-        <aside className={`hidden md:flex flex-col ${isCollapsed ? 'w-24' : 'w-64'} themed-sidebar h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300`}
-            style={{ borderRight: '1px solid var(--border-primary)' }}>
+        <aside
+            className={`hidden md:flex flex-col ${isCollapsed ? 'w-24' : 'w-64'} themed-sidebar h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300`}
+            style={{ borderRight: '1px solid var(--border-primary)' }}
+            aria-label="Main navigation sidebar"
+            role="navigation"
+        >
             {/* Increased logo area from h-24/h-80 to h-40/h-120 */}
             <div
                 onClick={toggleSidebar}
@@ -39,7 +43,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, currentUser }) => {
                 </div>
             </div>
 
-            <nav className="flex-1 p-2 space-y-1">
+            <nav className="flex-1 p-2 space-y-1" aria-label="Primary navigation">
                 <NavItem to="/app" icon={<LayoutDashboard size={20} />} label="Dashboard" isCollapsed={isCollapsed} />
                 <div className="flex bg-slate-800/40 rounded-lg mx-2 mb-1 overflow-hidden backdrop-blur-sm shadow-inner group-hover:bg-slate-800/60 transition-colors">
                     <NavItem to="/app/map" icon={<Navigation size={20} className="text-brand-400" />} label="Territory Map" isCollapsed={isCollapsed} />
@@ -106,8 +110,9 @@ const NavItem = ({ to, icon, label, isCollapsed }) => {
                 color: 'var(--text-inverse)'
             } : {}}
             title={isCollapsed ? label : ''}
+            aria-label={label}
         >
-            <div className="min-w-[20px]">{icon}</div>
+            <div className="min-w-[20px]" aria-hidden="true">{icon}</div>
             {!isCollapsed && <span className="font-medium whitespace-nowrap overflow-hidden">{label}</span>}
         </NavLink>
     );
@@ -124,8 +129,9 @@ const MobileNavItem = ({ to, icon, label }) => {
             style={({ isActive }) => isActive ? {
                 color: 'var(--accent-primary)'
             } : {}}
+            aria-label={label}
         >
-            {icon}
+            <span aria-hidden="true">{icon}</span>
             <span className="text-[10px] font-medium">{label}</span>
         </NavLink>
     );
@@ -162,6 +168,13 @@ export default function Layout() {
             userEmail={currentUser?.email}
             userId={currentUser?.uid}
         >
+            {/* Skip to content link for keyboard accessibility */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-600 focus:text-white focus:rounded-lg focus:shadow-lg"
+            >
+                Skip to main content
+            </a>
             <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
                 <Sidebar
                     isCollapsed={isSidebarCollapsed}
@@ -177,8 +190,10 @@ export default function Layout() {
                             onClick={() => setIsMoreMenuOpen(true)}
                             className="p-2 rounded-lg transition-colors"
                             style={{ color: 'var(--text-secondary)' }}
+                            aria-label="Open navigation menu"
+                            aria-expanded={isMoreMenuOpen}
                         >
-                            <Menu size={24} />
+                            <Menu size={24} aria-hidden="true" />
                         </button>
 
                         {/* Logo */}
@@ -193,7 +208,7 @@ export default function Layout() {
                         </div>
                     </header>
 
-                    <div className="p-4 md:p-8 pb-32 md:pb-8 max-w-7xl mx-auto">
+                    <div id="main-content" className="p-4 md:p-8 pb-32 md:pb-8 max-w-7xl mx-auto" role="main">
                         <Outlet />
                     </div>
                 </main>
@@ -206,7 +221,7 @@ export default function Layout() {
 
 
                 {/* Bottom Nav - Admin Style with More Button */}
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md border-t pb-safe z-50 px-2 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md border-t pb-safe z-50 px-2 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} aria-label="Mobile navigation">
                     <MobileNavItem to="/app" icon={<LayoutDashboard size={20} />} label="Home" />
                     <MobileNavItem to="/app/new-lead" icon={<Users size={20} />} label="Leads" />
 
@@ -224,8 +239,10 @@ export default function Layout() {
                         onClick={() => setIsMoreMenuOpen(true)}
                         className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
                         style={{ color: isMoreMenuOpen ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
+                        aria-label="Open more options menu"
+                        aria-expanded={isMoreMenuOpen}
                     >
-                        <MoreHorizontal size={20} />
+                        <MoreHorizontal size={20} aria-hidden="true" />
                         <span className="text-[10px] font-medium">More</span>
                     </button>
                 </nav>
@@ -257,8 +274,13 @@ export default function Layout() {
                                 {/* Header */}
                                 <div className="flex justify-between items-center px-6 pb-4">
                                     <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>More</h2>
-                                    <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                        <X size={20} />
+                                    <button
+                                        onClick={() => setIsMoreMenuOpen(false)}
+                                        className="p-2 rounded-full"
+                                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                                        aria-label="Close menu"
+                                    >
+                                        <X size={20} aria-hidden="true" />
                                     </button>
                                 </div>
 

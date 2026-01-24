@@ -46,6 +46,15 @@ export function useOnboarding(tourType, userEmail, userId) {
                 const localKey = `onboarding_${getEffectiveTourType()}_${userId}`;
                 const localCompleted = localStorage.getItem(localKey);
 
+                // Check for dev bypass (set by dev login buttons in Login.jsx)
+                const devBypass = localStorage.getItem(`onboarding_${getEffectiveTourType()}_dev`);
+                if (devBypass === 'true') {
+                    setTourCompleted(true);
+                    setIsFirstTime(false);
+                    setIsLoading(false);
+                    return;
+                }
+
                 // Check if this user should ALWAYS get a tour (for testing/training)
                 const forceNewTour = FORCE_TOUR_EMAILS.includes(userEmail?.toLowerCase());
 

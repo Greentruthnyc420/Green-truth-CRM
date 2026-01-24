@@ -93,10 +93,21 @@ export default function BrandLayout() {
             userEmail={brandUser?.email}
             userId={brandUser?.id}
         >
+            {/* Skip to content link for keyboard accessibility */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-600 focus:text-white focus:rounded-lg focus:shadow-lg"
+            >
+                Skip to main content
+            </a>
             <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
                 {/* Sidebar */}
-                <aside className="hidden md:flex flex-col w-64 themed-sidebar h-screen fixed left-0 top-0 overflow-y-auto"
-                    style={{ borderRight: '1px solid var(--border-primary)' }}>
+                <aside
+                    className="hidden md:flex flex-col w-64 themed-sidebar h-screen fixed left-0 top-0 overflow-y-auto"
+                    style={{ borderRight: '1px solid var(--border-primary)' }}
+                    aria-label="Brand navigation sidebar"
+                    role="navigation"
+                >
                     {/* Brand Logo Area - Personalized */}
                     <div className="h-48 flex items-center justify-center bg-slate-950 overflow-hidden relative border-b border-slate-800 shrink-0 p-8">
                         {topSidebarLogo ? (
@@ -145,7 +156,7 @@ export default function BrandLayout() {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 p-3 space-y-1">
+                    <nav className="flex-1 p-3 space-y-1" aria-label="Brand navigation">
                         <NavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
                         <NavItem to="/brand/pipeline" icon={<GitBranch size={20} />} label="Pipeline" />
                         <NavItem to="/brand/new-lead" icon={<UserPlus size={20} />} label="New Lead" />
@@ -191,8 +202,9 @@ export default function BrandLayout() {
                             onClick={() => setIsSettingsOpen(true)}
                             className="w-full flex items-center gap-3 p-2 rounded-lg transition-colors hover:opacity-80"
                             style={{ background: 'var(--bg-sidebar-hover)', color: 'var(--text-sidebar)' }}
+                            aria-label="Open settings menu"
                         >
-                            <Settings size={20} />
+                            <Settings size={20} aria-hidden="true" />
                             <span className="font-medium text-sm">Settings</span>
                         </button>
                     </div>
@@ -218,8 +230,10 @@ export default function BrandLayout() {
                         <button
                             onClick={() => setIsMoreMenuOpen(true)}
                             className="p-2 rounded-lg transition-colors text-white/80 hover:text-white hover:bg-white/10"
+                            aria-label="Open navigation menu"
+                            aria-expanded={isMoreMenuOpen}
                         >
-                            <Menu size={24} />
+                            <Menu size={24} aria-hidden="true" />
                         </button>
                         <div className="flex items-center gap-2">
                             {brandLogo && (
@@ -238,7 +252,7 @@ export default function BrandLayout() {
                     </header>
 
                     {/* Mobile Navigation - Admin Style Bottom Nav with More Button */}
-                    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t pb-safe z-40 px-2 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.08)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t pb-safe z-40 px-2 py-2 flex justify-around items-center shadow-[0_-4px_12px_rgba(0,0,0,0.08)]" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} aria-label="Mobile brand navigation">
                         <MobileNavItem to="/brand" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
                         <MobileNavItem to="/brand/orders" icon={<ShoppingCart size={20} />} label="Orders" />
                         <MobileNavItem to="/brand/schedule" icon={<Calendar size={20} />} label="Schedule" />
@@ -247,8 +261,10 @@ export default function BrandLayout() {
                             onClick={() => setIsMoreMenuOpen(true)}
                             className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
                             style={{ color: isMoreMenuOpen ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
+                            aria-label="Open more options"
+                            aria-expanded={isMoreMenuOpen}
                         >
-                            <MoreHorizontal size={20} />
+                            <MoreHorizontal size={20} aria-hidden="true" />
                             <span className="text-[10px] font-medium">More</span>
                         </button>
                     </nav>
@@ -280,8 +296,13 @@ export default function BrandLayout() {
                                     {/* Header */}
                                     <div className="flex justify-between items-center px-6 pb-4">
                                         <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>More</h2>
-                                        <button onClick={() => setIsMoreMenuOpen(false)} className="p-2 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                            <X size={20} />
+                                        <button
+                                            onClick={() => setIsMoreMenuOpen(false)}
+                                            className="p-2 rounded-full"
+                                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                                            aria-label="Close menu"
+                                        >
+                                            <X size={20} aria-hidden="true" />
                                         </button>
                                     </div>
 
@@ -329,7 +350,7 @@ export default function BrandLayout() {
                     </AnimatePresence>
 
                     {/* Page Content */}
-                    <div className="p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto">
+                    <div id="main-content" className="p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto" role="main">
                         <Outlet />
                     </div>
                 </main>
@@ -358,8 +379,9 @@ const NavItem = ({ to, icon, label, end }) => {
             className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${isActive ? 'shadow-md' : 'hover:bg-slate-800 hover:text-white'}`
             }
+            aria-label={label}
         >
-            <div className="min-w-[20px]">{icon}</div>
+            <div className="min-w-[20px]" aria-hidden="true">{icon}</div>
             <span className="font-medium whitespace-nowrap overflow-hidden">{label}</span>
         </NavLink>
     );
@@ -373,8 +395,9 @@ const MobileNavItem = ({ to, icon, label, end }) => (
             `flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors ${isActive ? 'text-emerald-700' : 'text-slate-400 hover:text-slate-600'
             }`
         }
+        aria-label={label}
     >
-        {icon}
+        <span aria-hidden="true">{icon}</span>
         <span className="text-[10px] font-medium">{label}</span>
     </NavLink>
 );

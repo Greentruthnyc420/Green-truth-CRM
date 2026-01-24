@@ -323,6 +323,9 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        // Mark ALL tour types as completed to prevent any tour from ever showing
+                                        const tourTypes = ['sales_rep', 'admin', 'super_admin', 'brand', 'dispensary', 'social_manager'];
+                                        tourTypes.forEach(type => localStorage.setItem(`onboarding_${type}_dev`, 'true'));
                                         sessionStorage.setItem('skipTour', 'true');
                                         devLogin('rep@thegreentruthnyc.com');
                                         navigate('/app');
@@ -335,6 +338,9 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        // Mark ALL tour types as completed to prevent any tour from ever showing
+                                        const tourTypes = ['sales_rep', 'admin', 'super_admin', 'brand', 'dispensary', 'social_manager'];
+                                        tourTypes.forEach(type => localStorage.setItem(`onboarding_${type}_dev`, 'true'));
                                         sessionStorage.setItem('skipTour', 'true');
                                         devLogin('omar@thegreentruthnyc.com');
                                         navigate('/admin');
