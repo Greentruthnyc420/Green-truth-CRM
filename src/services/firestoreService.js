@@ -2,6 +2,7 @@
 import { supabase } from './supabaseClient';
 import { db } from "../firebase"; // Keeping for Auth ref if needed, but mostly unused now
 import { notifyAdminsLeadAdded, notifyAdminsSaleLogged, notifyAdminsActivationLogged } from './notificationService';
+import { geocodeAddress } from './geocodingService';
 
 // Status Constants (Keep same)
 export const LEAD_STATUS = {
@@ -18,13 +19,19 @@ export async function createUserProfile(userId, data) {
     const profileData = {
         id: userId,
         email: data.email,
-        name: data.name,
+        name: data.name || data.displayName,
         role: data.role,
         assigned_ambassador_id: data.assigned_ambassador_id,
         instagram_handle: data.instagramHandle || data.instagram_handle || null,
         phone: data.phone || null,
         address: data.address || null,
-        created_at: data.created_at || new Date().toISOString()
+        // Dispensary-specific fields
+        dispensary_id: data.dispensaryId || null,
+        dispensary_name: data.dispensaryName || null,
+        license_number: data.licenseNumber || null,
+        lead_id: data.leadId || null,
+        referred_by: data.referredBy || null,
+        created_at: data.created_at || data.createdAt || new Date().toISOString()
     };
 
     const { error } = await supabase.from('users').upsert(profileData);
@@ -47,6 +54,12 @@ export async function getUserProfile(userId) {
         phone: data.phone,
         address: data.address,
         assignedAmbassadorId: data.assigned_ambassador_id,
+        // Dispensary-specific fields
+        dispensaryId: data.dispensary_id,
+        dispensaryName: data.dispensary_name,
+        licenseNumber: data.license_number,
+        leadId: data.lead_id,
+        referredBy: data.referred_by,
         createdAt: data.created_at
     };
 }
@@ -109,6 +122,142 @@ export async function deleteUser(userId) {
         return false;
     }
     return true;
+}
+
+/**
+ * Fire a user and transfer all their data to admin
+ * - Transfers leads and activation requests to admin
+ * - Annotates historical sales/activations with transfer note
+ * - Deletes user-specific data (preferences, tokens, etc.)
+ * - Deletes user account
+ * - Logs action for audit trail
+ * 
+ * @param userId - The user being fired
+ * @param adminId - The admin who will receive transferred data
+ * @param adminName - Admin's name for record keeping
+ * @returns {Promise<{success: boolean, transferredUser: object, stats: object}>}
+ */
+export async function fireUserWithTransfer(userId, adminId, adminName = 'Admin') {
+    // 1. Get user info for records
+    const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+    if (userError || !userData) {
+        throw new Error('User not found');
+    }
+
+    const transferNote = `(Transferred from ${userData.name || userData.email})`;
+    const timestamp = new Date().toISOString();
+    const stats = { leads: 0, activationRequests: 0, sales: 0, activations: 0 };
+
+    try {
+        // 2. TRANSFER: Leads to admin
+        const { data: leadsData } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('assigned_ambassador_id', userId);
+
+        stats.leads = leadsData?.length || 0;
+
+        if (stats.leads > 0) {
+            await supabase
+                .from('leads')
+                .update({
+                    assigned_ambassador_id: adminId,
+                    rep_assigned_name: `${adminName} ${transferNote}`
+                })
+                .eq('assigned_ambassador_id', userId);
+        }
+
+        // 3. TRANSFER: Activation Requests to admin
+        const { data: activationReqData } = await supabase
+            .from('activation_requests')
+            .select('id')
+            .eq('assigned_rep_id', userId);
+
+        stats.activationRequests = activationReqData?.length || 0;
+
+        if (stats.activationRequests > 0) {
+            await supabase
+                .from('activation_requests')
+                .update({ assigned_rep_id: adminId })
+                .eq('assigned_rep_id', userId);
+        }
+
+        // 4. KEEP BUT ANNOTATE: Sales (historical record)
+        const { data: salesData } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('rep_id', userId);
+
+        stats.sales = salesData?.length || 0;
+
+        if (stats.sales > 0) {
+            await supabase
+                .from('sales')
+                .update({ rep_name: `${userData.name} ${transferNote}` })
+                .eq('rep_id', userId);
+        }
+
+        // 5. KEEP BUT ANNOTATE: Activations (historical record)
+        const { data: activationsData } = await supabase
+            .from('activations')
+            .select('id')
+            .eq('rep_id', userId);
+
+        stats.activations = activationsData?.length || 0;
+
+        if (stats.activations > 0) {
+            await supabase
+                .from('activations')
+                .update({ rep_name: `${userData.name} ${transferNote}` })
+                .eq('rep_id', userId);
+        }
+
+        // 6. DELETE: User-specific data (ignore errors for tables that may not have data)
+        await supabase.from('user_fcm_tokens').delete().eq('user_id', userId);
+        await supabase.from('user_onboarding').delete().eq('user_id', userId);
+        await supabase.from('user_preferences').delete().eq('user_id', userId);
+        await supabase.from('notification_preferences').delete().eq('user_id', userId);
+        await supabase.from('notifications').delete().eq('user_id', userId);
+        await supabase.from('points_history').delete().eq('user_id', userId);
+
+        // 7. DELETE: Role entry (if exists)
+        await supabase.from('user_roles').delete().eq('email', userData.email);
+
+        // 8. DELETE: User profile (last)
+        const { error: deleteError } = await supabase.from('users').delete().eq('id', userId);
+        if (deleteError) throw deleteError;
+
+        // 9. Log the action for audit
+        await supabase.from('audit_logs').insert({
+            action: 'USER_FIRED',
+            user_id: adminId,
+            details: JSON.stringify({
+                fired_user_id: userId,
+                fired_user_email: userData.email,
+                fired_user_name: userData.name,
+                leads_transferred: stats.leads,
+                activation_requests_transferred: stats.activationRequests,
+                sales_annotated: stats.sales,
+                activations_annotated: stats.activations,
+                timestamp
+            }),
+            created_at: timestamp
+        });
+
+        return {
+            success: true,
+            transferredUser: userData,
+            stats
+        };
+    } catch (error) {
+        console.error('Error in fireUserWithTransfer:', error);
+        throw error;
+    }
 }
 
 /**
@@ -606,6 +755,19 @@ export async function addLead(leadData) {
         initialStatus = LEAD_STATUS.SAMPLES_REQUESTED;
     }
 
+    // Auto-geocode if location is missing but address is present
+    let location = leadData.location;
+    if (!location && leadData.address) {
+        try {
+            const coords = await geocodeAddress(leadData.address);
+            if (coords) {
+                location = coords;
+            }
+        } catch (e) {
+            console.warn('Auto-geocoding failed for new lead:', e);
+        }
+    }
+
     const { data, error } = await supabase.from('leads').insert([{
         dispensary_name: leadData.dispensaryName,
         license_number: leadData.licenseNumber,
@@ -617,7 +779,7 @@ export async function addLead(leadData) {
         assigned_ambassador_id: leadData.userId,
         rep_assigned_name: leadData.repAssigned,
         lead_status: initialStatus,
-        location: leadData.location,
+        location: location,
         license_image_url: leadData.licenseImageUrl,
         created_at: new Date().toISOString()
     }]).select().single();
@@ -637,7 +799,56 @@ export async function addLead(leadData) {
         console.warn('Failed to send lead notification:', notifyError);
     }
 
+    // [FIX] Auto-create Sample Request Entry for Brands to see
+    if (leadData.samplesRequested && leadData.samplesRequested.length > 0) {
+        try {
+            const { error: sampleError } = await supabase.from('sample_requests').insert([{
+                dispensary_id: data.id,
+                dispensary_name: leadData.dispensaryName,
+                license_number: leadData.licenseNumber || null,
+                address: leadData.address || null,
+                requested_brands: leadData.samplesRequested, // Array of brand names
+                status: 'Pending',
+                created_at: new Date().toISOString(),
+                notes: leadData.notes || 'Initial sample request from new lead'
+            }]);
+
+            if (sampleError) console.error("Failed to create sample_request record:", sampleError);
+            else console.log("✅ Created sample_request record for", leadData.dispensaryName);
+        } catch (err) {
+            console.error("Exception creating sample request:", err);
+        }
+    }
+
     return { id: data.id };
+}
+
+/**
+ * Helper to parse location field from DB
+ * The location can be stored as a JSON string or as a native object,
+ * depending on how it was saved. This handles both cases.
+ */
+function parseLocation(locationData) {
+    if (!locationData) return null;
+
+    // Already an object with lat/lng
+    if (typeof locationData === 'object' && locationData.lat && locationData.lng) {
+        return locationData;
+    }
+
+    // JSON string needs parsing
+    if (typeof locationData === 'string') {
+        try {
+            const parsed = JSON.parse(locationData);
+            if (parsed && parsed.lat && parsed.lng) {
+                return parsed;
+            }
+        } catch (e) {
+            console.warn('Failed to parse location string:', locationData);
+        }
+    }
+
+    return null;
 }
 
 export async function getLeads() {
@@ -669,7 +880,7 @@ export async function getLeads() {
         priority: l.priority,
         contacts: l.contacts,
         meetingDate: l.meeting_date,
-        location: l.location,
+        location: parseLocation(l.location),
         licenseImageUrl: l.license_image_url,
         createdAt: l.created_at,
         userId: l.assigned_ambassador_id // For compatibility
@@ -726,7 +937,7 @@ export async function getBrandLeads(brandId) {
         priority: l.priority,
         contacts: l.contacts,
         meetingDate: l.meeting_date,
-        location: l.location,
+        location: parseLocation(l.location),
         licenseImageUrl: l.license_image_url,
         createdAt: l.created_at,
         userId: l.assigned_ambassador_id,
@@ -766,7 +977,7 @@ export async function getMyDispensaries(userId) {
         priority: l.priority,
         contacts: l.contacts,
         meetingDate: l.meeting_date,
-        location: l.location,
+        location: parseLocation(l.location),
         licenseImageUrl: l.license_image_url,
         createdAt: l.created_at,
         userId: l.assigned_ambassador_id
@@ -791,7 +1002,7 @@ export async function getLead(leadId) {
         priority: data.priority,
         contacts: data.contacts,
         meetingDate: data.meeting_date,
-        location: data.location,
+        location: parseLocation(data.location),
         licenseImageUrl: data.license_image_url,
         createdAt: data.created_at,
         userId: data.assigned_ambassador_id
@@ -819,6 +1030,20 @@ export async function updateLead(leadId, updates) {
     if (updates.licenseNumber) dbUpdates.license_number = updates.licenseNumber;
     if (updates.meetingDate !== undefined) dbUpdates.meeting_date = updates.meetingDate;
 
+    if (updates.meetingDate !== undefined) dbUpdates.meeting_date = updates.meetingDate;
+
+    // Auto-geocode on address update
+    if (updates.address && !updates.location) {
+        try {
+            const coords = await geocodeAddress(updates.address);
+            if (coords) {
+                dbUpdates.location = coords;
+            }
+        } catch (e) {
+            console.warn('Auto-geocoding failed for lead update:', e);
+        }
+    }
+
     console.log('[updateLead] Saving lead:', leadId, 'with updates:', dbUpdates);
 
     const { error } = await supabase.from('leads').update(dbUpdates).eq('id', leadId);
@@ -826,6 +1051,30 @@ export async function updateLead(leadId, updates) {
         console.error('[updateLead] Error saving:', error);
     } else {
         console.log('[updateLead] Successfully saved lead:', leadId);
+
+        // [FIX] If status is changing to 'samples_requested', create a request record
+        if (updates.leadStatus === LEAD_STATUS.SAMPLES_REQUESTED && updates.samplesRequested && updates.samplesRequested.length > 0) {
+            try {
+                // Fetch basic lead info if missing
+                let dispensaryName = updates.dispensaryName;
+                if (!dispensaryName) {
+                    const { data: existingLead } = await supabase.from('leads').select('dispensary_name, license_number, address').eq('id', leadId).single();
+                    if (existingLead) dispensaryName = existingLead.dispensary_name;
+                }
+
+                await supabase.from('sample_requests').insert([{
+                    dispensary_id: leadId,
+                    dispensary_name: dispensaryName || 'Unknown Dispensary',
+                    requested_brands: updates.samplesRequested,
+                    status: 'Pending',
+                    created_at: new Date().toISOString(),
+                    notes: updates.notes || 'Sample request from lead update'
+                }]);
+                console.log("✅ Created sample_request from updateLead");
+            } catch (e) {
+                console.error("Failed to create sample request on update:", e);
+            }
+        }
     }
     return !error;
 }
@@ -1042,6 +1291,9 @@ export async function getSales() {
         userId: s.rep_id, // Map back to userId for app compatibility
         repId: s.rep_id,
         dispensaryName: s.dispensary_name,
+        dispensaryAddress: s.dispensary_address || s.address || '',
+        licenseNumber: s.license_number || s.ocm_number || '',
+        contactPerson: s.contact_person || s.contact_name || '',
         amount: s.total_amount || 0,
         totalAmount: s.total_amount || 0, // alias
         // Calculate commission $ from rate * amount
@@ -1058,7 +1310,8 @@ export async function getSales() {
         brandId: s.brand_id || null,
         brandName: s.brand_name || null,
         deliveryDate: s.delivery_date || null,
-        invoiceNumber: s.invoice_number || null
+        invoiceNumber: s.invoice_number || null,
+        paymentTerms: s.payment_terms || null // Map snake_case to camelCase
     }));
 }
 
@@ -2427,7 +2680,7 @@ export async function updateUserEmail(userId, newEmail) {
 
 /**
  * Upgrade a trial user to a permanent business email.
- * Updates the email and sets is_trial to false.
+ * Stores the old email in linked_emails array so user can login with either email.
  * @param {string} userId - User ID (either Supabase UUID or Firebase UID)
  * @param {string} newEmail - New permanent email (e.g., name@thegreentruthnyc.com)
  * @returns {Object} Updated user record
@@ -2452,11 +2705,21 @@ export async function upgradeTrialUser(userId, newEmail) {
         user = userByUid;
     }
 
-    // Update the user
+    const oldEmail = user.email?.toLowerCase();
+    const newEmailLower = newEmail.toLowerCase();
+
+    // Build the linked_emails array - include old email if not already there
+    let linkedEmails = user.linked_emails || [];
+    if (oldEmail && !linkedEmails.includes(oldEmail)) {
+        linkedEmails = [...linkedEmails, oldEmail];
+    }
+
+    // Update the user with new email and linked_emails array
     const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({
-            email: newEmail.toLowerCase(),
+            email: newEmailLower,
+            linked_emails: linkedEmails,
             is_trial: false,
             updated_at: new Date().toISOString()
         })
@@ -2470,6 +2733,40 @@ export async function upgradeTrialUser(userId, newEmail) {
     }
 
     return updatedUser;
+}
+
+/**
+ * Find a user by any email - checks both primary email and linked_emails array.
+ * This allows users to login with either their original trial email or their upgraded business email.
+ * @param {string} email - Email to search for
+ * @returns {Object|null} User record or null if not found
+ */
+export async function findUserByAnyEmail(email) {
+    const emailLower = email.toLowerCase();
+
+    // First try to find by primary email
+    const { data: userByEmail, error: emailError } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', emailLower)
+        .single();
+
+    if (userByEmail) {
+        return userByEmail;
+    }
+
+    // If not found by primary email, check linked_emails array
+    const { data: userByLinked, error: linkedError } = await supabase
+        .from('users')
+        .select('*')
+        .contains('linked_emails', [emailLower])
+        .single();
+
+    if (userByLinked) {
+        return userByLinked;
+    }
+
+    return null;
 }
 
 /**

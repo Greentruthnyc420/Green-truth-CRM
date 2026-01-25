@@ -4,7 +4,7 @@ import { Phone, Mail, Navigation, Calendar, DollarSign, Package, ArrowLeft, MapP
 import { Link, useNavigate } from 'react-router-dom';
 import { deliverSamples, LEAD_STATUS } from '../services/firestoreService';
 import { BRAND_LICENSES } from '../contexts/BrandAuthContext';
-import { getMockCoordinates } from '../services/geocodingService';
+// REMOVED: getMockCoordinates import
 
 // Google Maps styling - clean, professional look matching the app theme
 const mapContainerStyle = {
@@ -12,11 +12,14 @@ const mapContainerStyle = {
     height: '100%'
 };
 
-// NYC center default
+// NYC / Tri-State area center - shows the five boroughs nicely
 const defaultCenter = {
-    lat: 40.7128,
-    lng: -74.0060
+    lat: 40.75,
+    lng: -73.95
 };
+
+// Default zoom to show NYC metro area (five boroughs + nearby NJ)
+const defaultZoom = 10;
 
 // Clean map style - subtle colors to make markers pop
 const mapStyles = [
@@ -206,19 +209,29 @@ export default function GoogleCRMMap({ leads = [], viewMode = 'admin', currentBr
     const onLoad = useCallback((mapInstance) => {
         setMap(mapInstance);
 
-        // Fit bounds to show all markers
+        // Fit bounds to show all markers, but only if we have valid points
         if (filteredLeads.length > 0) {
             const bounds = new window.google.maps.LatLngBounds();
+            let hasValidPoints = false;
+
             filteredLeads.forEach(lead => {
-                const pos = lead.location?.lat
-                    ? { lat: lead.location.lat, lng: lead.location.lng }
-                    : getMockCoordinates(lead.dispensaryName || lead.name);
-                if (pos.lat && pos.lng) {
-                    bounds.extend(new window.google.maps.LatLng(pos.lat || pos[0], pos.lng || pos[1]));
+                // Only include points with valid lat/lng
+                if (lead.location?.lat && lead.location?.lng) {
+                    const lat = parseFloat(lead.location.lat);
+                    const lng = parseFloat(lead.location.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        bounds.extend(new window.google.maps.LatLng(lat, lng));
+                        hasValidPoints = true;
+                    }
                 }
             });
-            mapInstance.fitBounds(bounds, { padding: 50 });
+
+            // Only fit bounds if we have valid points, otherwise keep NYC default
+            if (hasValidPoints) {
+                mapInstance.fitBounds(bounds, { padding: 50 });
+            }
         }
+        // If no valid points, map will stay centered on NYC defaultCenter with defaultZoom
     }, [filteredLeads]);
 
     const onUnmount = useCallback(() => {
@@ -268,28 +281,32 @@ export default function GoogleCRMMap({ leads = [], viewMode = 'admin', currentBr
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={defaultCenter}
-                zoom={11}
+                zoom={defaultZoom}
                 onLoad={onLoad}
                 onUnmount={onUnmount}
                 options={{
                     styles: mapStyles,
                     disableDefaultUI: false,
                     zoomControl: true,
-                    mapTypeControl: false,
-                    streetViewControl: false,
+                    mapTypeControl: true,
+                    streetViewControl: true,
                     fullscreenControl: true,
-                    gestureHandling: 'greedy'
+                    gestureHandling: 'cooperative' // Allows scrolling page without trapping mouse unless shift is held
                 }}
             >
                 {filteredLeads.map((lead, idx) => {
-                    // Get position - prefer stored location, fallback to mock
-                    let position;
+                    // Get position - STRICTLY verify lat/lng
+                    let position = null;
                     if (lead.location?.lat && lead.location?.lng) {
-                        position = { lat: lead.location.lat, lng: lead.location.lng };
-                    } else {
-                        const mockPos = getMockCoordinates(lead.dispensaryName || lead.name);
-                        position = { lat: mockPos[0], lng: mockPos[1] };
+                        const lat = parseFloat(lead.location.lat);
+                        const lng = parseFloat(lead.location.lng);
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            position = { lat, lng };
+                        }
                     }
+
+                    // If no valid position, do not render marker
+                    if (!position) return null;
 
                     const color = getStatusColor(lead.mapStatus);
 
@@ -334,12 +351,12 @@ export default function GoogleCRMMap({ leads = [], viewMode = 'admin', currentBr
                             {/* Status Badge */}
                             <div className="flex items-center gap-2 mb-3">
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${(selectedLead.mapStatus === 'active' || selectedLead.mapStatus === 'client' || selectedLead.mapStatus === LEAD_STATUS.ACTIVE)
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                        : (selectedLead.mapStatus === 'samples_delivered' || selectedLead.mapStatus === LEAD_STATUS.SAMPLES_DELIVERED
-                                            ? 'bg-blue-50 text-blue-700 border-blue-100'
-                                            : (selectedLead.mapStatus === 'samples_requested' || selectedLead.mapStatus === LEAD_STATUS.SAMPLES_REQUESTED || selectedLead.mapStatus === 'sampled'
-                                                ? 'bg-amber-50 text-amber-700 border-amber-100'
-                                                : 'bg-slate-50 text-slate-700 border-slate-100'))
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                    : (selectedLead.mapStatus === 'samples_delivered' || selectedLead.mapStatus === LEAD_STATUS.SAMPLES_DELIVERED
+                                        ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                        : (selectedLead.mapStatus === 'samples_requested' || selectedLead.mapStatus === LEAD_STATUS.SAMPLES_REQUESTED || selectedLead.mapStatus === 'sampled'
+                                            ? 'bg-amber-50 text-amber-700 border-amber-100'
+                                            : 'bg-slate-50 text-slate-700 border-slate-100'))
                                     }`}>
                                     {(selectedLead.mapStatus || 'prospect').replace('_', ' ')}
                                 </span>
@@ -432,8 +449,8 @@ export default function GoogleCRMMap({ leads = [], viewMode = 'admin', currentBr
                                         onClick={() => handleDeliverSamples(selectedLead.id)}
                                         disabled={updating}
                                         className={`w-full py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-1.5 ${updating
-                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200 hover:border-amber-300'
+                                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                            : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200 hover:border-amber-300'
                                             }`}
                                     >
                                         <Package size={14} />

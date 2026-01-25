@@ -3,6 +3,7 @@ import { FileText, DollarSign, Calendar, CheckCircle, Clock, AlertCircle, Downlo
 import { useAuth } from '../../contexts/AuthContext';
 import { getSales, getUserProfile } from '../../services/firestoreService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { generateInvoicePDF, downloadPDF } from '../../services/pdfReportService';
 import ThemeSwitcher from '../../components/ThemeSwitcher';
 
 export default function DispensaryInvoices() {
@@ -36,7 +37,7 @@ export default function DispensaryInvoices() {
                 }).map(sale => ({
                     ...sale,
                     // Use alphanumeric invoice number from database, fallback for legacy sales
-                    invoiceNumber: sale.invoiceNumber || `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+                    invoiceNumber: sale.invoiceNumber || sale.invoice_number || `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
                     invoiceDate: sale.date || sale.createdAt,
                     paymentTerms: sale.paymentTerms || 'Net 30', // Use stored payment terms
                     dueDate: calculateDueDate(sale.date || sale.createdAt, sale.paymentTerms),
@@ -102,6 +103,25 @@ export default function DispensaryInvoices() {
     const isOverdue = (dueDate) => {
         if (!dueDate) return false;
         return new Date(dueDate) < new Date();
+    };
+
+    // Download invoice as PDF
+    const handleDownloadInvoice = (invoice) => {
+        const pdfData = {
+            invoiceNumber: invoice.invoiceNumber,
+            date: formatDate(invoice.invoiceDate),
+            dueDate: formatDate(invoice.dueDate),
+            billTo: profile?.dispensaryName || invoice.dispensaryName || 'Dispensary',
+            billToAddress: profile?.address || '',
+            items: invoice.items || [{
+                description: invoice.brandName || 'Product Sale',
+                quantity: 1,
+                price: parseFloat(invoice.amount) || 0
+            }],
+            tax: 0
+        };
+        const doc = generateInvoicePDF(pdfData);
+        downloadPDF(doc, `Invoice-${invoice.invoiceNumber}.pdf`);
     };
 
     if (loading) {
@@ -325,6 +345,17 @@ export default function DispensaryInvoices() {
                                             <p className="font-bold text-amber-800 mb-1">Payment Information</p>
                                             <p className="text-sm text-amber-700">Please make checks payable to The Green Truth NYC or contact us for bank wire details.</p>
                                             <p className="text-sm text-amber-700 mt-1">Questions? Email billing@thegreentruthnyc.com</p>
+                                        </div>
+
+                                        {/* Download Button */}
+                                        <div className="mt-4 flex justify-end">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDownloadInvoice(invoice); }}
+                                                className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-slate-900 transition-colors"
+                                            >
+                                                <Download size={16} />
+                                                Download PDF
+                                            </button>
                                         </div>
                                     </div>
                                 )}

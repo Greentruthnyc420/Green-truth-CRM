@@ -8,6 +8,7 @@ import { getSales, getAllUsers, updateSaleStatus, markSaleCollected, markSaleRep
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { convertToCSV, downloadCSV } from '../../../utils/csvHelper';
+import { generateInvoicePDF, downloadPDF } from '../../../services/pdfReportService';
 
 export default function AdminCollections() {
     const { currentUser } = useAuth();
@@ -56,7 +57,8 @@ export default function AdminCollections() {
 
                 return {
                     ...sale,
-                    invoiceNumber: `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+                    // Use actual invoice_number from database if available, otherwise generate fallback
+                    invoiceNumber: sale.invoiceNumber || sale.invoice_number || `INV-${sale.id?.slice(-8)?.toUpperCase() || Math.random().toString(36).substr(2, 8).toUpperCase()}`,
                     invoiceDate,
                     paymentTerms,
                     dueDate,
@@ -64,7 +66,7 @@ export default function AdminCollections() {
                     daysOverdue,
                     // New status logic: pending -> collected -> paid
                     paymentStatus: sale.status === 'paid' ? 'paid' : sale.status === 'collected' ? 'collected' : 'pending',
-                    repName: sale.userName || sale.representativeName || usersMap[sale.userId]?.displayName || 'Unknown Rep',
+                    repName: sale.userName || sale.representativeName || usersMap[sale.userId]?.displayName || 'Unknown',
                     repEmail: usersMap[sale.userId]?.email || sale.userEmail || ''
                 };
             });
@@ -198,10 +200,29 @@ export default function AdminCollections() {
             'Invoice Date': formatDate(inv.invoiceDate),
             'Due Date': formatDate(inv.dueDate),
             'Days Overdue': inv.daysOverdue || 0,
-            'Sales Rep': inv.repName,
+            'Cannabis Consultant': inv.repName,
             'Rep Email': inv.repEmail
         }));
         downloadCSV(convertToCSV(data), `collections-export-${new Date().toISOString().split('T')[0]}.csv`);
+    };
+
+    // Download single invoice as PDF
+    const handleDownloadInvoice = (invoice) => {
+        const pdfData = {
+            invoiceNumber: invoice.invoiceNumber,
+            date: formatDate(invoice.invoiceDate),
+            dueDate: formatDate(invoice.dueDate),
+            billTo: invoice.dispensaryName || 'Dispensary',
+            billToAddress: invoice.address || '',
+            items: invoice.items || [{
+                description: invoice.brandName || 'Product Sale',
+                quantity: 1,
+                price: parseFloat(invoice.amount) || 0
+            }],
+            tax: 0
+        };
+        const doc = generateInvoicePDF(pdfData);
+        downloadPDF(doc, `Invoice-${invoice.invoiceNumber}.pdf`);
     };
 
     if (loading) {
@@ -335,7 +356,7 @@ export default function AdminCollections() {
                         className="px-4 py-2.5 rounded-xl text-sm font-medium outline-none"
                         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-secondary)' }}
                     >
-                        <option value="all">All Reps</option>
+                        <option value="all">All Consultants</option>
                         {uniqueReps.map(rep => (
                             <option key={rep.id} value={rep.id}>{rep.name}</option>
                         ))}
@@ -453,7 +474,7 @@ export default function AdminCollections() {
 
                                             {/* Rep Info */}
                                             <div>
-                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Sales Rep</p>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Cannabis Consultant</p>
                                                 <p className="font-bold text-slate-800 flex items-center gap-2">
                                                     <User size={14} /> {invoice.repName}
                                                 </p>
@@ -512,6 +533,12 @@ export default function AdminCollections() {
                                                         <Mail size={16} /> Email Rep
                                                     </a>
                                                 )}
+                                                <button
+                                                    onClick={() => handleDownloadInvoice(invoice)}
+                                                    className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                                                >
+                                                    <Download size={16} /> Download PDF
+                                                </button>
                                             </div>
                                         )}
                                         {invoice.paymentStatus === 'collected' && (
@@ -521,6 +548,22 @@ export default function AdminCollections() {
                                                     className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
                                                 >
                                                     <CheckCircle size={16} /> Pay Rep Commission
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDownloadInvoice(invoice)}
+                                                    className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                                                >
+                                                    <Download size={16} /> Download PDF
+                                                </button>
+                                            </div>
+                                        )}
+                                        {invoice.paymentStatus === 'paid' && (
+                                            <div className="mt-4 flex gap-3">
+                                                <button
+                                                    onClick={() => handleDownloadInvoice(invoice)}
+                                                    className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                                                >
+                                                    <Download size={16} /> Download PDF
                                                 </button>
                                             </div>
                                         )}

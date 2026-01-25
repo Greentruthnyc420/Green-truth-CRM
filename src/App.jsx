@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Core components that load immediately
 import Layout from './components/Layout';
@@ -64,6 +64,7 @@ const AdminBrands = lazy(() => import('./components/admin/views/AdminBrands'));
 const AdminCollections = lazy(() => import('./components/admin/views/AdminCollections'));
 const DispensaryDetail = lazy(() => import('./pages/admin/DispensaryDetail'));
 const AdminRoleManagement = lazy(() => import('./components/admin/views/AdminRoleManagement'));
+const BackfillLeads = lazy(() => import('./components/admin/views/BackfillLeads'));
 const AdminActivationRequests = lazy(() => import('./components/admin/views/AdminActivationRequests'));
 const AdminOrdersPage = lazy(() => import('./components/admin/views/AdminOrdersPage'));
 
@@ -114,7 +115,14 @@ function App() {
         <Routes>
 
           {/* New Animated Landing Page */}
+          {/* New Animated Landing Page */}
           <Route path="/" element={<LandingPage />} />
+
+          {/* Quick Fix: Redirect legacy/broken map URL */}
+          <Route path="/leads/map" element={<Navigate to="/app/map" replace />} />
+
+          {/* Global Catch-all - Redirect to App (which handles auth) instead of blank screen */}
+          <Route path="*" element={<Navigate to="/app" replace />} />
 
           {/* Gateway Landing Page */}
           <Route path="/gateway" element={<GatewayLanding />} />
@@ -142,6 +150,7 @@ function App() {
               <Route path="collections" element={<AdminCollections />} />
               <Route path="dispensary/:id" element={<DispensaryDetail />} />
               <Route path="roles" element={<AdminRoleManagement />} />
+              <Route path="backfill" element={<BackfillLeads />} />
             </Route>
           </Route>
 

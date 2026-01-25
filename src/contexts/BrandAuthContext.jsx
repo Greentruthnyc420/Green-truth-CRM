@@ -19,7 +19,6 @@ export const INTERNAL_BRAND_ID = 'greentruth';
 // Default brands for fallback - used when database is unavailable
 const DEFAULT_BRANDS = {
     'honey-king': { brandId: 'honey-king', brandName: '🍯 Honey King', logo: '/logos/partner-5.png' },
-    'bud-cracker': { brandId: 'bud-cracker', brandName: 'Bud Cracker Boulevard', logo: '/logos/partner-4.png' },
     'canna-dots': { brandId: 'canna-dots', brandName: 'Canna Dots', logo: '/logos/partner-3.jpg' },
     'space-poppers': { brandId: 'space-poppers', brandName: 'Space Poppers', logo: '/logos/partner-2.png' },
     'smoothie-bar': { brandId: 'smoothie-bar', brandName: 'Smoothie Bar', logo: '/logos/smoothie-bar.png' },

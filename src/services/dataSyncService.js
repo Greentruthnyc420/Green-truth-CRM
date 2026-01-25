@@ -52,7 +52,7 @@ export async function importOfficialDispensaries(onProgress) {
 
             // Location Strategy:
             // 1. Try OCM Georeference (if available)
-            // 2. Fallback to Nominatim Geocoding (Throttled)
+            // 2. Fallback to Google Maps Geocoding API (Throttled)
             let locationData = {
                 lat: record.georeference?.coordinates?.[1] || null,
                 lng: record.georeference?.coordinates?.[0] || null,
@@ -72,7 +72,7 @@ export async function importOfficialDispensaries(onProgress) {
                     }
 
                     if (onProgress) onProgress(index + 1, rawData.length, `Geocoding ${name.substring(0, 15)}... (Throttled)`);
-                    // Critical: Throttle to respect Nominatim usage policy (max 1 req/sec)
+                    // Throttle to respect Google Maps API rate limits
                     await delay(1100);
 
                 } catch (err) {

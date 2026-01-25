@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getInvoices } from '../../services/invoiceService';
 import { supabase } from '../../services/supabaseClient';
+import { generateInvoicePDF, downloadPDF } from '../../services/pdfReportService';
 import {
     FileText, ArrowUpRight, AlertTriangle, Calendar, Hash, Package, MapPin, Building2,
     CreditCard, Download, ExternalLink, Clock, X, Eye, Copy, Check, DollarSign, ChevronDown, ChevronUp
@@ -57,6 +58,24 @@ export default function BrandInvoicesGreenTruth() {
         } catch (err) {
             console.error('Copy failed:', err);
         }
+    };
+
+    // Download invoice as PDF
+    const handleDownloadInvoice = (invoice) => {
+        const pdfData = {
+            invoiceNumber: invoice.invoiceNumber || invoice.invoice_number || `GT-${invoice.id?.slice(0, 8)}`,
+            date: invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+            dueDate: invoice.dueDate || 'Upon Receipt',
+            billTo: brandUser?.brandName || 'Brand',
+            items: invoice.items || [{
+                description: invoice.invoiceType || 'Commission & Fees',
+                quantity: 1,
+                price: invoice.totalAmount || 0
+            }],
+            tax: 0
+        };
+        const doc = generateInvoicePDF(pdfData);
+        downloadPDF(doc, `Invoice-${pdfData.invoiceNumber}.pdf`);
     };
 
     const totalPayable = invoices.outstanding.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
@@ -250,7 +269,9 @@ export default function BrandInvoicesGreenTruth() {
                                     <Eye size={16} className="mt-1 opacity-50" style={{ color: 'var(--accent-primary)' }} />
                                     <div>
                                         <div className="flex items-center gap-3 mb-1">
-                                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Invoice #{inv.id.slice(0, 8)}...</h3>
+                                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                                                {inv.invoiceNumber || inv.invoice_number || `GT-${inv.id?.slice(0, 8)}`}
+                                            </h3>
                                             {inv.status === 'overdue' && (
                                                 <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
                                                     <AlertTriangle size={12} /> Overdue
@@ -311,7 +332,9 @@ export default function BrandInvoicesGreenTruth() {
                                     <div className="flex items-center gap-2">
                                         <Eye size={14} className="opacity-50" style={{ color: 'var(--success)' }} />
                                         <div>
-                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>#{inv.id.slice(0, 8)}...</p>
+                                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                {inv.invoiceNumber || inv.invoice_number || `GT-${inv.id?.slice(0, 8)}`}
+                                            </p>
                                             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{new Date(inv.createdAt).toLocaleDateString()}</p>
                                         </div>
                                     </div>
@@ -336,15 +359,26 @@ export default function BrandInvoicesGreenTruth() {
                         <div className="p-6 flex items-center justify-between sticky top-0 z-10" style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border-primary)' }}>
                             <div>
                                 <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Invoice Details</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>#{selectedInvoice.id}</p>
+                                <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                    {selectedInvoice.invoiceNumber || selectedInvoice.invoice_number || `GT-${selectedInvoice.id?.slice(0, 8)}`}
+                                </p>
                             </div>
-                            <button
-                                onClick={() => setSelectedInvoice(null)}
-                                className="p-2 rounded-full transition-colors"
-                                style={{ color: 'var(--text-secondary)' }}
-                            >
-                                <X size={20} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleDownloadInvoice(selectedInvoice)}
+                                    className="p-2 rounded-full transition-colors bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
+                                    title="Download PDF"
+                                >
+                                    <Download size={20} />
+                                </button>
+                                <button
+                                    onClick={() => setSelectedInvoice(null)}
+                                    className="p-2 rounded-full transition-colors"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="p-6 space-y-6">
@@ -476,7 +510,8 @@ export default function BrandInvoicesGreenTruth() {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }

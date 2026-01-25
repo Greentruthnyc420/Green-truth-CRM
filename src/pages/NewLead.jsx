@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Store, User, FileText, Calendar, DollarSign, Camera, X, Plus, Sparkles, Loader, Wand2 } from 'lucide-react';
+import { Store, User, FileText, Calendar, DollarSign, Camera, X, Plus, Sparkles, Loader, Wand2, Search } from 'lucide-react';
 import { addLead, checkDuplicateLead } from '../services/firestoreService';
 import { uploadTollReceipt } from '../services/storageService'; // Reusing existing upload logic
-import { geocodeAddress } from '../utils/geocoding';
-import { extractLicenseNumber, lookupDispensaryAddress } from '../services/geminiService';
+import { geocodeAddress, findPlaceFromText } from '../services/geocodingService';
+import { extractLicenseNumber } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
@@ -169,7 +169,8 @@ export default function NewLead() {
             }
             // -------------------------------------------------------------
 
-            // Geocoding Step - construct full address from parts
+            // Geocoding Step
+            // Geocoding Step - STRICT VALIDATION
             const fullAddress = [
                 formData.street,
                 formData.city,
@@ -177,19 +178,29 @@ export default function NewLead() {
                 formData.zipCode
             ].filter(Boolean).join(', ');
 
-            let locationData = { lat: null, lng: null, address: fullAddress };
-            try {
-                if (fullAddress) {
-                    const coords = await geocodeAddress(fullAddress);
-                    if (coords) {
-                        locationData = coords;
-                    } else {
-                        // Optional: Warn user but allow proceed? Or just save without coords.
-                        console.warn("Could not geocode address");
+            let locationData = null;
+
+            if (fullAddress.length > 5) {
+                try {
+                    console.log('Geocoding address:', fullAddress);
+                    locationData = await geocodeAddress(fullAddress);
+
+                    if (!locationData) {
+                        alert("Address not found on Google Maps.\n\nPlease verify the street, city, and zip code.\nA valid map location is required to create a lead.");
+                        setLoading(false);
+                        return;
                     }
+                } catch (geoError) {
+                    console.error("Geocoding failed", geoError);
+                    alert("Unable to verify address. Please check your internet connection and try again.");
+                    setLoading(false);
+                    return;
                 }
-            } catch (geoError) {
-                console.error("Geocoding failed", geoError);
+            } else {
+                // Address too short/empty
+                alert("Address is incomplete. Please provide a full address to locate the dispensary on the map.");
+                setLoading(false);
+                return;
             }
 
             let licenseImageUrl = null;
@@ -200,7 +211,7 @@ export default function NewLead() {
             const leadRef = await addLead({
                 ...formData,
                 address: fullAddress, // Combined address for storage
-                location: locationData, // Saved to DB
+                location: locationData, // Saved to DB ({ lat, lng, formattedAddress, placeId } or null)
                 licenseImageUrl,
                 userId: currentUser?.uid || 'test-user-123',
                 // Add explicit Rep Name for Leaderboard/Smart Checks
@@ -315,7 +326,7 @@ export default function NewLead() {
                                 onChange={(e) => setFormData({ ...formData, dispensaryName: e.target.value })}
                             />
                         </div>
-                        {/* AI Address Lookup Button */}
+                        {/* Google Places Address Lookup Button */}
                         {formData.dispensaryName && formData.dispensaryName.length > 3 && (
                             <button
                                 type="button"
@@ -323,19 +334,66 @@ export default function NewLead() {
                                     if (!formData.dispensaryName) return;
                                     setLookingUpAddress(true);
                                     try {
-                                        const cityHint = formData.city ? `${formData.city}, ${formData.state || 'NY'}` : '';
-                                        const result = await lookupDispensaryAddress(formData.dispensaryName, cityHint);
+                                        // Use Google Places Search
+                                        const result = await findPlaceFromText(formData.dispensaryName);
+
                                         if (result) {
+                                            // Parse the address components if possible, but formattedAddress is usually "Street, City, State Zip, Country"
+                                            // Simplified parsing for now:
+                                            const parts = result.formattedAddress.split(',').map(p => p.trim());
+
+                                            // Heuristic parsing for US addresses:
+                                            // Last part is Country (USA)
+                                            // Second to last is "State Zip"
+                                            // Third to last is City
+                                            // Rest is Street
+
+                                            // Let's rely on the user to double check, but pre-fill as best as we can.
+                                            // Actually, findPlaceFromText returns formatted_address which is good.
+                                            // We'll put the whole thing in street if we can't parse it easily, 
+                                            // OR we can try to be smart.
+
+                                            // Better approach: Just put the formatted address in street for now, 
+                                            // OR split by comma.
+
+                                            // Simple heuristic for "123 Main St, New York, NY 10001, USA"
+                                            let street = result.formattedAddress;
+                                            let city = '';
+                                            let state = 'NY';
+                                            let zip = '';
+
+                                            // Basic parsing attempt
+                                            const addrParts = result.formattedAddress.split(',');
+                                            if (addrParts.length >= 3) {
+                                                // Remove Country if "USA" or "United States"
+                                                let lastPart = addrParts[addrParts.length - 1].trim();
+                                                if (lastPart === 'USA' || lastPart === 'United States') {
+                                                    addrParts.pop();
+                                                }
+
+                                                // Now last part should be "State Zip" (e.g. "NY 10001")
+                                                const stateZip = addrParts.pop().trim();
+                                                const stateZipParts = stateZip.split(' ');
+                                                if (stateZipParts.length >= 2) {
+                                                    zip = stateZipParts.pop();
+                                                    state = stateZipParts.pop();
+                                                }
+
+                                                city = addrParts.pop().trim();
+                                                street = addrParts.join(', ').trim();
+                                            }
+
                                             setFormData(prev => ({
                                                 ...prev,
-                                                street: result.street || prev.street,
-                                                city: result.city || prev.city,
-                                                state: result.state || prev.state,
-                                                zipCode: result.zipCode || prev.zipCode
+                                                street: street || result.formattedAddress,
+                                                city: city || prev.city,
+                                                state: state.length === 2 ? state : prev.state,
+                                                zipCode: zip || prev.zipCode
                                             }));
-                                            showNotification(`✅ Found address: ${result.fullAddress}`, 'success');
+
+                                            showNotification(`✅ Found: ${result.name}`, 'success');
                                         } else {
-                                            showNotification('Could not find address. Please enter manually.', 'info');
+                                            showNotification('Place not found. Please enter address manually.', 'info');
                                         }
                                     } catch (err) {
                                         console.error('Address lookup error:', err);
@@ -345,12 +403,12 @@ export default function NewLead() {
                                     }
                                 }}
                                 disabled={lookingUpAddress}
-                                className="mt-2 flex items-center gap-2 text-xs px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                className="mt-2 flex items-center gap-2 text-xs px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-medium transition-colors disabled:opacity-50"
                             >
                                 {lookingUpAddress ? (
-                                    <><Loader size={12} className="animate-spin" /> Finding address...</>
+                                    <><Loader size={12} className="animate-spin" /> Searching...</>
                                 ) : (
-                                    <><Wand2 size={12} /> Auto-fill Address with AI</>
+                                    <><Search size={12} /> Find Address</>
                                 )}
                             </button>
                         )}

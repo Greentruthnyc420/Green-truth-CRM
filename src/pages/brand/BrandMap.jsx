@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useBrandAuth } from '../../contexts/BrandAuthContext';
 import { getLeads } from '../../services/firestoreService';
 import { Navigation } from 'lucide-react';
-import CRMMap from '../../components/CRMMap';
+import GoogleCRMMap from '../../components/GoogleCRMMap';
 
 export default function BrandMap() {
     const { brandUser } = useBrandAuth();
@@ -52,10 +52,11 @@ export default function BrandMap() {
                         </div>
                     </div>
                 ) : (
-                    <CRMMap
+                    <GoogleCRMMap
                         leads={leads}
                         viewMode="brand"
                         currentBrandId={brandUser?.brandId}
+                        onRefresh={null}
                     />
                 )}
             </div>

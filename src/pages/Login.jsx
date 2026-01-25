@@ -19,6 +19,7 @@ export default function Login() {
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [instagramHandle, setInstagramHandle] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -69,7 +70,7 @@ export default function Login() {
                 const isTrial = isTrialEmail(user.email);
                 await createUserProfile(user.uid, {
                     email: user.email,
-                    name: user.displayName || email.split('@')[0],
+                    name: name || user.displayName || email.split('@')[0],
                     role: sessionStorage.getItem('signupRole') || 'rep',
                     instagramHandle: formatInstagram(instagramHandle),
                     assigned_ambassador_id: sessionStorage.getItem('referralRef') || null,
@@ -239,6 +240,24 @@ export default function Login() {
                                 >
                                     Keep me signed in
                                 </label>
+                            </div>
+                        )}
+
+                        {/* Name Field - Required for Registration */}
+                        {isRegistering && (
+                            <div>
+                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Full Name</label>
+                                <div className="relative">
+                                    <Users size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-brand-500 outline-none transition-all"
+                                        placeholder="John Doe"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         )}
 

@@ -99,8 +99,7 @@ export default function AdminLayout() {
         { path: '/admin/territory', label: 'Territory', icon: Map },
         { path: '/admin/team', label: 'Team', icon: Users },
         { path: '/admin/pipeline', label: 'Pipeline', icon: GitBranch },
-        // Role Management only visible to super admins
-        ...(showRoleManagement ? [{ path: '/admin/roles', label: 'Roles', icon: Crown }] : []),
+        // Note: Role Management is now integrated into the Team page
     ];
 
     // Determine tour type based on super admin status

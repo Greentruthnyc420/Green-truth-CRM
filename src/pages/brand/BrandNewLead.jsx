@@ -93,26 +93,32 @@ export default function BrandNewLead() {
             const match = await checkDuplicateLead(formData.dispensaryName);
             if (match && match.ownerBrandId === brandUser?.brandId) {
                 alert("You already have this lead in your pipeline!");
-                setLoading(false);
+                setSaving(false); // Changed from setLoading to setSaving
                 return;
             }
 
-            // Construct full address from parts
-            const fullAddress = [
-                formData.street,
-                formData.city,
-                formData.state,
-                formData.zipCode
-            ].filter(Boolean).join(', ');
+            const fullAddress = `${formData.street}, ${formData.city}, ${formData.state} ${formData.zipCode}`;
+            let locationData = null;
 
-            let locationData = { lat: null, lng: null, address: fullAddress };
-            if (fullAddress) {
+            if (fullAddress.trim().length > 10) {
                 try {
-                    const coords = await geocodeAddress(fullAddress);
-                    if (coords) locationData = coords;
+                    locationData = await geocodeAddress(fullAddress);
+
+                    if (!locationData) {
+                        alert("Address not found on Google Maps.\n\nA valid map location is required. Please verify the address.");
+                        setLoading(false);
+                        return;
+                    }
                 } catch (err) {
                     console.error("Geocoding failed", err);
+                    alert("Unable to verify address due to an error. Please try again.");
+                    setLoading(false);
+                    return;
                 }
+            } else {
+                alert("Please enter a complete address to ensure map accuracy.");
+                setLoading(false);
+                return;
             }
 
             let licenseImageUrl = null;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, SUPER_ADMIN_EMAILS } from '../../../contexts/AuthContext';
-import { getUserRoles, addUserRole, updateUserRole, removeUserRole } from '../../../services/firestoreService';
+import { getUserRoles, addUserRole, updateUserRole, removeUserRole, getAllUsers, deleteUser, updateUserProfile, blockUser, unblockUser, fireUserWithTransfer } from '../../../services/firestoreService';
+import { supabase } from '../../../services/supabaseClient';
 import { useNotification } from '../../../contexts/NotificationContext';
 import {
     Shield,
@@ -39,11 +40,55 @@ export default function AdminRoleManagement() {
     const loadRoles = async () => {
         setLoading(true);
         try {
-            const data = await getUserRoles();
-            setRoles(data);
+            // [FIX] Load ALL users, not just admins, so we can manage Reps too
+            const [users, specialRoles] = await Promise.all([
+                getAllUsers(),
+                getUserRoles()
+            ]);
+
+            // Map special roles for easy lookup
+            const roleMap = new Map(specialRoles.map(r => [r.email.toLowerCase(), r]));
+
+            // Merge: Users are the base
+            const merged = users.map(u => {
+                const special = roleMap.get(u.email.toLowerCase());
+                return {
+                    id: u.id,
+                    email: u.email,
+                    // Prefer special role (from roles table), otherwise fallback to user role (rep/driver), otherwise user
+                    role: special ? special.role : (u.role || 'user'),
+                    grantedBy: special?.grantedBy,
+                    grantedAt: special?.grantedAt || u.createdAt,
+                    isActive: special ? special.isActive : !u.isBlocked,
+                    isUserEntry: true, // It's a real signed-up user
+                    isBlocked: u.isBlocked
+                };
+            });
+
+            // Also add any pre-authorized emails (in roles table but not yet signed up)
+            specialRoles.forEach(r => {
+                if (!users.find(u => u.email.toLowerCase() === r.email.toLowerCase())) {
+                    merged.push({
+                        ...r,
+                        isUserEntry: false, // Pending sign-up
+                        id: 'pending-' + r.email
+                    });
+                }
+            });
+
+            // Sort: Super Admin -> Admin -> Rep -> User
+            const roleOrder = { super_admin: 0, admin: 1, social_manager: 2, cannabis_consultant_social: 2, rep: 3, cannabis_consultant: 3, driver: 4, user: 5 };
+            merged.sort((a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99));
+
+            // [FIX] Filter out brand and dispensary accounts - they belong to their own portals
+            // Role Management should ONLY show staff: admins, social managers, cannabis consultants, drivers
+            const staffRoles = ['super_admin', 'admin', 'social_manager', 'cannabis_consultant_social', 'rep', 'cannabis_consultant', 'driver', 'user'];
+            const filteredMerged = merged.filter(u => staffRoles.includes(u.role));
+
+            setRoles(filteredMerged);
         } catch (error) {
-            console.error("Failed to load roles:", error);
-            showNotification('Failed to load role data', 'error');
+            console.error("Failed to load users/roles:", error);
+            showNotification('Failed to load user data', 'error');
         } finally {
             setLoading(false);
         }
@@ -115,16 +160,44 @@ export default function AdminRoleManagement() {
 
         setSaving(true);
         try {
-            const success = await updateUserRole(email, { role: newRoleValue }, currentUser.email);
+            const adminRoles = ['super_admin', 'admin', 'social_manager'];
+            const isNewRoleAdmin = adminRoles.includes(newRoleValue);
 
-            if (success) {
+            // Find user id from local state
+            const targetUser = roles.find(r => r.email === email);
+            const userId = targetUser?.id;
+
+            if (isNewRoleAdmin) {
+                // 1. Upgrade/Change to Admin Role
+                // This adds to user_roles table (defining access)
+                const addSuccess = await addUserRole(email, newRoleValue, currentUser.email);
+                if (!addSuccess) {
+                    throw new Error('Failed to add admin role in user_roles table');
+                }
+
+                // Also update profile for consistency
+                if (userId && targetUser.isUserEntry) {
+                    await updateUserProfile(userId, { role: newRoleValue });
+                }
+
                 showNotification(`Role updated to ${formatRoleName(newRoleValue)}`, 'success');
-                await loadRoles();
             } else {
-                showNotification('Failed to update role', 'error');
+                // 2. Downgrade to Regular Role (Rep/Driver/User)
+                // Remove from user_roles (revoke admin access)
+                await removeUserRole(email);
+
+                // Update profile to new role (e.g. 'rep' or 'cannabis_consultant')
+                if (userId && targetUser.isUserEntry) {
+                    await updateUserProfile(userId, { role: newRoleValue });
+                }
+
+                showNotification(`Role updated to ${formatRoleName(newRoleValue)}`, 'success');
             }
+
+            await loadRoles();
         } catch (error) {
-            showNotification('Error updating role', 'error');
+            console.error('Role update error:', error);
+            showNotification('Error updating role: ' + (error.message || 'Unknown error'), 'error');
         } finally {
             setSaving(false);
         }
@@ -158,11 +231,89 @@ export default function AdminRoleManagement() {
         }
     };
 
+    const handleDeleteUser = async (user) => {
+        if (SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+            showNotification('Cannot delete the super admin', 'error');
+            return;
+        }
+
+        // Check if user has data that needs to be transferred
+        let leadCount = 0;
+        let activationCount = 0;
+        try {
+            const { count: lc } = await supabase
+                .from('leads')
+                .select('*', { count: 'exact', head: true })
+                .eq('assigned_ambassador_id', user.id);
+            leadCount = lc || 0;
+
+            const { count: ac } = await supabase
+                .from('activation_requests')
+                .select('*', { count: 'exact', head: true })
+                .eq('assigned_rep_id', user.id);
+            activationCount = ac || 0;
+        } catch (e) {
+            console.warn('Could not fetch counts:', e);
+        }
+
+        const confirmMsg = `⚠️ FIRE ${user.email}?\n\n` +
+            `This will:\n` +
+            `• Transfer ${leadCount} lead(s) to you (Admin)\n` +
+            `• Transfer ${activationCount} activation request(s) to you\n` +
+            `• Keep their sales/activation history with a transfer note\n` +
+            `• Permanently delete their account\n\n` +
+            `This action cannot be undone.`;
+
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
+        const confirmText = prompt(`To confirm, type: FIRE`);
+        if (confirmText?.toUpperCase() !== 'FIRE') {
+            showNotification('Deletion cancelled', 'info');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            // Use the new fireUserWithTransfer function
+            if (user.isUserEntry && user.id && !user.id.startsWith('pending-')) {
+                const result = await fireUserWithTransfer(
+                    user.id,
+                    currentUser.uid,
+                    currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin'
+                );
+
+                showNotification(
+                    `${user.email} has been fired. ` +
+                    `${result.stats.leads} leads and ${result.stats.activationRequests} requests transferred to you.`,
+                    'success'
+                );
+            } else {
+                // Just remove from roles if no real profile
+                await removeUserRole(user.email);
+                showNotification(`Role removed for ${user.email}`, 'success');
+            }
+
+            await loadRoles();
+        } catch (error) {
+            console.error("Delete error:", error);
+            showNotification('Error: ' + (error.message || 'Could not delete user'), 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const formatRoleName = (role) => {
         const names = {
             super_admin: 'Super Admin',
             admin: 'Admin',
-            social_manager: 'Social Media Manager'
+            social_manager: 'Social Manager',
+            cannabis_consultant_social: 'Cannabis Consultant (Social)',
+            cannabis_consultant: 'Cannabis Consultant',
+            rep: 'Cannabis Consultant',
+            driver: 'Driver',
+            user: 'User'
         };
         return names[role] || role;
     };
@@ -175,6 +326,13 @@ export default function AdminRoleManagement() {
                 return <ShieldCheck size={18} className="text-indigo-500" />;
             case 'social_manager':
                 return <Instagram size={18} className="text-pink-500" />;
+            case 'cannabis_consultant_social':
+                return <Instagram size={18} className="text-emerald-500" />;
+            case 'cannabis_consultant':
+            case 'rep':
+                return <UserPlus size={18} className="text-emerald-500" />;
+            case 'driver':
+                return <UserPlus size={18} className="text-blue-500" />;
             default:
                 return <Shield size={18} className="text-slate-400" />;
         }
@@ -188,6 +346,12 @@ export default function AdminRoleManagement() {
                 return 'bg-indigo-100 text-indigo-800 border-indigo-200';
             case 'social_manager':
                 return 'bg-pink-100 text-pink-800 border-pink-200';
+            case 'cannabis_consultant_social':
+            case 'cannabis_consultant':
+            case 'rep':
+                return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'driver':
+                return 'bg-blue-100 text-blue-800 border-blue-200';
             default:
                 return 'bg-slate-100 text-slate-800 border-slate-200';
         }
@@ -261,6 +425,11 @@ export default function AdminRoleManagement() {
                     <span className="text-sm font-medium text-slate-700">Social Manager</span>
                     <span className="text-xs text-slate-500">- Calendar read-only + rep contacts</span>
                 </div>
+                <div className="flex items-center gap-2">
+                    <UserPlus size={16} className="text-emerald-500" />
+                    <span className="text-sm font-medium text-slate-700">Cannabis Consultant</span>
+                    <span className="text-xs text-slate-500">- Sales Portal access</span>
+                </div>
             </div>
 
             {/* Add Role Modal */}
@@ -297,6 +466,8 @@ export default function AdminRoleManagement() {
                                 >
                                     <option value="admin">Admin - Full Dashboard Access</option>
                                     <option value="social_manager">Social Manager - Calendar Only</option>
+                                    <option value="rep">Cannabis Consultant - Sales Portal</option>
+                                    <option value="user">User - Basic Access</option>
                                 </select>
                             </div>
 
@@ -379,6 +550,9 @@ export default function AdminRoleManagement() {
                                                     >
                                                         <option value="admin">Admin</option>
                                                         <option value="social_manager">Social Manager</option>
+                                                        <option value="rep">Cannabis Consultant</option>
+                                                        <option value="driver">Driver</option>
+                                                        <option value="user">User</option>
                                                     </select>
                                                 )}
                                             </td>
@@ -417,6 +591,15 @@ export default function AdminRoleManagement() {
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
+                                                        {role.isUserEntry && (
+                                                            <button
+                                                                onClick={() => handleDeleteUser(role)}
+                                                                className="p-2 rounded-lg hover:bg-red-50 text-red-700 transition-colors border border-transparent hover:border-red-200"
+                                                                title="Fire/Delete User (Permanent)"
+                                                            >
+                                                                <span className="font-bold text-xs">FIRE</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 )}
                                             </td>

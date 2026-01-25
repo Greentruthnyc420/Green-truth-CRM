@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Download, ChevronDown, ChevronRight, Package, DollarSign, Boxes, Search, Filter, ExternalLink, X, Leaf, Zap, Flame, Wind, Cookie } from 'lucide-react';
+import { FileText, Download, ChevronDown, ChevronRight, ChevronLeft, Package, DollarSign, Boxes, Search, Filter, ExternalLink, X, Leaf, Zap, Flame, Wind, Cookie } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAllBrandProfiles } from '../services/firestoreService';
@@ -20,14 +20,18 @@ const BRAND_LOGOS = {
     'jusbud': '/logos/jusbud.png'
 };
 
-// Static menu PDFs/images
+// Static menu PDFs/images - supports both single images (string) and multi-page (array)
 const MENU_PDFS = {
     'honey-king': '/menus/Honey_King_Menu.jpg',
     'canna-dots': '/menus/Canna_Dots_Menu.png',
-    'space-poppers': '/menus/space-poppers-2025.jpg',
+    // Space Poppers has 2 pages - the full catalog
+    'space-poppers': [
+        '/menus/space-poppers-2025-page1.jpg',
+        '/menus/space-poppers-2025-page2.jpg'
+    ],
     'smoothie-bar': '/menus/smoothie-bar-sheet.jpg',
     'waferz': '/menus/waferz-2025.jpg',
-    'pines': '/menus/pines_december_menu.jpg'
+    'pines': '/menus/pines-january-2025.png'
 };
 
 // Category icons and colors
@@ -56,6 +60,7 @@ export default function Menus() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [viewingPDF, setViewingPDF] = useState(null);
+    const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
     // Security Check
     useEffect(() => {
@@ -130,11 +135,47 @@ export default function Menus() {
     const handleDownloadMenu = (brandId) => {
         const menuUrl = MENU_PDFS[brandId];
         if (menuUrl) {
-            window.open(menuUrl, '_blank');
+            setViewingPDF(menuUrl);
+            setCurrentPageIndex(0); // Reset to first page when opening
         } else {
             showNotification('Menu not available for this brand', 'info');
         }
     };
+
+    const handleCloseMenu = () => {
+        setViewingPDF(null);
+        setCurrentPageIndex(0);
+    };
+
+    const handleNextPage = () => {
+        if (Array.isArray(viewingPDF) && currentPageIndex < viewingPDF.length - 1) {
+            setCurrentPageIndex(prev => prev + 1);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (currentPageIndex > 0) {
+            setCurrentPageIndex(prev => prev - 1);
+        }
+    };
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!viewingPDF) return;
+
+            if (e.key === 'Escape') {
+                handleCloseMenu();
+            } else if (e.key === 'ArrowRight') {
+                handleNextPage();
+            } else if (e.key === 'ArrowLeft') {
+                handlePrevPage();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [viewingPDF, currentPageIndex]);
 
     return (
         <div className="max-w-6xl mx-auto px-4 pb-24">
@@ -407,25 +448,92 @@ export default function Menus() {
             )}
 
             {/* PDF Viewer Modal */}
-            {viewingPDF && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-                    onClick={() => setViewingPDF(null)}
-                >
-                    <button
-                        onClick={() => setViewingPDF(null)}
-                        className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+            {viewingPDF && (() => {
+                const isMultiPage = Array.isArray(viewingPDF);
+                const menuUrls = isMultiPage ? viewingPDF : [viewingPDF];
+                const totalPages = menuUrls.length;
+                const currentMenuUrl = menuUrls[currentPageIndex];
+                const canGoPrev = currentPageIndex > 0;
+                const canGoNext = currentPageIndex < totalPages - 1;
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/95 overflow-y-auto overflow-x-hidden"
+                        onClick={handleCloseMenu}
                     >
-                        <X size={32} />
-                    </button>
-                    <img
-                        src={viewingPDF}
-                        alt="Menu"
-                        className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain"
-                        onClick={(e) => e.stopPropagation()}
-                    />
-                </div>
-            )}
+                        {/* Close Button - Fixed position */}
+                        <button
+                            onClick={handleCloseMenu}
+                            className="fixed top-4 right-4 text-white/80 hover:text-white p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors z-30 backdrop-blur-sm"
+                            aria-label="Close menu"
+                        >
+                            <X size={28} />
+                        </button>
+
+                        {/* Scroll Indicator - Fade out after scrolling */}
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-sm font-medium animate-bounce pointer-events-none z-20 flex flex-col items-center gap-1 bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                            <span>Scroll down to see more</span>
+                            <ChevronDown size={18} />
+                        </div>
+
+                        {/* Previous Page Button - Fixed position */}
+                        {isMultiPage && canGoPrev && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePrevPage();
+                                }}
+                                className="fixed left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors z-30 backdrop-blur-sm"
+                                aria-label="Previous page"
+                            >
+                                <ChevronLeft size={36} />
+                            </button>
+                        )}
+
+                        {/* Next Page Button - Fixed position */}
+                        {isMultiPage && canGoNext && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNextPage();
+                                }}
+                                className="fixed right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors z-30 backdrop-blur-sm"
+                                aria-label="Next page"
+                            >
+                                <ChevronRight size={36} />
+                            </button>
+                        )}
+
+                        {/* Menu Image Container - Full scrollable area */}
+                        <div
+                            className="min-h-screen flex flex-col items-center py-12 px-4"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* The actual menu image - displays at full size for scrolling */}
+                            <img
+                                src={currentMenuUrl}
+                                alt={`Menu${isMultiPage ? ` - Page ${currentPageIndex + 1}` : ''}`}
+                                className="rounded-lg shadow-2xl"
+                                style={{
+                                    width: 'auto',
+                                    maxWidth: 'min(1200px, 95vw)', // Large but not wider than viewport
+                                    height: 'auto' // Natural height - allows full scroll
+                                }}
+                            />
+
+                            {/* Page Indicator for multi-page menus */}
+                            {isMultiPage && (
+                                <div className="mt-6 px-5 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white text-sm font-semibold border border-white/20">
+                                    Page {currentPageIndex + 1} of {totalPages} — Use arrows to navigate
+                                </div>
+                            )}
+
+                            {/* Bottom spacer to ensure scroll indicator doesn't cover content */}
+                            <div className="h-20"></div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

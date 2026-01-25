@@ -50,7 +50,7 @@ export default function AdminOrders() {
                     status: sale.status || 'pending',
                     orderDate: sale.date?.toDate ? sale.date.toDate().toISOString().split('T')[0] : new Date(sale.date).toISOString().split('T')[0],
                     deliveryDate: sale.deliveryDate || null,
-                    paymentTerms: sale.paymentTerms || 'COD',
+                    paymentTerms: sale.paymentTerms || sale.payment_terms || 'Net 30',
                     brandIds: [...new Set((sale.items || []).map(i => i.brandId))]
                 };
             });
@@ -226,13 +226,15 @@ export default function AdminOrders() {
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{order.id}</span>
+                                                    <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                                                        {order.invoiceNumber || `INV-${order.id?.slice(0, 8).toUpperCase() || 'N/A'}`}
+                                                    </span>
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[order.status]}`}>
                                                         {order.status}
                                                     </span>
                                                     {order.paymentTerms && (
                                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-700">
-                                                            {order.paymentTerms}
+                                                            {order.paymentTerms === 'COD' ? 'Cash on Delivery' : order.paymentTerms}
                                                         </span>
                                                     )}
                                                 </div>
@@ -373,247 +375,231 @@ export default function AdminOrders() {
                 </div>
             )}
 
-            {/* Order Detail / Invoice Modal */}
-            {selectedOrder && (
-                <div
-                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
-                    onClick={() => setSelectedOrder(null)}
-                >
+            {/* Order Detail / Invoice Modal - Renders SEPARATE invoices per brand */}
+            {selectedOrder && (() => {
+                // Group products by brand to create separate invoices
+                const productsByBrand = {};
+                (selectedOrder.products || []).forEach(product => {
+                    const brandId = product.brandId || 'unknown';
+                    if (!productsByBrand[brandId]) {
+                        productsByBrand[brandId] = { items: [], total: 0 };
+                    }
+                    productsByBrand[brandId].items.push(product);
+                    productsByBrand[brandId].total += (product.quantity || 0) * (product.price || 0);
+                });
+
+                const brandIds = Object.keys(productsByBrand);
+                const isMultiBrand = brandIds.length > 1;
+
+                return (
                     <div
-                        className="themed-card rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-slideUp max-h-[90vh] overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
+                        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+                        onClick={() => setSelectedOrder(null)}
                     >
-                        {/* Invoice Header */}
-                        <div className="p-6" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <FileText size={20} style={{ color: 'var(--accent-primary)' }} />
-                                        <span className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Invoice</span>
+                        <div
+                            className="themed-card rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-slideUp flex flex-col"
+                            style={{ maxHeight: '90vh' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 shrink-0" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <FileText size={20} style={{ color: 'var(--accent-primary)' }} />
+                                            <span className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
+                                                {isMultiBrand ? `${brandIds.length} Brand Invoices` : 'Invoice'}
+                                            </span>
+                                        </div>
+                                        <h2 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>
+                                            {selectedOrder.invoiceNumber || `INV-${selectedOrder.id?.slice(0, 8).toUpperCase() || 'N/A'}`}
+                                        </h2>
+                                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                            {selectedOrder.orderDate} • {selectedOrder.paymentTerms || 'Net 30'}
+                                        </p>
                                     </div>
-                                    <h2 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>
-                                        {selectedOrder.invoiceNumber || `#${selectedOrder.id?.slice(0, 8) || 'N/A'}`}
-                                    </h2>
-                                    <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                                        {selectedOrder.orderDate} • {selectedOrder.paymentTerms}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setSelectedOrder(null)}
-                                    className="p-2 rounded-full transition-colors hover:bg-black/10"
-                                    style={{ color: 'var(--text-tertiary)' }}
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Customer Info */}
-                        <div className="p-6" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                            <h3 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-tertiary)' }}>Bill To</h3>
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-primary)', color: 'white' }}>
-                                    <Package size={24} />
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{selectedOrder.dispensary}</h4>
-                                    {selectedOrder.dispensaryAddress && (
-                                        <p className="text-sm flex items-center gap-1 mt-1" style={{ color: 'var(--text-secondary)' }}>
-                                            <MapPin size={14} /> {selectedOrder.dispensaryAddress}
-                                        </p>
-                                    )}
-                                    {selectedOrder.licenseNumber && (
-                                        <p className="text-sm flex items-center gap-1 mt-1 font-medium" style={{ color: 'var(--accent-primary)' }}>
-                                            <FileCheck size={14} /> OCM: {selectedOrder.licenseNumber}
-                                        </p>
-                                    )}
-                                    <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                                        Contact: {selectedOrder.contact}
-                                    </p>
+                                    <button
+                                        onClick={() => setSelectedOrder(null)}
+                                        className="p-2 rounded-full transition-colors hover:bg-black/10"
+                                        style={{ color: 'var(--text-tertiary)' }}
+                                    >
+                                        <X size={24} />
+                                    </button>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Products Table - Grouped by Brand */}
-                        <div className="p-6" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                            <h3 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-tertiary)' }}>Items</h3>
-                            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-                                {/* Group products by brand */}
-                                {(() => {
-                                    const productsByBrand = {};
-                                    (selectedOrder.products || []).forEach(product => {
-                                        const brandId = product.brandId || 'unknown';
-                                        if (!productsByBrand[brandId]) {
-                                            productsByBrand[brandId] = [];
-                                        }
-                                        productsByBrand[brandId].push(product);
-                                    });
+                            {/* Scrollable Content Area - Contains all invoices */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {/* Customer Info - Displayed once at top */}
+                                <div className="p-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+                                    <h3 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-tertiary)' }}>Bill To</h3>
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                            <Package size={24} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{selectedOrder.dispensary}</h4>
+                                            {selectedOrder.dispensaryAddress && (
+                                                <p className="text-sm flex items-center gap-1 mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                                    <MapPin size={14} /> {selectedOrder.dispensaryAddress}
+                                                </p>
+                                            )}
+                                            {selectedOrder.licenseNumber && (
+                                                <p className="text-sm flex items-center gap-1 mt-1 font-medium" style={{ color: 'var(--accent-primary)' }}>
+                                                    <FileCheck size={14} /> OCM: {selectedOrder.licenseNumber}
+                                                </p>
+                                            )}
+                                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                                Contact: {selectedOrder.contact}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    const brandIds = Object.keys(productsByBrand);
-                                    const isMultiBrand = brandIds.length > 1;
+                                {/* Render SEPARATE INVOICES for each brand */}
+                                {brandIds.map((brandId, idx) => {
+                                    const products = productsByBrand[brandId].items;
+                                    const brandTotal = productsByBrand[brandId].total;
+                                    const brandInfo = BRAND_LICENSES[Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === brandId)];
+                                    const brandName = brandInfo?.brandName || brandId;
 
-                                    return brandIds.map((brandId, groupIdx) => {
-                                        const products = productsByBrand[brandId];
-                                        const brandInfo = BRAND_LICENSES[Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === brandId)];
-                                        const brandName = brandInfo?.brandName || brandId;
-                                        const brandSubtotal = products.reduce((sum, p) => sum + (p.quantity * p.price), 0);
-
-                                        return (
-                                            <div key={brandId} className={isMultiBrand ? "p-3 rounded-xl" : ""} style={isMultiBrand ? { background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)' } : {}}>
-                                                {/* Brand Header - only show for multi-brand orders */}
-                                                {isMultiBrand && (
-                                                    <div className="flex items-center justify-between mb-3 pb-2" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-black" style={{ background: 'var(--accent-primary)', color: 'white' }}>
-                                                                {groupIdx + 1}
-                                                            </div>
-                                                            <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{brandName}</span>
-                                                        </div>
-                                                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                                            ${brandSubtotal.toFixed(2)}
-                                                        </span>
+                                    return (
+                                        <div
+                                            key={brandId}
+                                            className="rounded-xl overflow-hidden"
+                                            style={{
+                                                border: '2px solid var(--border-primary)',
+                                                background: 'var(--bg-card)'
+                                            }}
+                                        >
+                                            {/* Brand Invoice Header */}
+                                            <div
+                                                className="p-4 flex items-center justify-between"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary, var(--accent-primary)) 100%)',
+                                                    borderBottom: '1px solid var(--border-primary)'
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/20 text-white font-black">
+                                                        {idx + 1}
                                                     </div>
-                                                )}
-
-                                                {/* Products for this brand */}
-                                                <div className="space-y-2">
-                                                    {products.map((product, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="flex items-center justify-between p-3 rounded-xl"
-                                                            style={{ background: 'var(--bg-secondary)' }}
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                                                                    {product.quantity}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
-                                                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                                                        @ ${product.price?.toFixed(2)} each
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                                                                ${(product.quantity * product.price).toFixed(2)}
-                                                            </p>
-                                                        </div>
-                                                    ))}
+                                                    <div>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-white/70">Invoice From</p>
+                                                        <h3 className="text-lg font-black text-white">{brandName}</h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-white/70">Invoice Total</p>
+                                                    <p className="text-xl font-black text-white">${brandTotal.toFixed(2)}</p>
                                                 </div>
                                             </div>
-                                        );
-                                    });
-                                })()}
-                            </div>
-                        </div>
 
-                        {/* Totals - Per Brand + Grand Total */}
-                        <div className="p-6" style={{ background: 'var(--bg-secondary)' }}>
-                            {/* Per-Brand Totals - for invoice purposes */}
-                            {(() => {
-                                const productsByBrand = {};
-                                (selectedOrder.products || []).forEach(product => {
-                                    const brandId = product.brandId || 'unknown';
-                                    if (!productsByBrand[brandId]) {
-                                        productsByBrand[brandId] = { items: [], total: 0 };
-                                    }
-                                    productsByBrand[brandId].items.push(product);
-                                    productsByBrand[brandId].total += (product.quantity || 0) * (product.price || 0);
-                                });
+                                            {/* Brand Invoice Items */}
+                                            <div className="p-4 space-y-2">
+                                                <div className="grid grid-cols-12 gap-2 pb-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                                    <div className="col-span-1">Qty</div>
+                                                    <div className="col-span-6">Product</div>
+                                                    <div className="col-span-2 text-right">Price</div>
+                                                    <div className="col-span-3 text-right">Total</div>
+                                                </div>
+                                                {products.map((product, pIdx) => (
+                                                    <div
+                                                        key={pIdx}
+                                                        className="grid grid-cols-12 gap-2 py-3 items-center"
+                                                        style={{ borderBottom: pIdx < products.length - 1 ? '1px solid var(--border-secondary)' : 'none' }}
+                                                    >
+                                                        <div className="col-span-1">
+                                                            <span className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                                                                {product.quantity}
+                                                            </span>
+                                                        </div>
+                                                        <div className="col-span-6">
+                                                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{product.name}</p>
+                                                        </div>
+                                                        <div className="col-span-2 text-right">
+                                                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>${product.price?.toFixed(2)}</p>
+                                                        </div>
+                                                        <div className="col-span-3 text-right">
+                                                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>${(product.quantity * product.price).toFixed(2)}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
 
-                                const brandIds = Object.keys(productsByBrand);
-                                const isMultiBrand = brandIds.length > 1;
-
-                                if (!isMultiBrand) {
-                                    // Single brand - just show simple total
-                                    return (
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>${selectedOrder.total?.toFixed(2)}</span>
+                                            {/* Brand Invoice Subtotal */}
+                                            <div className="p-4 flex justify-between items-center" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-primary)' }}>
+                                                <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>Subtotal for {brandName}</span>
+                                                <span className="text-lg font-black" style={{ color: 'var(--accent-primary)' }}>${brandTotal.toFixed(2)}</span>
+                                            </div>
                                         </div>
                                     );
-                                }
+                                })}
 
-                                // Multi-brand - show per-brand invoice totals
-                                return (
-                                    <div className="space-y-2 mb-4 pb-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-                                        <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-tertiary)' }}>Invoice Breakdown</p>
-                                        {brandIds.map((brandId, idx) => {
-                                            const brandInfo = BRAND_LICENSES[Object.keys(BRAND_LICENSES).find(k => BRAND_LICENSES[k].brandId === brandId)];
-                                            const brandName = brandInfo?.brandName || brandId;
-                                            const brandTotal = productsByBrand[brandId].total;
-                                            return (
-                                                <div key={brandId} className="flex items-center justify-between p-2 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent-primary)', color: 'white' }}>
-                                                            {idx + 1}
-                                                        </div>
-                                                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{brandName}</span>
-                                                    </div>
-                                                    <span className="font-bold" style={{ color: 'var(--accent-primary)' }}>${brandTotal.toFixed(2)}</span>
-                                                </div>
-                                            );
-                                        })}
+                                {/* Grand Total - Always visible at bottom of invoices */}
+                                <div className="p-4 rounded-xl flex items-center justify-between" style={{ background: 'var(--bg-tertiary)', border: '2px dashed var(--border-primary)' }}>
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>
+                                            {isMultiBrand ? 'Combined Total (All Invoices)' : 'Order Total'}
+                                        </p>
+                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                            {isMultiBrand ? `${brandIds.length} separate invoices` : '1 invoice'}
+                                        </p>
                                     </div>
-                                );
-                            })()}
+                                    <span className="text-3xl font-black" style={{ color: 'var(--accent-primary)' }}>${selectedOrder.total?.toFixed(2)}</span>
+                                </div>
+                            </div>
 
-                            {/* Grand Total - for overall sale tracking */}
-                            <div className="flex items-center justify-between pt-3" style={{ borderTop: Object.keys((selectedOrder.products || []).reduce((acc, p) => { acc[p.brandId || 'unknown'] = true; return acc; }, {})).length > 1 ? 'none' : '2px dashed var(--border-primary)' }}>
-                                <span className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Grand Total</span>
-                                <span className="text-2xl font-black" style={{ color: 'var(--accent-primary)' }}>${selectedOrder.total?.toFixed(2)}</span>
+                            {/* Action Buttons - Fixed at bottom */}
+                            <div className="p-6 flex gap-3 shrink-0" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)' }}>
+                                {selectedOrder.status === 'pending' && (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                handleAcceptOrder(selectedOrder.id);
+                                                setSelectedOrder(null);
+                                            }}
+                                            className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2"
+                                            style={{ background: 'var(--success)', color: 'white' }}
+                                        >
+                                            <CheckCircle size={18} /> Accept Order
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleRejectOrder(selectedOrder.id);
+                                                setSelectedOrder(null);
+                                            }}
+                                            className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2"
+                                            style={{ background: 'var(--error)', color: 'white' }}
+                                        >
+                                            <X size={18} /> Reject
+                                        </button>
+                                    </>
+                                )}
+                                {selectedOrder.status === 'accepted' && (
+                                    <button
+                                        onClick={() => {
+                                            handleFulfillOrder(selectedOrder.id);
+                                            setSelectedOrder(null);
+                                        }}
+                                        className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2"
+                                        style={{ background: 'var(--info)', color: 'white' }}
+                                    >
+                                        <Truck size={18} /> Mark as Fulfilled
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setSelectedOrder(null)}
+                                    className="px-6 py-3 font-bold rounded-xl"
+                                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                                >
+                                    Close
+                                </button>
                             </div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="p-6 flex gap-3" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)' }}>
-                            {selectedOrder.status === 'pending' && (
-                                <>
-                                    <button
-                                        onClick={() => {
-                                            handleAcceptOrder(selectedOrder.id);
-                                            setSelectedOrder(null);
-                                        }}
-                                        className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2"
-                                        style={{ background: 'var(--success)', color: 'white' }}
-                                    >
-                                        <CheckCircle size={18} /> Accept Order
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            handleRejectOrder(selectedOrder.id);
-                                            setSelectedOrder(null);
-                                        }}
-                                        className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2"
-                                        style={{ background: 'var(--error)', color: 'white' }}
-                                    >
-                                        <X size={18} /> Reject
-                                    </button>
-                                </>
-                            )}
-                            {selectedOrder.status === 'accepted' && (
-                                <button
-                                    onClick={() => {
-                                        handleFulfillOrder(selectedOrder.id);
-                                        setSelectedOrder(null);
-                                    }}
-                                    className="flex-1 py-3 font-bold rounded-xl flex items-center justify-center gap-2"
-                                    style={{ background: 'var(--info)', color: 'white' }}
-                                >
-                                    <Truck size={18} /> Mark as Fulfilled
-                                </button>
-                            )}
-                            <button
-                                onClick={() => setSelectedOrder(null)}
-                                className="px-6 py-3 font-bold rounded-xl"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-                            >
-                                Close
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

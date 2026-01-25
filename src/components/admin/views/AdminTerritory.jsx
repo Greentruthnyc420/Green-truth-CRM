@@ -16,11 +16,15 @@ const TERRITORIES = [
     { id: 'outside_nyc', name: 'Outside NYC', color: '#64748b' }
 ];
 
+import { backfillLeads } from '../../../services/backfillService';
+import { toast } from 'sonner';
+
 export default function AdminTerritory() {
     const { currentUser } = useAuth();
     const [accounts, setAccounts] = useState([]);
     const [salesReps, setSalesReps] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fixing, setFixing] = useState(false);
     const [selectedTerritory, setSelectedTerritory] = useState('all');
     const [selectedRep, setSelectedRep] = useState('all');
 
@@ -117,13 +121,45 @@ export default function AdminTerritory() {
                         </p>
                     </div>
 
-                    <button
-                        onClick={loadTerritoryData}
-                        className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors"
-                        title="Refresh Map"
-                    >
-                        <RefreshCw size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={loadTerritoryData}
+                            className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors"
+                            title="Refresh Map"
+                        >
+                            <RefreshCw size={20} />
+                        </button>
+
+                        <button
+                            onClick={async () => {
+                                if (confirm('This will attempt to find GPS coordinates for all leads without them. It may take a while. Continue?')) {
+                                    setFixing(true);
+                                    try {
+                                        const result = await backfillLeads();
+                                        if (result.success) {
+                                            toast.success(result.message);
+                                            loadTerritoryData();
+                                        } else {
+                                            alert(`Error: ${result.message}`);
+                                            console.error(result);
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        alert('Failed to fix map data: ' + e.message);
+                                    } finally {
+                                        setFixing(false);
+                                    }
+                                }
+                            }}
+                            disabled={fixing}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${fixing
+                                ? 'bg-slate-100 text-slate-400 cursor-wait'
+                                : 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm'
+                                }`}
+                        >
+                            {fixing ? 'Fixing...' : 'Fix Map Data'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters and Stats Row */}

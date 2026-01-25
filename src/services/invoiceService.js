@@ -3,6 +3,116 @@ import { supabase } from './supabaseClient';
 const TABLE_NAME = 'invoices';
 
 /**
+ * Generate a sequential invoice number in format: GT-MMDDYYYY-XXXX
+ * Queries the database for the last invoice number of today
+ * and increments by 1.
+ * @returns {string} - Invoice number like GT-01252026-0001
+ */
+async function generateInvoiceNumber() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const year = now.getFullYear();
+    const dateStr = `${month}${day}${year}`;
+    const prefix = `GT-${dateStr}-`;
+
+    try {
+        // Find the highest invoice number for today
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('invoice_number')
+            .like('invoice_number', `${prefix}%`)
+            .order('invoice_number', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+
+        let nextNumber = 1;
+
+        if (data && data.length > 0 && data[0].invoice_number) {
+            // Extract the sequence number from the last invoice
+            const lastInvoice = data[0].invoice_number;
+            const match = lastInvoice.match(new RegExp(`^GT-${dateStr}-(\\d+)$`));
+            if (match) {
+                nextNumber = parseInt(match[1], 10) + 1;
+            }
+        }
+
+        // Pad to 4 digits
+        const paddedNumber = String(nextNumber).padStart(4, '0');
+        return `${prefix}${paddedNumber}`;
+    } catch (error) {
+        console.error("Error generating invoice number:", error);
+        // Fallback to timestamp-based if database query fails
+        return `GT-${dateStr}-${Date.now().toString().slice(-4)}`;
+    }
+}
+
+/**
+ * Migrate existing invoices to new GT-MMDDYYYY-XXXX format.
+ * This function updates all invoices that don't have the new format.
+ * Should be called once during app initialization or as an admin action.
+ * @returns {Object} - { updated: number, errors: number }
+ */
+export async function migrateInvoiceNumbers() {
+    try {
+        // Get all invoices that don't have the new format
+        const { data: invoices, error } = await supabase
+            .from(TABLE_NAME)
+            .select('id, invoice_number, created_at')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        // Group invoices by date to generate sequential numbers
+        const byDate = {};
+        let updated = 0;
+        let errors = 0;
+
+        for (const inv of invoices || []) {
+            // Skip if already in new format (GT-MMDDYYYY-XXXX)
+            if (inv.invoice_number && /^GT-\d{8}-\d{4}$/.test(inv.invoice_number)) {
+                continue;
+            }
+
+            // Generate new invoice number based on created_at
+            const createdAt = new Date(inv.created_at);
+            const month = String(createdAt.getMonth() + 1).padStart(2, '0');
+            const day = String(createdAt.getDate()).padStart(2, '0');
+            const year = createdAt.getFullYear();
+            const dateStr = `${month}${day}${year}`;
+
+            // Track sequence per date
+            if (!byDate[dateStr]) {
+                byDate[dateStr] = 0;
+            }
+            byDate[dateStr]++;
+
+            const newInvoiceNumber = `GT-${dateStr}-${String(byDate[dateStr]).padStart(4, '0')}`;
+
+            // Update the invoice
+            const { error: updateError } = await supabase
+                .from(TABLE_NAME)
+                .update({ invoice_number: newInvoiceNumber })
+                .eq('id', inv.id);
+
+            if (updateError) {
+                console.error(`Failed to update invoice ${inv.id}:`, updateError);
+                errors++;
+            } else {
+                console.log(`Updated invoice ${inv.id}: ${inv.invoice_number} → ${newInvoiceNumber}`);
+                updated++;
+            }
+        }
+
+        return { updated, errors, message: `Migrated ${updated} invoices with ${errors} errors` };
+    } catch (error) {
+        console.error("Migration failed:", error);
+        return { updated: 0, errors: 1, message: error.message };
+    }
+}
+
+/**
  * Get unpaid invoices for a dispensary, grouped by brand.
  * Used to check if dispensary has outstanding balance before allowing new orders.
  * @param {string} dispensaryId - The dispensary's ID
@@ -57,13 +167,17 @@ export async function getUnpaidInvoicesForDispensary(dispensaryId) {
  */
 export async function createInvoice(invoiceData) {
     try {
+        // Generate invoice number if not provided
+        const invoiceNumber = invoiceData.invoiceNumber || invoiceData.invoice_number || await generateInvoiceNumber();
+
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .insert([{
                 ...invoiceData,
+                invoice_number: invoiceNumber,
                 status: invoiceData.status || 'pending',
                 items: invoiceData.items || [], // Stored as JSONB
-                createdAt: new Date().toISOString()
+                created_at: new Date().toISOString()
             }])
             .select()
             .single();
@@ -205,7 +319,8 @@ export async function deleteInvoice(invoiceId) {
  */
 export async function createActivationInvoice(activationData, activationFee) {
     try {
-        const invoiceNumber = `INV-ACT-${Date.now()}`;
+        // Use the new sequential invoice number format
+        const invoiceNumber = await generateInvoiceNumber();
 
         // Build invoice items
         const items = [{

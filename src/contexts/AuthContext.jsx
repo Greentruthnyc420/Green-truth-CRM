@@ -286,12 +286,27 @@ export function AuthProvider({ children }) {
                             await loadUserRole(user.email);
 
                             // Auto-create Supabase profile if it doesn't exist
+                            // Also handles case where user logs in with linked email (old trial email)
                             const { supabase } = await import('../services/supabaseClient');
-                            const { data: profile, error: profileError } = await supabase
+                            const { findUserByAnyEmail } = await import('../services/firestoreService');
+
+                            // First try to find by Firebase UID
+                            let { data: profile, error: profileError } = await supabase
                                 .from('users')
-                                .select('role')
+                                .select('*')
                                 .eq('id', user.uid)
                                 .single();
+
+                            // If not found by UID, check if they're logging in with a linked email
+                            if (!profile && profileError?.code === 'PGRST116') {
+                                const linkedProfile = await findUserByAnyEmail(user.email);
+                                if (linkedProfile) {
+                                    // User found via linked email - they're logging in with their old trial email
+                                    // Update their record to include the Firebase UID for faster future lookups
+                                    profile = linkedProfile;
+                                    console.log('User found via linked email:', user.email);
+                                }
+                            }
 
                             if (!profile && profileError?.code === 'PGRST116') {
                                 const { createUserProfile } = await import('../services/firestoreService');
@@ -384,6 +399,7 @@ export function AuthProvider({ children }) {
         hasRole,
         isSuperAdminUser,
         isAdminUser,
+        isAdmin: isAdminUser, // Alias for backwards compatibility
         isSocialManagerUser,
         canViewFullCalendar,
         loadUserRole

@@ -164,19 +164,23 @@ export default function BrandDashboard() {
                     .slice(0, 10);
                 setUpcomingActivations(upcoming);
 
-                // Fetch sample requests count manually for now (or integrate into metrics service later)
-                // Assuming we have a collection 'sample_requests'
-                const { collection, query, where, getCountFromServer } = await import('firebase/firestore');
-                const { db } = await import('../../firebase');
+                // Fetch sample requests count from Supabase (not Firebase!)
+                // Sample requests are stored in Supabase sample_requests table
+                const { supabase } = await import('../../services/supabaseClient');
                 if (currentBrandName) {
-                    const qSamples = query(
-                        collection(db, 'sample_requests'),
-                        where('requestedBrands', 'array-contains-any', [currentBrandName, `${currentBrandName}!`, currentBrandName.replace('!', '')]),
-                        where('status', '==', 'Pending')
-                    );
-                    const snapshot = await getCountFromServer(qSamples);
-                    const pendingSamples = snapshot.data().count;
-                    metrics.pendingSampleRequests = pendingSamples; // Add to metrics
+                    // Query Supabase for pending sample requests that include this brand
+                    const { count: pendingSamples, error: sampleError } = await supabase
+                        .from('sample_requests')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('status', 'pending')
+                        .contains('requested_brands', [currentBrandName]);
+
+                    if (sampleError) {
+                        console.warn('Error fetching sample requests:', sampleError);
+                        metrics.pendingSampleRequests = 0;
+                    } else {
+                        metrics.pendingSampleRequests = pendingSamples || 0;
+                    }
                 } else {
                     metrics.pendingSampleRequests = 0;
                 }
